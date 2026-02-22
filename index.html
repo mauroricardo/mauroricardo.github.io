@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sokoban Mobile</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            margin: 0;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        h1 { margin: 5px 0; font-size: 24px; }
+        p { color: #bdc3c7; margin-bottom: 10px; font-size: 14px; text-align: center; }
+
+        #loading {
+            font-size: 20px;
+            color: #f1c40f;
+            margin-top: 50px;
+            font-weight: bold;
+        }
+
+        #game-ui {
+            display: none;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #level-info {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #f1c40f;
+        }
+
+        .save-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .save-btn {
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .save-btn:active { background-color: #1c5980; }
+
+        #game-container {
+            max-width: 100%;
+            overflow: auto; 
+            touch-action: none;
+        }
+
+        #game-board {
+            display: grid;
+            gap: 2px;
+            background-color: #1a252f;
+            padding: 8px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            margin: 0 auto;
+        }
+
+        .cell {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+            user-select: none;
+        }
+
+        /* Diseño de celdas */
+        .wall { 
+            background-color: #c0392b; 
+            border-radius: 4px;
+            box-shadow: inset 2px 2px 0px rgba(255,255,255,0.2), inset -2px -2px 0px rgba(0,0,0,0.3);
+            border: 1px solid #78281f;
+        }
+        .floor { background-color: #ecf0f1; border-radius: 2px; }
+        .goal { background-color: #2ecc71; border-radius: 2px; box-shadow: inset 0 0 8px rgba(0,0,0,0.2); }
+        .box { background-color: #f1c40f; transition: transform 0.1s; border-radius: 4px; }
+        .box-on-goal { background-color: #e67e22; border-radius: 4px; }
+        
+        /* Controles móviles */
+        .d-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(2, 50px);
+            gap: 5px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        
+        .d-pad button {
+            background-color: #34495e;
+            font-size: 20px;
+            border-radius: 10px;
+            padding: 0;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .d-pad button:active { background-color: #7f8c8d; }
+        
+        .btn-up { grid-column: 2; grid-row: 1; }
+        .btn-left { grid-column: 1; grid-row: 2; }
+        .btn-down { grid-column: 2; grid-row: 2; }
+        .btn-right { grid-column: 3; grid-row: 2; }
+
+        .menu-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .action-btn {
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #e74c3c;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .action-btn.success { background-color: #2ecc71; display: none; }
+        #win-message { color: #2ecc71; font-weight: bold; font-size: 20px; margin-top: 10px; display: none; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <h1>Sokoban</h1>
+    <p>Desliza, usa los botones o el teclado para jugar.</p>
+    
+    <div id="loading">Descargando mapas... ⏳</div>
+
+    <div id="game-ui">
+        <div id="level-info">Nivel 1</div>
+        
+        <div class="save-controls">
+            <button class="save-btn" onclick="exportProgress()">📤 Exportar</button>
+            <button class="save-btn" onclick="importProgress()">📥 Importar</button>
+        </div>
+
+        <div id="game-container">
+            <div id="game-board"></div>
+        </div>
+        
+        <div id="win-message">¡Nivel Completado! 🎉</div>
+
+        <div class="d-pad">
+            <button class="btn-up" onclick="move(0, -1)">⬆️</button>
+            <button class="btn-left" onclick="move(-1, 0)">⬅️</button>
+            <button class="btn-down" onclick="move(0, 1)">⬇️</button>
+            <button class="btn-right" onclick="move(1, 0)">➡️</button>
+        </div>
+
+        <div class="menu-buttons">
+            <button class="action-btn" onclick="resetLevel()">🔄 Reiniciar Nivel</button>
+            <button id="btn-next" class="action-btn success" onclick="nextLevel()">Siguiente Nivel ➡️</button>
+        </div>
+    </div>
+
+    <script>
+        const MAPS_URL = 'https://raw.githubusercontent.com/leoliu/sokoban/master/sokoban.levels';
+        
+        let levels = [];
+        let currentLevelIndex = 0;
+        let map = [];
+        let player = { x: 0, y: 0 };
+        let boxes = [];
+        let goals = [];
+        let isLevelComplete = false;
+
+        window.onload = loadGameMaps;
+
+        async function loadGameMaps() {
+            try {
+                const response = await fetch(MAPS_URL);
+                if (!response.ok) throw new Error("No se pudo contactar al servidor");
+                const rawText = await response.text();
+                levels = parseLevels(rawText);
+            } catch (error) {
+                console.warn("Usando mapas de respaldo (Offline). Motivo:", error);
+                levels = getFallbackLevels();
+            }
+
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("game-ui").style.display = "flex";
+            
+            // --- Cargar progreso automático ---
+            const savedLevel = localStorage.getItem('sokoban_level');
+            if (savedLevel !== null) {
+                const parsedLevel = parseInt(savedLevel, 10);
+                if (parsedLevel >= 0 && parsedLevel < levels.length) {
+                    currentLevelIndex = parsedLevel;
+                }
+            }
+            
+            initGame(currentLevelIndex);
+        }
+
+        function parseLevels(text) {
+            const parsedLevels = [];
+            let currentMap = [];
+            const lines = text.split('\n');
+            for (let line of lines) {
+                line = line.replace('\r', ''); 
+                if (line.trim() === '' || line.startsWith(';')) {
+                    if (currentMap.length > 0) {
+                        parsedLevels.push(currentMap);
+                        currentMap = [];
+                    }
+                } else if (line.includes('#')) {
+                    currentMap.push(line);
+                }
+            }
+            if (currentMap.length > 0) parsedLevels.push(currentMap);
+            return parsedLevels;
+        }
+
+        // --- FUNCIONES DE GUARDADO MANUAL ---
+        function exportProgress() {
+            // Creamos un objeto JSON y lo convertimos a un texto codificado en Base64
+            const saveData = { level: currentLevelIndex, game: "Sokoban" };
+            const saveCode = btoa(JSON.stringify(saveData));
+            
+            // Un prompt simple para que el usuario copie el código
+            prompt("Copia este código para restaurar tu partida en otro dispositivo:", saveCode);
+        }
+
+        function importProgress() {
+            const code = prompt("Pega aquí tu código de guardado:");
+            if (!code) return; // Si el usuario cancela
+
+            try {
+                // Decodificamos el Base64 y lo pasamos a JSON
+                const decodedText = atob(code);
+                const saveData = JSON.parse(decodedText);
+
+                if (saveData.game === "Sokoban" && typeof saveData.level === "number") {
+                    if (saveData.level >= 0 && saveData.level < levels.length) {
+                        currentLevelIndex = saveData.level;
+                        localStorage.setItem('sokoban_level', currentLevelIndex); // Actualizamos auto-guardado
+                        initGame(currentLevelIndex);
+                        alert("Progreso cargado con éxito. ¡A jugar!");
+                    } else {
+                        alert("El código pertenece a un nivel que no existe en esta versión.");
+                    }
+                } else {
+                    alert("El código de guardado no es válido.");
+                }
+            } catch (e) {
+                alert("Código dañado o incorrecto. Por favor verifica que lo copiaste bien.");
+            }
+        }
+
+        function initGame(levelIndex) {
+            isLevelComplete = false;
+            map = [];
+            boxes = [];
+            goals = [];
+            
+            document.getElementById("win-message").style.display = "none";
+            document.getElementById("btn-next").style.display = "none";
+            document.getElementById("level-info").innerText = `Nivel ${levelIndex + 1} de ${levels.length}`;
+
+            const levelPlan = levels[levelIndex];
+            const rows = levelPlan.length;
+            const cols = Math.max(...levelPlan.map(row => row.length)); 
+            
+            const board = document.getElementById("game-board");
+            board.style.gridTemplateColumns = `repeat(${cols}, 35px)`;
+            board.style.gridTemplateRows = `repeat(${rows}, 35px)`;
+            board.innerHTML = "";
+
+            for (let y = 0; y < rows; y++) {
+                let row = [];
+                for (let x = 0; x < cols; x++) {
+                    const char = levelPlan[y][x] || ' ';
+                    if (char === '#') row.push('wall');
+                    else row.push('floor');
+
+                    if (char === '@' || char === '+') player = { x, y };
+                    if (char === '$' || char === '*') boxes.push({ x, y });
+                    if (char === '.' || char === '*' || char === '+') goals.push({ x, y });
+                }
+                map.push(row);
+            }
+            drawBoard();
+        }
+
+        function drawBoard() {
+            const board = document.getElementById("game-board");
+            board.innerHTML = "";
+
+            for (let y = 0; y < map.length; y++) {
+                for (let x = 0; x < map[y].length; x++) {
+                    const cell = document.createElement("div");
+                    cell.classList.add("cell");
+
+                    if (map[y][x] === 'wall') {
+                        cell.classList.add("wall");
+                    } else {
+                        const isGoal = goals.some(g => g.x === x && g.y === y);
+                        cell.classList.add(isGoal ? "goal" : "floor");
+                        if (isGoal) cell.innerHTML = "🎯";
+                    }
+
+                    const isBox = boxes.some(b => b.x === x && b.y === y);
+                    const isGoal = goals.some(g => g.x === x && g.y === y);
+
+                    if (isBox) {
+                        cell.innerHTML = "📦";
+                        cell.className = `cell ${isGoal ? 'box-on-goal' : 'box'}`;
+                    } else if (player.x === x && player.y === y) {
+                        cell.innerHTML = "👨‍💻"; 
+                    }
+
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function move(dx, dy) {
+            if (isLevelComplete) return;
+
+            const newX = player.x + dx;
+            const newY = player.y + dy;
+
+            if (newY < 0 || newY >= map.length || newX < 0 || newX >= map[0].length) return;
+            if (map[newY][newX] === 'wall') return;
+
+            const boxIndex = boxes.findIndex(b => b.x === newX && b.y === newY);
+            
+            if (boxIndex !== -1) {
+                const boxNewX = newX + dx;
+                const boxNewY = newY + dy;
+
+                if (map[boxNewY][boxNewX] === 'wall' || boxes.some(b => b.x === boxNewX && b.y === boxNewY)) {
+                    return; 
+                }
+                boxes[boxIndex].x = boxNewX;
+                boxes[boxIndex].y = boxNewY;
+            }
+
+            player.x = newX;
+            player.y = newY;
+
+            drawBoard();
+            checkWin();
+        }
+
+        function checkWin() {
+            const won = boxes.every(box => goals.some(goal => goal.x === box.x && goal.y === box.y));
+            if (won) {
+                isLevelComplete = true;
+                document.getElementById("win-message").style.display = "block";
+                
+                if (currentLevelIndex < levels.length - 1) {
+                    document.getElementById("btn-next").style.display = "block";
+                } else {
+                    document.getElementById("win-message").innerText = "¡COMPLETASTE TODOS LOS NIVELES! 🏆";
+                }
+            }
+        }
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const gameContainer = document.getElementById('game-container');
+
+        gameContainer.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: true});
+
+        gameContainer.addEventListener('touchend', e => {
+            let touchEndX = e.changedTouches[0].screenX;
+            let touchEndY = e.changedTouches[0].screenY;
+            handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY);
+        }, {passive: true});
+
+        function handleSwipe(startX, startY, endX, endY) {
+            const diffX = endX - startX;
+            const diffY = endY - startY;
+            const threshold = 30; 
+
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX > threshold) move(1, 0); 
+                else if (diffX < -threshold) move(-1, 0); 
+            } else {
+                if (diffY > threshold) move(0, 1); 
+                else if (diffY < -threshold) move(0, -1); 
+            }
+        }
+
+        window.addEventListener("keydown", (e) => {
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
+            if (e.key === "ArrowUp") move(0, -1);
+            if (e.key === "ArrowDown") move(0, 1);
+            if (e.key === "ArrowLeft") move(-1, 0);
+            if (e.key === "ArrowRight") move(1, 0);
+        });
+
+        function resetLevel() { initGame(currentLevelIndex); }
+        
+        function nextLevel() {
+            if (currentLevelIndex < levels.length - 1) {
+                currentLevelIndex++;
+                localStorage.setItem('sokoban_level', currentLevelIndex); // Guarda al avanzar
+                initGame(currentLevelIndex);
+            }
+        }
+
+        function getFallbackLevels() {
+            return [
+                ["  ###  ", "  #.#  ", "###$###", "#.$@$.#", "###$###", "  #.#  ", "  ###  "],
+                [" ##### ", " #   # ", " #$# # ", " # $ # ", "##...##", "#  @  #", "#######"]
+            ];
+        }
+    </script>
+</body>
+</html>
