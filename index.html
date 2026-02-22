@@ -28,9 +28,9 @@
         }
 
         #game-ui {
-            display: none;
+            display: none; /* Se oculta hasta que carguen los mapas */
             width: 100%;
-            display: flex;
+            display: flex; /* Flexbox para centrar todo */
             flex-direction: column;
             align-items: center;
         }
@@ -38,26 +38,9 @@
         #level-info {
             font-size: 18px;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
             color: #f1c40f;
         }
-
-        .save-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .save-btn {
-            background-color: #2980b9;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        .save-btn:active { background-color: #1c5980; }
 
         #game-container {
             max-width: 100%;
@@ -68,7 +51,7 @@
         #game-board {
             display: grid;
             gap: 2px;
-            background-color: #1a252f;
+            background-color: #1a252f; /* Fondo oscuro detrás del tablero */
             padding: 8px;
             border-radius: 10px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
@@ -85,19 +68,29 @@
             user-select: none;
         }
 
-        /* Diseño de celdas */
+        /* --- NUEVO DISEÑO CON ALTO CONTRASTE --- */
         .wall { 
-            background-color: #c0392b; 
+            background-color: #c0392b; /* Rojo ladrillo fuerte */
             border-radius: 4px;
+            /* Efecto bloque 3D */
             box-shadow: inset 2px 2px 0px rgba(255,255,255,0.2), inset -2px -2px 0px rgba(0,0,0,0.3);
             border: 1px solid #78281f;
         }
-        .floor { background-color: #ecf0f1; border-radius: 2px; }
-        .goal { background-color: #2ecc71; border-radius: 2px; box-shadow: inset 0 0 8px rgba(0,0,0,0.2); }
+        
+        .floor { 
+            background-color: #ecf0f1; /* Gris casi blanco */
+            border-radius: 2px;
+        }
+        
+        .goal { 
+            background-color: #2ecc71; /* Verde brillante */
+            border-radius: 2px;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+        }
+        
         .box { background-color: #f1c40f; transition: transform 0.1s; border-radius: 4px; }
         .box-on-goal { background-color: #e67e22; border-radius: 4px; }
         
-        /* Controles móviles */
         .d-pad {
             display: grid;
             grid-template-columns: repeat(3, 50px);
@@ -155,11 +148,6 @@
 
     <div id="game-ui">
         <div id="level-info">Nivel 1</div>
-        
-        <div class="save-controls">
-            <button class="save-btn" onclick="exportProgress()">📤 Exportar</button>
-            <button class="save-btn" onclick="importProgress()">📥 Importar</button>
-        </div>
 
         <div id="game-container">
             <div id="game-board"></div>
@@ -175,12 +163,13 @@
         </div>
 
         <div class="menu-buttons">
-            <button class="action-btn" onclick="resetLevel()">🔄 Reiniciar Nivel</button>
+            <button class="action-btn" onclick="resetLevel()">🔄 Reiniciar</button>
             <button id="btn-next" class="action-btn success" onclick="nextLevel()">Siguiente Nivel ➡️</button>
         </div>
     </div>
 
     <script>
+        // URL segura de GitHub Raw (Colección clásica de mapas en texto plano)
         const MAPS_URL = 'https://raw.githubusercontent.com/leoliu/sokoban/master/sokoban.levels';
         
         let levels = [];
@@ -191,87 +180,54 @@
         let goals = [];
         let isLevelComplete = false;
 
+        // Iniciar la descarga al cargar la página
         window.onload = loadGameMaps;
 
         async function loadGameMaps() {
             try {
                 const response = await fetch(MAPS_URL);
                 if (!response.ok) throw new Error("No se pudo contactar al servidor");
+                
                 const rawText = await response.text();
                 levels = parseLevels(rawText);
+                
             } catch (error) {
                 console.warn("Usando mapas de respaldo (Offline). Motivo:", error);
-                levels = getFallbackLevels();
+                levels = getFallbackLevels(); // Si falla el internet, cargamos los básicos
             }
 
+            // Ocultar texto de carga y mostrar juego
             document.getElementById("loading").style.display = "none";
             document.getElementById("game-ui").style.display = "flex";
-            
-            // --- Cargar progreso automático ---
-            const savedLevel = localStorage.getItem('sokoban_level');
-            if (savedLevel !== null) {
-                const parsedLevel = parseInt(savedLevel, 10);
-                if (parsedLevel >= 0 && parsedLevel < levels.length) {
-                    currentLevelIndex = parsedLevel;
-                }
-            }
             
             initGame(currentLevelIndex);
         }
 
+        // Función que transforma el .txt en los arrays que necesita el juego
         function parseLevels(text) {
             const parsedLevels = [];
             let currentMap = [];
+            
             const lines = text.split('\n');
             for (let line of lines) {
-                line = line.replace('\r', ''); 
+                line = line.replace('\r', ''); // Limpiar formato Windows
+                
+                // Líneas vacías o comentarios (;) separan los niveles
                 if (line.trim() === '' || line.startsWith(';')) {
                     if (currentMap.length > 0) {
                         parsedLevels.push(currentMap);
                         currentMap = [];
                     }
                 } else if (line.includes('#')) {
+                    // Si la línea tiene un '#', es parte del laberinto
                     currentMap.push(line);
                 }
             }
-            if (currentMap.length > 0) parsedLevels.push(currentMap);
-            return parsedLevels;
-        }
-
-        // --- FUNCIONES DE GUARDADO MANUAL ---
-        function exportProgress() {
-            // Creamos un objeto JSON y lo convertimos a un texto codificado en Base64
-            const saveData = { level: currentLevelIndex, game: "Sokoban" };
-            const saveCode = btoa(JSON.stringify(saveData));
             
-            // Un prompt simple para que el usuario copie el código
-            prompt("Copia este código para restaurar tu partida en otro dispositivo:", saveCode);
-        }
-
-        function importProgress() {
-            const code = prompt("Pega aquí tu código de guardado:");
-            if (!code) return; // Si el usuario cancela
-
-            try {
-                // Decodificamos el Base64 y lo pasamos a JSON
-                const decodedText = atob(code);
-                const saveData = JSON.parse(decodedText);
-
-                if (saveData.game === "Sokoban" && typeof saveData.level === "number") {
-                    if (saveData.level >= 0 && saveData.level < levels.length) {
-                        currentLevelIndex = saveData.level;
-                        localStorage.setItem('sokoban_level', currentLevelIndex); // Actualizamos auto-guardado
-                        initGame(currentLevelIndex);
-                        alert("Progreso cargado con éxito. ¡A jugar!");
-                    } else {
-                        alert("El código pertenece a un nivel que no existe en esta versión.");
-                    }
-                } else {
-                    alert("El código de guardado no es válido.");
-                }
-            } catch (e) {
-                alert("Código dañado o incorrecto. Por favor verifica que lo copiaste bien.");
-            }
+            // Asegurar que el último mapa se agregue
+            if (currentMap.length > 0) parsedLevels.push(currentMap);
+            
+            return parsedLevels;
         }
 
         function initGame(levelIndex) {
@@ -384,6 +340,7 @@
             }
         }
 
+        // --- CONTROLES TÁCTILES (SWIPE) ---
         let touchStartX = 0;
         let touchStartY = 0;
         const gameContainer = document.getElementById('game-container');
@@ -413,6 +370,7 @@
             }
         }
 
+        // Teclado
         window.addEventListener("keydown", (e) => {
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
             if (e.key === "ArrowUp") move(0, -1);
@@ -426,15 +384,31 @@
         function nextLevel() {
             if (currentLevelIndex < levels.length - 1) {
                 currentLevelIndex++;
-                localStorage.setItem('sokoban_level', currentLevelIndex); // Guarda al avanzar
                 initGame(currentLevelIndex);
             }
         }
 
+        // Mapas de respaldo en caso de que falle la descarga desde GitHub
         function getFallbackLevels() {
             return [
-                ["  ###  ", "  #.#  ", "###$###", "#.$@$.#", "###$###", "  #.#  ", "  ###  "],
-                [" ##### ", " #   # ", " #$# # ", " # $ # ", "##...##", "#  @  #", "#######"]
+                [
+                    "  ###  ",
+                    "  #.#  ",
+                    "###$###",
+                    "#.$@$.#",
+                    "###$###",
+                    "  #.#  ",
+                    "  ###  "
+                ],
+                [
+                    " ##### ",
+                    " #   # ",
+                    " #$# # ",
+                    " # $ # ",
+                    "##...##",
+                    "#  @  #",
+                    "#######"
+                ]
             ];
         }
     </script>
