@@ -134,40 +134,31 @@
         <button id="btn-next" class="success" onclick="nextLevel()">Siguiente Nivel ➡️</button>
     </div>
 
-    <script>
-        // Colección de niveles (Aquí podrías agregar los 100 niveles)
-        const levels = [
-            // Nivel 1 (Muy fácil)
-            [
-                "  ###  ",
-                "  #.#  ",
-                "###$###",
-                "#.$@$.#",
-                "###$###",
-                "  #.#  ",
-                "  ###  "
-            ],
-            // Nivel 2 (Un poco más de lógica)
-            [
-                " ##### ",
-                " #   # ",
-                " #$# # ",
-                " # $ # ",
-                "##...##",
-                "#  @  #",
-                "#######"
-            ],
-            // Nivel 3 (Microban clásico)
-            [
-                " #### ",
-                " #  # ",
-                " #  ##",
-                " #@$ #",
-                "## $ #",
-                "#..  #",
-                "######"
-            ]
-        ];
+    <script type="module">
+        import { rawSokData } from './levels.js';
+        
+        function parseSokFormat(text) {
+            const levels = [];
+            // Separamos por bloques de líneas vacías o títulos
+            const blocks = text.split(/\n\s*\n/); 
+        
+            for (let block of blocks) {
+                const lines = block.split('\n')
+                    .map(line => line.replace('\r', '')) // Limpiar formato Windows
+                    .filter(line => {
+                        // Solo nos quedamos con líneas que contienen paredes (#)
+                        // Esto descarta automáticamente títulos, autores y líneas vacías
+                        return line.includes('#');
+                    });
+        
+                if (lines.length > 0) {
+                    levels.push(lines);
+                }
+            }
+            return levels;
+        }
+        
+        const levels = parseSokFormat(rawSokData);
 
         let currentLevelIndex = 0;
         let map = [];
@@ -343,5 +334,6 @@
     </script>
 </body>
 </html>
+
 
 
