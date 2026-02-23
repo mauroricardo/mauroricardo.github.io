@@ -18,17 +18,12 @@
             overscroll-behavior-y: contain; 
         }
 
-        h1 { margin: 5px 0; font-size: 24px; }
-
-        #level-info {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #f1c40f;
-        }
+        h1 { margin: 5px 0; font-size: 24px; text-align: center; }
 
         .save-controls {
             display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 10px;
             margin-bottom: 10px;
         }
@@ -42,8 +37,26 @@
             font-size: 13px;
             cursor: pointer;
             transition: background 0.2s;
+            font-weight: bold;
         }
         .save-btn:hover { background-color: #1c5980; }
+        .save-btn.special { background-color: #8e44ad; } /* Color para el botón del dashboard */
+        .save-btn.special:hover { background-color: #732d91; }
+
+        /* --- VISTA DEL JUEGO --- */
+        #game-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        #level-info {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #f1c40f;
+        }
 
         #game-container {
             max-width: 100%;
@@ -126,6 +139,56 @@
         button.action-btn.success { background-color: #2ecc71; display: none; }
 
         #win-message { color: #2ecc71; font-weight: bold; font-size: 20px; margin-top: 10px; display: none; text-align: center; }
+
+        /* --- VISTA DEL DASHBOARD --- */
+        #dashboard-view {
+            display: none; /* Oculto por defecto */
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+
+        .level-grid {
+            display: grid;
+            /* La magia responsive: columnas de mínimo 60px que llenan el espacio */
+            grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+            gap: 10px;
+            width: 100%;
+            max-height: 60vh; /* Permite scroll si hay muchos niveles */
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 10px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .level-btn {
+            background-color: #7f8c8d; /* Gris para no jugados */
+            color: white;
+            border: none;
+            padding: 15px 0;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s, background-color 0.2s;
+        }
+
+        .level-btn:active { transform: scale(0.95); }
+        .level-btn.completed { background-color: #27ae60; } /* Verde para completados */
+        .level-btn.current { border: 3px solid #f1c40f; } /* Borde amarillo para el actual */
+
     </style>
 </head>
 <body>
@@ -133,41 +196,56 @@
     <h1>Sokoban</h1>
     
     <div class="save-controls">
+        <button class="save-btn special" onclick="toggleDashboard()">🔢 Niveles</button>
         <button class="save-btn" onclick="exportJSON()">📥 Exportar</button>
         <button class="save-btn" onclick="triggerImport()">📤 Importar</button>
         <input type="file" id="import-file" style="display:none" accept=".json">
     </div>
 
-    <div id="level-info">Nivel 1</div>
+    <div id="game-view">
+        <div id="level-info">Nivel 1</div>
 
-    <div id="game-container">
-        <div id="game-board"></div>
+        <div id="game-container">
+            <div id="game-board"></div>
+        </div>
+        
+        <div id="win-message">¡Nivel Completado! 🎉</div>
+
+        <div class="d-pad">
+            <button class="btn-up" onclick="move(0, -1)">⬆️</button>
+            <button class="btn-left" onclick="move(-1, 0)">⬅️</button>
+            <button class="btn-down" onclick="move(0, 1)">⬇️</button>
+            <button class="btn-right" onclick="move(1, 0)">➡️</button>
+        </div>
+
+        <div class="menu-buttons">
+            <button class="action-btn warning" onclick="undoMove()">↩️ Deshacer</button>
+            <button class="action-btn" onclick="resetLevel()">🔄 Reiniciar Nivel</button>
+            <button id="btn-next" class="action-btn success" onclick="nextLevel()">Siguiente ➡️</button>
+        </div>
     </div>
-    
-    <div id="win-message">¡Nivel Completado! 🎉</div>
 
-    <div class="d-pad">
-        <button class="btn-up" onclick="move(0, -1)">⬆️</button>
-        <button class="btn-left" onclick="move(-1, 0)">⬅️</button>
-        <button class="btn-down" onclick="move(0, 1)">⬇️</button>
-        <button class="btn-right" onclick="move(1, 0)">➡️</button>
-    </div>
-
-    <div class="menu-buttons">
-        <button class="action-btn warning" onclick="undoMove()">↩️ Deshacer</button>
-        <button class="action-btn" onclick="resetLevel()">🔄 Reiniciar Nivel</button>
-        <button id="btn-next" class="action-btn success" onclick="nextLevel()">Siguiente ➡️</button>
+    <div id="dashboard-view">
+        <div class="dashboard-header">
+            <h2 style="margin: 0; color: #f1c40f;">Selector de Niveles</h2>
+            <button class="action-btn" onclick="toggleDashboard()">❌ Cerrar</button>
+        </div>
+        <div id="level-grid" class="level-grid">
+            </div>
     </div>
 
     <script type="module">
         import { rawSokData } from './levels.js';
         
+        // Exposición de funciones
         window.move = move;
         window.resetLevel = resetLevel;
         window.nextLevel = nextLevel;
         window.exportJSON = exportJSON;
         window.triggerImport = () => document.getElementById('import-file').click();
         window.undoMove = undoMove;
+        window.toggleDashboard = toggleDashboard;
+        window.selectLevelFromDashboard = selectLevelFromDashboard;
 
         function parseSokFormat(text) {
             const parsedLevels = [];
@@ -200,26 +278,90 @@
         let historyStack = []; 
         let isAnimating = false; 
 
-        // --- SISTEMA DE CARGA INICIAL ROBUSTO ---
+        // --- SISTEMA DE NIVELES COMPLETADOS ---
+        let completedLevels = [];
+        try {
+            const savedCompleted = localStorage.getItem('sokoban_completed_levels');
+            if (savedCompleted) {
+                completedLevels = JSON.parse(savedCompleted);
+            }
+        } catch (e) { console.warn("Error cargando niveles completados", e); }
+
+        function markLevelAsCompleted(index) {
+            if (!completedLevels.includes(index)) {
+                completedLevels.push(index);
+                localStorage.setItem('sokoban_completed_levels', JSON.stringify(completedLevels));
+            }
+        }
+
+        // --- FUNCIONES DEL DASHBOARD ---
+        function toggleDashboard() {
+            const gameView = document.getElementById('game-view');
+            const dashView = document.getElementById('dashboard-view');
+            
+            if (dashView.style.display === 'none' || dashView.style.display === '') {
+                // Mostrar Dashboard
+                gameView.style.display = 'none';
+                dashView.style.display = 'flex';
+                renderDashboard();
+            } else {
+                // Volver al juego
+                dashView.style.display = 'none';
+                gameView.style.display = 'flex';
+                // Forzar recálculo del tamaño de celdas por si rotó la pantalla
+                window.dispatchEvent(new Event('resize')); 
+            }
+        }
+
+        function renderDashboard() {
+            const grid = document.getElementById('level-grid');
+            grid.innerHTML = ''; // Limpiar grilla
+
+            levels.forEach((_, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'level-btn';
+                btn.innerText = i + 1;
+
+                if (completedLevels.includes(i)) {
+                    btn.classList.add('completed');
+                }
+                if (i === currentLevelIndex) {
+                    btn.classList.add('current');
+                }
+
+                btn.onclick = () => selectLevelFromDashboard(i);
+                grid.appendChild(btn);
+            });
+        }
+
+        function selectLevelFromDashboard(index) {
+            // Eliminar progreso en vivo para empezar limpio
+            localStorage.removeItem('sokoban_save_state'); 
+            currentLevelIndex = index;
+            localStorage.setItem('sokoban_level_v2', currentLevelIndex);
+            
+            toggleDashboard(); // Cerrar dashboard
+            initGame(currentLevelIndex); // Cargar nivel seleccionado
+        }
+
+        // --- SISTEMA DE CARGA INICIAL ---
         let initialSavedState = null;
         try {
-            // Buscamos si hay un estado en progreso guardado
             const stateStr = localStorage.getItem('sokoban_save_state');
             if (stateStr) {
                 const state = JSON.parse(stateStr);
                 if (state && typeof state.level === 'number' && state.level < levels.length) {
                     currentLevelIndex = state.level;
-                    initialSavedState = state; // Guardamos la foto completa (jugador, cajas, historial)
+                    initialSavedState = state; 
                 }
             } else {
-                // Si no hay estado en progreso, cargamos el nivel máximo alcanzado
                 const savedLevel = localStorage.getItem('sokoban_level_v2');
                 if (savedLevel !== null) {
                     const parsed = parseInt(savedLevel, 10);
                     if (!isNaN(parsed) && parsed >= 0 && parsed < levels.length) currentLevelIndex = parsed;
                 }
             }
-        } catch(e) { console.warn("Error cargando el estado guardado", e); }
+        } catch(e) {}
 
         function calculateCellSize(cols, rows) {
             const availableWidth = window.innerWidth * 0.95; 
@@ -230,7 +372,7 @@
         }
 
         window.addEventListener('resize', () => {
-            if (map.length === 0) return;
+            if (map.length === 0 || document.getElementById('dashboard-view').style.display === 'flex') return;
             const cols = map[0].length;
             const rows = map.length;
             currentCellSize = calculateCellSize(cols, rows);
@@ -244,10 +386,8 @@
             });
         });
 
-        // --- FUNCIÓN PARA PERSISTIR EL PROGRESO DEL NIVEL ACTUAL ---
         function persistGameState() {
-            if (isLevelComplete) return; // Si ganó, no guardamos el nivel a medias
-            
+            if (isLevelComplete) return; 
             const state = {
                 level: currentLevelIndex,
                 player: player,
@@ -271,7 +411,7 @@
             player = lastState.player;
             boxes = lastState.boxes;
             drawBoard();
-            persistGameState(); // Actualizar el guardado al deshacer
+            persistGameState(); 
         }
 
         function findPath(startX, startY, targetX, targetY) {
@@ -329,7 +469,7 @@
                     player.y += path[stepIndex].dy;
                     drawBoard();
                     checkWin();
-                    persistGameState(); // Guardar el paso actual en auto-caminata
+                    persistGameState(); 
                     stepIndex++;
                     setTimeout(walkStep, 60); 
                 } else {
@@ -339,7 +479,6 @@
             walkStep();
         }
 
-        // --- INIT GAME ADAPTADO PARA ACEPTAR UN ESTADO GUARDADO ---
         function initGame(levelIndex, savedState = null) {
             isLevelComplete = false;
             isAnimating = false;
@@ -363,7 +502,6 @@
             board.style.gridTemplateRows = `repeat(${rows}, ${currentCellSize}px)`;
             board.innerHTML = "";
 
-            // Armar el mapa estático
             for (let y = 0; y < rows; y++) {
                 let row = [];
                 for (let x = 0; x < cols; x++) {
@@ -378,8 +516,6 @@
                 map.push(row);
             }
 
-            // Si recibimos un estado guardado (de localStorage o de un JSON importado), 
-            // sobrescribimos el jugador, las cajas y el historial
             if (savedState) {
                 player = savedState.player;
                 boxes = savedState.boxes;
@@ -388,7 +524,7 @@
                 player = tempPlayer;
                 boxes = tempBoxes;
                 historyStack = [];
-                persistGameState(); // Guardar el inicio limpio del nivel
+                persistGameState(); 
             }
 
             drawBoard();
@@ -462,15 +598,18 @@
 
             drawBoard();
             checkWin();
-            persistGameState(); // Persistimos en localStorage tras cada movimiento manual
+            persistGameState(); 
         }
 
         function checkWin() {
             const won = boxes.every(box => goals.some(goal => goal.x === box.x && goal.y === box.y));
             if (won) {
                 isLevelComplete = true;
-                // Eliminamos el progreso en vivo para que al recargar empiece limpio en el siguiente o actual
                 localStorage.removeItem('sokoban_save_state'); 
+                
+                // Marcar el nivel como completado
+                markLevelAsCompleted(currentLevelIndex);
+
                 document.getElementById("win-message").style.display = "block";
                 
                 if (currentLevelIndex < levels.length - 1) {
@@ -503,6 +642,9 @@
         }, {passive: true});
 
         window.addEventListener("keydown", (e) => {
+            // Si el dashboard está abierto, ignorar teclado del juego
+            if (document.getElementById('dashboard-view').style.display === 'flex') return;
+            
             if (isAnimating) { e.preventDefault(); return; }
             
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
@@ -516,13 +658,13 @@
 
         function exportJSON() {
             if(isAnimating) return;
-            // Ahora la exportación saca TODA la foto, igual que el localStorage
             const data = { 
                 game: "Sokoban", 
                 level: currentLevelIndex, 
                 player: player,
                 boxes: boxes,
                 historyStack: historyStack,
+                completedLevels: completedLevels, // Ahora guarda también tus trofeos
                 date: new Date().toISOString() 
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
@@ -546,7 +688,12 @@
                         currentLevelIndex = data.level;
                         localStorage.setItem('sokoban_level_v2', currentLevelIndex);
                         
-                        // Si el JSON trae posiciones en progreso, lo cargamos completo
+                        // Cargar historial de completados si viene en el JSON
+                        if (data.completedLevels) {
+                            completedLevels = data.completedLevels;
+                            localStorage.setItem('sokoban_completed_levels', JSON.stringify(completedLevels));
+                        }
+
                         if (data.player && data.boxes) {
                             initGame(currentLevelIndex, data);
                         } else {
@@ -561,7 +708,6 @@
 
         function resetLevel() { 
             if(isAnimating) return;
-            // Limpiamos el guardado de la memoria y reseteamos el tablero
             localStorage.removeItem('sokoban_save_state');
             initGame(currentLevelIndex); 
         }
@@ -575,7 +721,6 @@
             }
         }
 
-        // --- INICIAR JUEGO (Pasando el progreso recuperado, si existe) ---
         initGame(currentLevelIndex, initialSavedState);
     </script>
 </body>
