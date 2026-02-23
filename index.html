@@ -86,23 +86,54 @@
             cursor: pointer; 
         }
 
-        .wall { background-color: indianred; cursor: not-allowed; }
-        .floor { background-color: #bdc3c7; }
-        .goal {
-            background-color: #27ae60; /* Verde base */
-            background-image:
-                /* Círculos concéntricos del blanco (Target) */
-                radial-gradient(circle at center, #d84b6b 14%, transparent 15%),
-                radial-gradient(circle at center, #e8daef 28%, transparent 29%),
-                radial-gradient(circle at center, #d84b6b 42%, transparent 43%),
-                /* Sombra sutil alrededor del círculo para dar relieve */
-                radial-gradient(circle at center, rgba(0,0,0,0.25) 46%, transparent 52%),
-                /* Aspas diagonales verdes (La 'X' del fondo) */
-                linear-gradient(45deg, transparent 42%, #1e8449 42%, #1e8449 58%, transparent 58%),
-                linear-gradient(-45deg, transparent 42%, #1e8449 42%, #1e8449 58%, transparent 58%);
-            border-radius: 4px;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
-        }
+        .wall {
+    /* Color base del ladrillo (rojo intenso oscuro / granate) */
+    background-color: #9f1909; 
+    
+    /* Dibujamos el mortero gris usando PORCENTAJES para que el patrón sea escalable */
+    background-image:
+        /* 1. Líneas horizontales que dividen el bloque en 3 filas gruesas */
+        linear-gradient(to bottom, 
+            transparent calc(33.33% - 2px), gray calc(33.33% - 2px), gray calc(33.33% + 2px), transparent calc(33.33% + 2px),
+            transparent calc(66.66% - 2px), gray calc(66.66% - 2px), gray calc(66.66% + 2px), transparent calc(66.66% + 2px)
+        ),
+        /* 2. Línea vertical de la fila SUPERIOR (centrada al 50%) */
+        linear-gradient(to right, 
+            transparent calc(50% - 2px), gray calc(50% - 2px), gray calc(50% + 2px), transparent calc(50% + 2px)
+        ),
+        /* 3. Líneas verticales de la fila CENTRAL (desfasadas al 25% y 75% para el efecto intercalado) */
+        linear-gradient(to right, 
+            transparent calc(25% - 2px), gray calc(25% - 2px), #7f8c8d calc(25% + 2px), transparent calc(25% + 2px),
+            transparent calc(75% - 2px), gray calc(75% - 2px), #7f8c8d calc(75% + 2px), transparent calc(75% + 2px)
+        ),
+        /* 4. Línea vertical de la fila INFERIOR (centrada al 50%) */
+        linear-gradient(to right, 
+            transparent calc(50% - 2px), #7f8c8d calc(50% - 2px), #7f8c8d calc(50% + 2px), transparent calc(50% + 2px)
+        );
+        
+    /* Ajuste de escala: cada gradiente se estira para cubrir su sección del "puzzle" */
+    background-size: 
+        100% 100%,   /* El mallado horizontal cubre todo el bloque */
+        100% 33.33%, /* Nivel 1: Fila superior */
+        100% 33.33%, /* Nivel 2: Fila central */
+        100% 33.34%; /* Nivel 3: Fila inferior */
+        
+    /* Ubicación de las filas de cemento vertical */
+    background-position: 
+        0 0,    
+        0 0,    
+        0 50%,  
+        0 100%; 
+        
+    background-repeat: no-repeat;
+    
+    /* Borde en tono rojo vino muy oscuro para dar peso visual al bloque */
+    border: 3px solid #520b02;
+    border-radius: 6px; 
+    box-sizing: border-box;
+    cursor: not-allowed;
+}
+
         .box {
             background-color: #cd853f; /* Color madera */
             border: 3px solid #8b4513; /* Borde madera oscura */
