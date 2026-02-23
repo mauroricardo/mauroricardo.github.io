@@ -70,14 +70,14 @@
             align-items: center;
             border-radius: 4px;
             user-select: none;
-            cursor: pointer; /* Indicar que se puede hacer clic */
+            cursor: pointer; 
         }
 
         .wall { background-color: indianred; cursor: not-allowed; }
         .floor { background-color: #bdc3c7; }
         .goal { background-color: #f1c40f; }
-        .box { background-color: #bdc3c7; transition: transform 0.1s; cursor: not-allowed; }
-        .box-on-goal { background-color: #27ae60; cursor: not-allowed; }
+        .box { background-color: #bdc3c7; transition: transform 0.1s; cursor: pointer; }
+        .box-on-goal { background-color: #27ae60; cursor: pointer; }
         
         .d-pad {
             display: grid;
@@ -155,7 +155,7 @@
 
     <div class="menu-buttons">
         <button class="action-btn warning" onclick="undoMove()">↩️ Deshacer</button>
-        <button class="action-btn" onclick="resetLevel()">🔄 Reiniciar</button>
+        <button class="action-btn" onclick="resetLevel()">🔄 Reiniciar Nivel</button>
         <button id="btn-next" class="action-btn success" onclick="nextLevel()">Siguiente ➡️</button>
     </div>
 
@@ -197,20 +197,33 @@
         let isLevelComplete = false;
         let currentCellSize = 35; 
         
-        // --- NUEVAS VARIABLES DE ESTADO ---
-        let historyStack = []; // Aquí guardaremos las "fotos" para el Deshacer
-        let isAnimating = false; // Bloquea controles mientras camina automático
+        let historyStack = []; 
+        let isAnimating = false; 
 
-        // Cargar progreso inicial
-        const savedLevel = localStorage.getItem('sokoban_level_v2');
-        if (savedLevel !== null) {
-            const parsed = parseInt(savedLevel, 10);
-            if (!isNaN(parsed) && parsed >= 0 && parsed < levels.length) currentLevelIndex = parsed;
-        }
+        // --- SISTEMA DE CARGA INICIAL ROBUSTO ---
+        let initialSavedState = null;
+        try {
+            // Buscamos si hay un estado en progreso guardado
+            const stateStr = localStorage.getItem('sokoban_save_state');
+            if (stateStr) {
+                const state = JSON.parse(stateStr);
+                if (state && typeof state.level === 'number' && state.level < levels.length) {
+                    currentLevelIndex = state.level;
+                    initialSavedState = state; // Guardamos la foto completa (jugador, cajas, historial)
+                }
+            } else {
+                // Si no hay estado en progreso, cargamos el nivel máximo alcanzado
+                const savedLevel = localStorage.getItem('sokoban_level_v2');
+                if (savedLevel !== null) {
+                    const parsed = parseInt(savedLevel, 10);
+                    if (!isNaN(parsed) && parsed >= 0 && parsed < levels.length) currentLevelIndex = parsed;
+                }
+            }
+        } catch(e) { console.warn("Error cargando el estado guardado", e); }
 
         function calculateCellSize(cols, rows) {
             const availableWidth = window.innerWidth * 0.95; 
-            const availableHeight = window.innerHeight * 0.50; // Reducido un poco para acomodar el nuevo botón
+            const availableHeight = window.innerHeight * 0.50; 
             const sizeByWidth = availableWidth / cols;
             const sizeByHeight = availableHeight / rows;
             return Math.max(20, Math.min(Math.min(sizeByWidth, sizeByHeight), 70));
@@ -231,9 +244,21 @@
             });
         });
 
-        // --- SISTEMA DESHACER (UNDO) ---
+        // --- FUNCIÓN PARA PERSISTIR EL PROGRESO DEL NIVEL ACTUAL ---
+        function persistGameState() {
+            if (isLevelComplete) return; // Si ganó, no guardamos el nivel a medias
+            
+            const state = {
+                level: currentLevelIndex,
+                player: player,
+                boxes: boxes,
+                historyStack: historyStack
+            };
+            localStorage.setItem('sokoban_save_state', JSON.stringify(state));
+            localStorage.setItem('sokoban_level_v2', currentLevelIndex);
+        }
+
         function saveState() {
-            // Hacemos una copia profunda (Deep Copy) del jugador y las cajas
             historyStack.push({
                 player: { x: player.x, y: player.y },
                 boxes: JSON.parse(JSON.stringify(boxes))
@@ -242,74 +267,60 @@
 
         function undoMove() {
             if (historyStack.length === 0 || isAnimating || isLevelComplete) return;
-            
-            // Sacamos la última "foto" de la pila
             const lastState = historyStack.pop();
             player = lastState.player;
             boxes = lastState.boxes;
-            
             drawBoard();
+            persistGameState(); // Actualizar el guardado al deshacer
         }
 
-        // --- SISTEMA PATHFINDING (BUSQUEDA BFS PARA AUTO-MOVIMIENTO) ---
         function findPath(startX, startY, targetX, targetY) {
             let queue = [{ x: startX, y: startY, path: [] }];
             let visited = new Set();
             visited.add(`${startX},${startY}`);
-
             const dirs = [{dx: 0, dy: -1}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 1, dy: 0}];
 
             while (queue.length > 0) {
                 let current = queue.shift();
-
-                // Si llegamos al objetivo, retornamos el camino
-                if (current.x === targetX && current.y === targetY) {
-                    return current.path;
-                }
+                if (current.x === targetX && current.y === targetY) return current.path;
 
                 for (let d of dirs) {
                     let nx = current.x + d.dx;
                     let ny = current.y + d.dy;
 
                     if (ny < 0 || ny >= map.length || nx < 0 || nx >= map[0].length) continue;
-                    if (map[ny][nx] === 'wall') continue; // Es pared
-                    if (boxes.some(b => b.x === nx && b.y === ny)) continue; // Hay una caja, evitamos empujar en auto
+                    if (map[ny][nx] === 'wall') continue; 
+                    if (boxes.some(b => b.x === nx && b.y === ny)) continue; 
 
                     let key = `${nx},${ny}`;
                     if (!visited.has(key)) {
                         visited.add(key);
-                        // Guardamos el historial de movimientos para llegar aquí
-                        queue.push({
-                            x: nx,
-                            y: ny,
-                            path: [...current.path, { dx: d.dx, dy: d.dy }]
-                        });
+                        queue.push({ x: nx, y: ny, path: [...current.path, { dx: d.dx, dy: d.dy }] });
                     }
                 }
             }
-            return null; // No hay camino libre
+            return null; 
         }
 
         function handleCellClick(targetX, targetY) {
             if (isAnimating || isLevelComplete) return;
-            
-            // Si hacemos clic en pared o caja, no hacemos nada
             if (map[targetY][targetX] === 'wall') return;
-            if (boxes.some(b => b.x === targetX && b.y === targetY)) return;
+
+            const isBox = boxes.some(b => b.x === targetX && b.y === targetY);
+            if (isBox) {
+                const dx = targetX - player.x;
+                const dy = targetY - player.y;
+                if (Math.abs(dx) + Math.abs(dy) === 1) move(dx, dy);
+                return;
+            }
 
             const path = findPath(player.x, player.y, targetX, targetY);
-            
-            if (path && path.length > 0) {
-                animatePath(path);
-            }
+            if (path && path.length > 0) animatePath(path);
         }
 
         function animatePath(path) {
             isAnimating = true;
             let stepIndex = 0;
-            
-            // Guardamos el estado UNA vez antes de empezar a correr
-            // Así si deshaces, deshace todo el viaje de un solo golpe
             saveState(); 
 
             function walkStep() {
@@ -318,21 +329,25 @@
                     player.y += path[stepIndex].dy;
                     drawBoard();
                     checkWin();
+                    persistGameState(); // Guardar el paso actual en auto-caminata
                     stepIndex++;
-                    setTimeout(walkStep, 60); // Velocidad de la caminata (60ms)
+                    setTimeout(walkStep, 60); 
                 } else {
-                    isAnimating = false; // Terminó de caminar
+                    isAnimating = false; 
                 }
             }
             walkStep();
         }
 
-        function initGame(levelIndex) {
+        // --- INIT GAME ADAPTADO PARA ACEPTAR UN ESTADO GUARDADO ---
+        function initGame(levelIndex, savedState = null) {
             isLevelComplete = false;
             isAnimating = false;
-            historyStack = []; // Limpiamos el historial al cambiar de nivel
-            map = []; boxes = []; goals = [];
+            map = []; goals = [];
             
+            let tempBoxes = [];
+            let tempPlayer = { x: 0, y: 0 };
+
             document.getElementById("win-message").style.display = "none";
             document.getElementById("btn-next").style.display = "none";
             document.getElementById("level-info").innerText = `Nivel ${levelIndex + 1} de ${levels.length}`;
@@ -348,6 +363,7 @@
             board.style.gridTemplateRows = `repeat(${rows}, ${currentCellSize}px)`;
             board.innerHTML = "";
 
+            // Armar el mapa estático
             for (let y = 0; y < rows; y++) {
                 let row = [];
                 for (let x = 0; x < cols; x++) {
@@ -355,12 +371,26 @@
                     if (char === '#') row.push('wall');
                     else row.push('floor');
 
-                    if (char === '@' || char === '+') player = { x, y };
-                    if (char === '$' || char === '*') boxes.push({ x, y });
+                    if (char === '@' || char === '+') tempPlayer = { x, y };
+                    if (char === '$' || char === '*') tempBoxes.push({ x, y });
                     if (char === '.' || char === '*' || char === '+') goals.push({ x, y });
                 }
                 map.push(row);
             }
+
+            // Si recibimos un estado guardado (de localStorage o de un JSON importado), 
+            // sobrescribimos el jugador, las cajas y el historial
+            if (savedState) {
+                player = savedState.player;
+                boxes = savedState.boxes;
+                historyStack = savedState.historyStack || [];
+            } else {
+                player = tempPlayer;
+                boxes = tempBoxes;
+                historyStack = [];
+                persistGameState(); // Guardar el inicio limpio del nivel
+            }
+
             drawBoard();
         }
 
@@ -376,7 +406,6 @@
                     cell.style.height = `${currentCellSize}px`;
                     cell.style.fontSize = `${currentCellSize * 0.6}px`; 
 
-                    // Agregar evento de clic para el Pathfinding
                     cell.addEventListener('click', () => handleCellClick(x, y));
 
                     if (map[y][x] === 'wall') {
@@ -403,7 +432,6 @@
         }
 
         function move(dx, dy) {
-            // Bloqueamos movimiento manual si está caminando en automático
             if (isLevelComplete || isAnimating) return; 
 
             const newX = player.x + dx;
@@ -422,11 +450,11 @@
                     return; 
                 }
                 
-                saveState(); // Guardar justo ANTES de mover la caja
+                saveState(); 
                 boxes[boxIndex].x = boxNewX;
                 boxes[boxIndex].y = boxNewY;
             } else {
-                saveState(); // Guardar justo ANTES de caminar
+                saveState(); 
             }
 
             player.x = newX;
@@ -434,12 +462,15 @@
 
             drawBoard();
             checkWin();
+            persistGameState(); // Persistimos en localStorage tras cada movimiento manual
         }
 
         function checkWin() {
             const won = boxes.every(box => goals.some(goal => goal.x === box.x && goal.y === box.y));
             if (won) {
                 isLevelComplete = true;
+                // Eliminamos el progreso en vivo para que al recargar empiece limpio en el siguiente o actual
+                localStorage.removeItem('sokoban_save_state'); 
                 document.getElementById("win-message").style.display = "block";
                 
                 if (currentLevelIndex < levels.length - 1) {
@@ -448,7 +479,6 @@
             }
         }
 
-        // Eventos táctiles y teclado
         const gameContainer = document.getElementById('game-container');
         let touchStartX = 0, touchStartY = 0;
 
@@ -458,7 +488,7 @@
         }, {passive: true});
 
         gameContainer.addEventListener('touchend', e => {
-            if(isAnimating) return; // Bloquear swipe si está caminando
+            if(isAnimating) return; 
             let diffX = e.changedTouches[0].screenX - touchStartX;
             let diffY = e.changedTouches[0].screenY - touchStartY;
             const threshold = 30; 
@@ -481,18 +511,24 @@
             if (e.key === "ArrowLeft" || e.key === "a") move(-1, 0);
             if (e.key === "ArrowRight" || e.key === "d") move(1, 0);
             
-            // Atajo de teclado para Deshacer (Tecla Z o Ctrl+Z)
             if (e.key === "z" || e.key === "Z") undoMove();
         });
 
-        // Export/Import JSON Functions
         function exportJSON() {
             if(isAnimating) return;
-            const data = { game: "Sokoban", level: currentLevelIndex, date: new Date().toISOString() };
+            // Ahora la exportación saca TODA la foto, igual que el localStorage
+            const data = { 
+                game: "Sokoban", 
+                level: currentLevelIndex, 
+                player: player,
+                boxes: boxes,
+                historyStack: historyStack,
+                date: new Date().toISOString() 
+            };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `sokoban_nivel_${currentLevelIndex + 1}.json`);
+            downloadAnchorNode.setAttribute("download", `sokoban_nivel_${currentLevelIndex + 1}_progreso.json`);
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
@@ -509,7 +545,13 @@
                     if (data.game === "Sokoban" && typeof data.level === "number" && data.level < levels.length) {
                         currentLevelIndex = data.level;
                         localStorage.setItem('sokoban_level_v2', currentLevelIndex);
-                        initGame(currentLevelIndex);
+                        
+                        // Si el JSON trae posiciones en progreso, lo cargamos completo
+                        if (data.player && data.boxes) {
+                            initGame(currentLevelIndex, data);
+                        } else {
+                            initGame(currentLevelIndex);
+                        }
                     } else alert("Archivo JSON no válido.");
                 } catch (err) { alert("Error al leer JSON."); }
             };
@@ -517,17 +559,24 @@
             e.target.value = ''; 
         });
 
-        function resetLevel() { if(!isAnimating) initGame(currentLevelIndex); }
+        function resetLevel() { 
+            if(isAnimating) return;
+            // Limpiamos el guardado de la memoria y reseteamos el tablero
+            localStorage.removeItem('sokoban_save_state');
+            initGame(currentLevelIndex); 
+        }
         
         function nextLevel() {
             if (currentLevelIndex < levels.length - 1) {
+                localStorage.removeItem('sokoban_save_state');
                 currentLevelIndex++;
                 localStorage.setItem('sokoban_level_v2', currentLevelIndex);
                 initGame(currentLevelIndex);
             }
         }
 
-        initGame(currentLevelIndex);
+        // --- INICIAR JUEGO (Pasando el progreso recuperado, si existe) ---
+        initGame(currentLevelIndex, initialSavedState);
     </script>
 </body>
 </html>
