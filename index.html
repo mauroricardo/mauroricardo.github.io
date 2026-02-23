@@ -15,6 +15,8 @@
             margin: 0;
             padding: 10px;
             overflow-x: hidden;
+            /* Evita que el body haga scroll en móviles */
+            overscroll-behavior-y: contain; 
         }
 
         h1 { margin: 5px 0; font-size: 24px; }
@@ -23,15 +25,35 @@
         #level-info {
             font-size: 18px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             color: #f1c40f;
         }
 
+        .save-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .save-btn {
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .save-btn:hover { background-color: #1c5980; }
+
         #game-container {
-            /* Contenedor responsivo */
             max-width: 100%;
-            overflow: auto; 
-            touch-action: none; /* Evita que la pantalla haga scroll al deslizar el dedo sobre el juego */
+            overflow: hidden; 
+            touch-action: none; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         #game-board {
@@ -44,14 +66,11 @@
             margin: 0 auto;
         }
 
-        /* Las celdas se adaptan un poco mejor en móvil usando un tamaño base más pequeño */
         .cell {
-            width: 35px;
-            height: 35px;
+            /* El ancho y alto se inyectan por JS dinámicamente */
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 22px;
             border-radius: 4px;
             user-select: none;
         }
@@ -60,15 +79,14 @@
         .floor { background-color: #bdc3c7; }
         .goal { background-color: #f1c40f; }
         .box { background-color: #bdc3c7; transition: transform 0.1s; }
-        .box-on-goal { background-color: #27ae60 }
+        .box-on-goal { background-color: #27ae60; }
         
-        /* Controles móviles (Cruceta / D-Pad) */
         .d-pad {
             display: grid;
             grid-template-columns: repeat(3, 50px);
             grid-template-rows: repeat(2, 50px);
             gap: 5px;
-            margin-top: 20px;
+            margin-top: 15px;
             justify-content: center;
         }
         
@@ -77,6 +95,8 @@
             font-size: 20px;
             border-radius: 10px;
             padding: 0;
+            color: white;
+            border: none;
         }
         .d-pad button:active { background-color: #7f8c8d; }
         
@@ -93,7 +113,7 @@
             justify-content: center;
         }
 
-        button {
+        button.action-btn {
             padding: 10px 15px;
             font-size: 14px;
             font-weight: bold;
@@ -112,8 +132,13 @@
 <body>
 
     <h1>Sokoban</h1>
-    <p>Desliza el dedo sobre el tablero o usa los botones para moverte.</p>
     
+    <div class="save-controls">
+        <button class="save-btn" onclick="exportJSON()">📥 Exportar JSON</button>
+        <button class="save-btn" onclick="triggerImport()">📤 Importar JSON</button>
+        <input type="file" id="import-file" style="display:none" accept=".json">
+    </div>
+
     <div id="level-info">Nivel 1</div>
 
     <div id="game-container">
@@ -130,35 +155,44 @@
     </div>
 
     <div class="menu-buttons">
-        <button onclick="resetLevel()">🔄 Reiniciar</button>
-        <button id="btn-next" class="success" onclick="nextLevel()">Siguiente Nivel ➡️</button>
+        <button class="action-btn" onclick="resetLevel()">🔄 Reiniciar</button>
+        <button id="btn-next" class="action-btn success" onclick="nextLevel()">Siguiente Nivel ➡️</button>
     </div>
 
     <script type="module">
         import { rawSokData } from './levels.js';
         
+        // --- Exponer funciones al entorno global (Necesario en type="module") ---
+        window.move = move;
+        window.resetLevel = resetLevel;
+        window.nextLevel = nextLevel;
+        window.exportJSON = exportJSON;
+        window.triggerImport = () => document.getElementById('import-file').click();
+
         function parseSokFormat(text) {
-            const levels = [];
-            // Separamos por bloques de líneas vacías o títulos
+            const parsedLevels = [];
             const blocks = text.split(/\n\s*\n/); 
         
             for (let block of blocks) {
                 const lines = block.split('\n')
-                    .map(line => line.replace('\r', '')) // Limpiar formato Windows
-                    .filter(line => {
-                        // Solo nos quedamos con líneas que contienen paredes (#)
-                        // Esto descarta automáticamente títulos, autores y líneas vacías
-                        return line.includes('#');
-                    });
+                    .map(line => line.replace('\r', ''))
+                    .filter(line => line.includes('#'));
         
                 if (lines.length > 0) {
-                    levels.push(lines);
+                    parsedLevels.push(lines);
                 }
             }
-            return levels;
+            return parsedLevels;
         }
         
-        const levels = parseSokFormat(rawSokData);
+        let levels = [];
+        // Intentar parsear. Si falla o no encuentra, agregamos un nivel por defecto de seguridad
+        try {
+            levels = parseSokFormat(rawSokData);
+            if (levels.length === 0) throw new Error("No se encontraron mapas en rawSokData");
+        } catch(e) {
+            levels = [["#####", "#.@.#", "#####"]]; 
+        }
 
         let currentLevelIndex = 0;
         let map = [];
@@ -166,12 +200,100 @@
         let boxes = [];
         let goals = [];
         let isLevelComplete = false;
+        let currentCellSize = 35; // Tamaño por defecto
+
+        // --- SISTEMA DE GUARDADO ---
+        // Cargar progreso inicial
+        const savedLevel = localStorage.getItem('sokoban_level_v2');
+        if (savedLevel !== null) {
+            const parsed = parseInt(savedLevel, 10);
+            if (!isNaN(parsed) && parsed >= 0 && parsed < levels.length) {
+                currentLevelIndex = parsed;
+            }
+        }
+
+        function exportJSON() {
+            const data = { 
+                game: "Sokoban", 
+                level: currentLevelIndex,
+                date: new Date().toISOString()
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `sokoban_progreso_nivel_${currentLevelIndex + 1}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        document.getElementById('import-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (data.game === "Sokoban" && typeof data.level === "number") {
+                        if (data.level >= 0 && data.level < levels.length) {
+                            currentLevelIndex = data.level;
+                            localStorage.setItem('sokoban_level_v2', currentLevelIndex);
+                            initGame(currentLevelIndex);
+                            alert("✅ Progreso importado correctamente.");
+                        } else {
+                            alert("❌ El nivel en el archivo no existe en esta versión.");
+                        }
+                    } else {
+                        alert("❌ Archivo JSON no válido para este juego.");
+                    }
+                } catch (err) {
+                    alert("❌ Error al leer el archivo. Asegúrate de que es un JSON válido.");
+                }
+            };
+            reader.readAsText(file);
+            // Resetear el input para poder importar el mismo archivo de nuevo si se desea
+            e.target.value = ''; 
+        });
+
+        // --- CÁLCULO DINÁMICO DE TAMAÑO ---
+        function calculateCellSize(cols, rows) {
+            // Dejar espacio para la UI (Header, botones, padding)
+            const availableWidth = window.innerWidth * 0.95; 
+            const availableHeight = window.innerHeight * 0.55; 
+            
+            // Calculamos el tamaño máximo posible que encaje en la pantalla
+            const sizeByWidth = availableWidth / cols;
+            const sizeByHeight = availableHeight / rows;
+            
+            let optimalSize = Math.min(sizeByWidth, sizeByHeight);
+            
+            // Limitamos el tamaño entre 20px (muy pequeño) y 70px (suficiente para PC)
+            return Math.max(20, Math.min(optimalSize, 70));
+        }
+
+        // Si redimensionamos la ventana de la PC, recalculamos el tamaño del tablero
+        window.addEventListener('resize', () => {
+            if (map.length === 0) return;
+            const cols = map[0].length;
+            const rows = map.length;
+            currentCellSize = calculateCellSize(cols, rows);
+            
+            const board = document.getElementById("game-board");
+            board.style.gridTemplateColumns = `repeat(${cols}, ${currentCellSize}px)`;
+            board.style.gridTemplateRows = `repeat(${rows}, ${currentCellSize}px)`;
+            
+            // Actualizar fuente de los emojis en vivo
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.style.width = `${currentCellSize}px`;
+                cell.style.height = `${currentCellSize}px`;
+                cell.style.fontSize = `${currentCellSize * 0.6}px`;
+            });
+        });
 
         function initGame(levelIndex) {
             isLevelComplete = false;
-            map = [];
-            boxes = [];
-            goals = [];
+            map = []; boxes = []; goals = [];
             
             document.getElementById("win-message").style.display = "none";
             document.getElementById("btn-next").style.display = "none";
@@ -179,18 +301,20 @@
 
             const levelPlan = levels[levelIndex];
             const rows = levelPlan.length;
-            const cols = Math.max(...levelPlan.map(row => row.length)); // Ancho máximo
+            const cols = Math.max(...levelPlan.map(row => row.length)); 
+            
+            // Ajustar el tamaño del tablero dinámicamente
+            currentCellSize = calculateCellSize(cols, rows);
             
             const board = document.getElementById("game-board");
-            board.style.gridTemplateColumns = `repeat(${cols}, 35px)`;
-            board.style.gridTemplateRows = `repeat(${rows}, 35px)`;
+            board.style.gridTemplateColumns = `repeat(${cols}, ${currentCellSize}px)`;
+            board.style.gridTemplateRows = `repeat(${rows}, ${currentCellSize}px)`;
             board.innerHTML = "";
 
-            // Parsear el mapa
             for (let y = 0; y < rows; y++) {
                 let row = [];
                 for (let x = 0; x < cols; x++) {
-                    const char = levelPlan[y][x] || ' '; // Rellenar espacios vacíos si la fila es corta
+                    const char = levelPlan[y][x] || ' '; 
                     if (char === '#') row.push('wall');
                     else row.push('floor');
 
@@ -211,6 +335,10 @@
                 for (let x = 0; x < map[y].length; x++) {
                     const cell = document.createElement("div");
                     cell.classList.add("cell");
+                    // Aplicar el tamaño dinámico
+                    cell.style.width = `${currentCellSize}px`;
+                    cell.style.height = `${currentCellSize}px`;
+                    cell.style.fontSize = `${currentCellSize * 0.6}px`; 
 
                     if (map[y][x] === 'wall') {
                         cell.classList.add("wall");
@@ -236,7 +364,7 @@
         }
 
         function move(dx, dy) {
-            if (isLevelComplete) return; // No mover si ya ganó
+            if (isLevelComplete) return; 
 
             const newX = player.x + dx;
             const newY = player.y + dy;
@@ -270,7 +398,6 @@
                 isLevelComplete = true;
                 document.getElementById("win-message").style.display = "block";
                 
-                // Mostrar botón de siguiente nivel si hay más niveles
                 if (currentLevelIndex < levels.length - 1) {
                     document.getElementById("btn-next").style.display = "block";
                 } else {
@@ -279,7 +406,7 @@
             }
         }
 
-        // --- CONTROLES TÁCTILES (SWIPE) ---
+        // --- CONTROLES TÁCTILES ---
         let touchStartX = 0;
         let touchStartY = 0;
         const gameContainer = document.getElementById('game-container');
@@ -298,20 +425,17 @@
         function handleSwipe(startX, startY, endX, endY) {
             const diffX = endX - startX;
             const diffY = endY - startY;
-            const threshold = 30; // Distancia mínima para considerar que fue un "swipe"
+            const threshold = 30; 
 
             if (Math.abs(diffX) > Math.abs(diffY)) {
-                // Deslizamiento horizontal
-                if (diffX > threshold) move(1, 0); // Derecha
-                else if (diffX < -threshold) move(-1, 0); // Izquierda
+                if (diffX > threshold) move(1, 0); 
+                else if (diffX < -threshold) move(-1, 0); 
             } else {
-                // Deslizamiento vertical
-                if (diffY > threshold) move(0, 1); // Abajo
-                else if (diffY < -threshold) move(0, -1); // Arriba
+                if (diffY > threshold) move(0, 1); 
+                else if (diffY < -threshold) move(0, -1); 
             }
         }
 
-        // Controles de teclado
         window.addEventListener("keydown", (e) => {
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
             if (e.key === "ArrowUp") move(0, -1);
@@ -325,15 +449,13 @@
         function nextLevel() {
             if (currentLevelIndex < levels.length - 1) {
                 currentLevelIndex++;
+                localStorage.setItem('sokoban_level_v2', currentLevelIndex);
                 initGame(currentLevelIndex);
             }
         }
 
-        // Iniciar el juego en el nivel 1
+        // Iniciar el juego
         initGame(currentLevelIndex);
     </script>
 </body>
 </html>
-
-
-
