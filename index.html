@@ -89,8 +89,31 @@
         .wall { background-color: indianred; cursor: not-allowed; }
         .floor { background-color: #bdc3c7; }
         .goal { background-color: #f1c40f; }
-        .box { background-color: #bdc3c7; transition: transform 0.1s; cursor: pointer; }
-        .box-on-goal { background-color: #27ae60; cursor: pointer; }
+        .box {
+            background-color: #cd853f; /* Color madera */
+            border: 3px solid #8b4513; /* Borde madera oscura */
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.6); /* Sombra interior para dar volumen */
+            /* Dibujamos la 'X' de refuerzo de la caja de madera con gradientes */
+            background-image: 
+                linear-gradient(45deg, transparent 45%, #8b4513 45%, #8b4513 55%, transparent 55%),
+                linear-gradient(-45deg, transparent 45%, #8b4513 45%, #8b4513 55%, transparent 55%);
+            box-sizing: border-box; /* Asegura que el borde no agrande la caja */
+            border-radius: 4px;
+            transition: transform 0.1s;
+            cursor: pointer;
+        }
+        .box-on-goal {
+            background-color: #2ecc71; /* Verde brillante indicando éxito */
+            border: 3px solid #1e8449; /* Borde verde oscuro */
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.6), 0 0 8px rgba(46, 204, 113, 0.6); /* Brillo exterior e interior */
+            background-image: 
+                linear-gradient(45deg, transparent 45%, #1e8449 45%, #1e8449 55%, transparent 55%),
+                linear-gradient(-45deg, transparent 45%, #1e8449 45%, #1e8449 55%, transparent 55%);
+            box-sizing: border-box;
+            border-radius: 4px;
+            cursor: pointer;
+            transform: scale(0.95); /* Se encoge un poquito al encajar para un efecto visual genial */
+        }
         
         .d-pad {
             display: grid;
@@ -549,6 +572,7 @@
                     } else {
                         const isGoal = goals.some(g => g.x === x && g.y === y);
                         cell.classList.add(isGoal ? "goal" : "floor");
+                        // Punto rojo/objetivo
                         if (isGoal) cell.innerHTML = "🎯";
                     }
 
@@ -556,10 +580,10 @@
                     const isGoal = goals.some(g => g.x === x && g.y === y);
 
                     if (isBox) {
-                        cell.innerHTML = "📦";
+                        // YA NO PONEMOS EL EMOJI. Solo asignamos la clase CSS.
                         cell.className = `cell ${isGoal ? 'box-on-goal' : 'box'}`;
                     } else if (player.x === x && player.y === y) {
-                        cell.innerHTML = "👨‍💻"; 
+                        cell.innerHTML = "👨‍💻"; // Mantenemos tu personaje
                     }
 
                     board.appendChild(cell);
