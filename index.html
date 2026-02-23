@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sokoban Mobile</title>
+    <title>Sokoban Mobile Pro</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -15,12 +15,10 @@
             margin: 0;
             padding: 10px;
             overflow-x: hidden;
-            /* Evita que el body haga scroll en móviles */
             overscroll-behavior-y: contain; 
         }
 
         h1 { margin: 5px 0; font-size: 24px; }
-        p { color: #bdc3c7; margin-bottom: 10px; font-size: 14px; text-align: center; }
 
         #level-info {
             font-size: 18px;
@@ -32,7 +30,7 @@
         .save-controls {
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .save-btn {
@@ -67,19 +65,19 @@
         }
 
         .cell {
-            /* El ancho y alto se inyectan por JS dinámicamente */
             display: flex;
             justify-content: center;
             align-items: center;
             border-radius: 4px;
             user-select: none;
+            cursor: pointer; /* Indicar que se puede hacer clic */
         }
 
-        .wall { background-color: indianred; }
+        .wall { background-color: indianred; cursor: not-allowed; }
         .floor { background-color: #bdc3c7; }
         .goal { background-color: #f1c40f; }
-        .box { background-color: #bdc3c7; transition: transform 0.1s; }
-        .box-on-goal { background-color: #27ae60; }
+        .box { background-color: #bdc3c7; transition: transform 0.1s; cursor: not-allowed; }
+        .box-on-goal { background-color: #27ae60; cursor: not-allowed; }
         
         .d-pad {
             display: grid;
@@ -106,7 +104,7 @@
         .btn-right { grid-column: 3; grid-row: 2; }
 
         .menu-buttons {
-            margin-top: 20px;
+            margin-top: 15px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -123,8 +121,9 @@
             border-radius: 5px;
             cursor: pointer;
         }
-
-        button.success { background-color: #2ecc71; display: none; }
+        
+        button.action-btn.warning { background-color: #e67e22; }
+        button.action-btn.success { background-color: #2ecc71; display: none; }
 
         #win-message { color: #2ecc71; font-weight: bold; font-size: 20px; margin-top: 10px; display: none; text-align: center; }
     </style>
@@ -134,8 +133,8 @@
     <h1>Sokoban</h1>
     
     <div class="save-controls">
-        <button class="save-btn" onclick="exportJSON()">📥 Exportar JSON</button>
-        <button class="save-btn" onclick="triggerImport()">📤 Importar JSON</button>
+        <button class="save-btn" onclick="exportJSON()">📥 Exportar</button>
+        <button class="save-btn" onclick="triggerImport()">📤 Importar</button>
         <input type="file" id="import-file" style="display:none" accept=".json">
     </div>
 
@@ -155,41 +154,37 @@
     </div>
 
     <div class="menu-buttons">
+        <button class="action-btn warning" onclick="undoMove()">↩️ Deshacer</button>
         <button class="action-btn" onclick="resetLevel()">🔄 Reiniciar</button>
-        <button id="btn-next" class="action-btn success" onclick="nextLevel()">Siguiente Nivel ➡️</button>
+        <button id="btn-next" class="action-btn success" onclick="nextLevel()">Siguiente ➡️</button>
     </div>
 
     <script type="module">
         import { rawSokData } from './levels.js';
         
-        // --- Exponer funciones al entorno global (Necesario en type="module") ---
         window.move = move;
         window.resetLevel = resetLevel;
         window.nextLevel = nextLevel;
         window.exportJSON = exportJSON;
         window.triggerImport = () => document.getElementById('import-file').click();
+        window.undoMove = undoMove;
 
         function parseSokFormat(text) {
             const parsedLevels = [];
             const blocks = text.split(/\n\s*\n/); 
-        
             for (let block of blocks) {
                 const lines = block.split('\n')
                     .map(line => line.replace('\r', ''))
                     .filter(line => line.includes('#'));
-        
-                if (lines.length > 0) {
-                    parsedLevels.push(lines);
-                }
+                if (lines.length > 0) parsedLevels.push(lines);
             }
             return parsedLevels;
         }
         
         let levels = [];
-        // Intentar parsear. Si falla o no encuentra, agregamos un nivel por defecto de seguridad
         try {
             levels = parseSokFormat(rawSokData);
-            if (levels.length === 0) throw new Error("No se encontraron mapas en rawSokData");
+            if (levels.length === 0) throw new Error();
         } catch(e) {
             levels = [["#####", "#.@.#", "#####"]]; 
         }
@@ -200,90 +195,35 @@
         let boxes = [];
         let goals = [];
         let isLevelComplete = false;
-        let currentCellSize = 35; // Tamaño por defecto
+        let currentCellSize = 35; 
+        
+        // --- NUEVAS VARIABLES DE ESTADO ---
+        let historyStack = []; // Aquí guardaremos las "fotos" para el Deshacer
+        let isAnimating = false; // Bloquea controles mientras camina automático
 
-        // --- SISTEMA DE GUARDADO ---
         // Cargar progreso inicial
         const savedLevel = localStorage.getItem('sokoban_level_v2');
         if (savedLevel !== null) {
             const parsed = parseInt(savedLevel, 10);
-            if (!isNaN(parsed) && parsed >= 0 && parsed < levels.length) {
-                currentLevelIndex = parsed;
-            }
+            if (!isNaN(parsed) && parsed >= 0 && parsed < levels.length) currentLevelIndex = parsed;
         }
 
-        function exportJSON() {
-            const data = { 
-                game: "Sokoban", 
-                level: currentLevelIndex,
-                date: new Date().toISOString()
-            };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", `sokoban_progreso_nivel_${currentLevelIndex + 1}.json`);
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-        }
-
-        document.getElementById('import-file').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                try {
-                    const data = JSON.parse(event.target.result);
-                    if (data.game === "Sokoban" && typeof data.level === "number") {
-                        if (data.level >= 0 && data.level < levels.length) {
-                            currentLevelIndex = data.level;
-                            localStorage.setItem('sokoban_level_v2', currentLevelIndex);
-                            initGame(currentLevelIndex);
-                            alert("✅ Progreso importado correctamente.");
-                        } else {
-                            alert("❌ El nivel en el archivo no existe en esta versión.");
-                        }
-                    } else {
-                        alert("❌ Archivo JSON no válido para este juego.");
-                    }
-                } catch (err) {
-                    alert("❌ Error al leer el archivo. Asegúrate de que es un JSON válido.");
-                }
-            };
-            reader.readAsText(file);
-            // Resetear el input para poder importar el mismo archivo de nuevo si se desea
-            e.target.value = ''; 
-        });
-
-        // --- CÁLCULO DINÁMICO DE TAMAÑO ---
         function calculateCellSize(cols, rows) {
-            // Dejar espacio para la UI (Header, botones, padding)
             const availableWidth = window.innerWidth * 0.95; 
-            const availableHeight = window.innerHeight * 0.55; 
-            
-            // Calculamos el tamaño máximo posible que encaje en la pantalla
+            const availableHeight = window.innerHeight * 0.50; // Reducido un poco para acomodar el nuevo botón
             const sizeByWidth = availableWidth / cols;
             const sizeByHeight = availableHeight / rows;
-            
-            let optimalSize = Math.min(sizeByWidth, sizeByHeight);
-            
-            // Limitamos el tamaño entre 20px (muy pequeño) y 70px (suficiente para PC)
-            return Math.max(20, Math.min(optimalSize, 70));
+            return Math.max(20, Math.min(Math.min(sizeByWidth, sizeByHeight), 70));
         }
 
-        // Si redimensionamos la ventana de la PC, recalculamos el tamaño del tablero
         window.addEventListener('resize', () => {
             if (map.length === 0) return;
             const cols = map[0].length;
             const rows = map.length;
             currentCellSize = calculateCellSize(cols, rows);
-            
             const board = document.getElementById("game-board");
             board.style.gridTemplateColumns = `repeat(${cols}, ${currentCellSize}px)`;
             board.style.gridTemplateRows = `repeat(${rows}, ${currentCellSize}px)`;
-            
-            // Actualizar fuente de los emojis en vivo
             document.querySelectorAll('.cell').forEach(cell => {
                 cell.style.width = `${currentCellSize}px`;
                 cell.style.height = `${currentCellSize}px`;
@@ -291,8 +231,106 @@
             });
         });
 
+        // --- SISTEMA DESHACER (UNDO) ---
+        function saveState() {
+            // Hacemos una copia profunda (Deep Copy) del jugador y las cajas
+            historyStack.push({
+                player: { x: player.x, y: player.y },
+                boxes: JSON.parse(JSON.stringify(boxes))
+            });
+        }
+
+        function undoMove() {
+            if (historyStack.length === 0 || isAnimating || isLevelComplete) return;
+            
+            // Sacamos la última "foto" de la pila
+            const lastState = historyStack.pop();
+            player = lastState.player;
+            boxes = lastState.boxes;
+            
+            drawBoard();
+        }
+
+        // --- SISTEMA PATHFINDING (BUSQUEDA BFS PARA AUTO-MOVIMIENTO) ---
+        function findPath(startX, startY, targetX, targetY) {
+            let queue = [{ x: startX, y: startY, path: [] }];
+            let visited = new Set();
+            visited.add(`${startX},${startY}`);
+
+            const dirs = [{dx: 0, dy: -1}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 1, dy: 0}];
+
+            while (queue.length > 0) {
+                let current = queue.shift();
+
+                // Si llegamos al objetivo, retornamos el camino
+                if (current.x === targetX && current.y === targetY) {
+                    return current.path;
+                }
+
+                for (let d of dirs) {
+                    let nx = current.x + d.dx;
+                    let ny = current.y + d.dy;
+
+                    if (ny < 0 || ny >= map.length || nx < 0 || nx >= map[0].length) continue;
+                    if (map[ny][nx] === 'wall') continue; // Es pared
+                    if (boxes.some(b => b.x === nx && b.y === ny)) continue; // Hay una caja, evitamos empujar en auto
+
+                    let key = `${nx},${ny}`;
+                    if (!visited.has(key)) {
+                        visited.add(key);
+                        // Guardamos el historial de movimientos para llegar aquí
+                        queue.push({
+                            x: nx,
+                            y: ny,
+                            path: [...current.path, { dx: d.dx, dy: d.dy }]
+                        });
+                    }
+                }
+            }
+            return null; // No hay camino libre
+        }
+
+        function handleCellClick(targetX, targetY) {
+            if (isAnimating || isLevelComplete) return;
+            
+            // Si hacemos clic en pared o caja, no hacemos nada
+            if (map[targetY][targetX] === 'wall') return;
+            if (boxes.some(b => b.x === targetX && b.y === targetY)) return;
+
+            const path = findPath(player.x, player.y, targetX, targetY);
+            
+            if (path && path.length > 0) {
+                animatePath(path);
+            }
+        }
+
+        function animatePath(path) {
+            isAnimating = true;
+            let stepIndex = 0;
+            
+            // Guardamos el estado UNA vez antes de empezar a correr
+            // Así si deshaces, deshace todo el viaje de un solo golpe
+            saveState(); 
+
+            function walkStep() {
+                if (stepIndex < path.length && !isLevelComplete) {
+                    player.x += path[stepIndex].dx;
+                    player.y += path[stepIndex].dy;
+                    drawBoard();
+                    checkWin();
+                    stepIndex++;
+                    setTimeout(walkStep, 60); // Velocidad de la caminata (60ms)
+                } else {
+                    isAnimating = false; // Terminó de caminar
+                }
+            }
+            walkStep();
+        }
+
         function initGame(levelIndex) {
             isLevelComplete = false;
+            isAnimating = false;
+            historyStack = []; // Limpiamos el historial al cambiar de nivel
             map = []; boxes = []; goals = [];
             
             document.getElementById("win-message").style.display = "none";
@@ -303,7 +341,6 @@
             const rows = levelPlan.length;
             const cols = Math.max(...levelPlan.map(row => row.length)); 
             
-            // Ajustar el tamaño del tablero dinámicamente
             currentCellSize = calculateCellSize(cols, rows);
             
             const board = document.getElementById("game-board");
@@ -335,10 +372,12 @@
                 for (let x = 0; x < map[y].length; x++) {
                     const cell = document.createElement("div");
                     cell.classList.add("cell");
-                    // Aplicar el tamaño dinámico
                     cell.style.width = `${currentCellSize}px`;
                     cell.style.height = `${currentCellSize}px`;
                     cell.style.fontSize = `${currentCellSize * 0.6}px`; 
+
+                    // Agregar evento de clic para el Pathfinding
+                    cell.addEventListener('click', () => handleCellClick(x, y));
 
                     if (map[y][x] === 'wall') {
                         cell.classList.add("wall");
@@ -364,7 +403,8 @@
         }
 
         function move(dx, dy) {
-            if (isLevelComplete) return; 
+            // Bloqueamos movimiento manual si está caminando en automático
+            if (isLevelComplete || isAnimating) return; 
 
             const newX = player.x + dx;
             const newY = player.y + dy;
@@ -381,8 +421,12 @@
                 if (map[boxNewY][boxNewX] === 'wall' || boxes.some(b => b.x === boxNewX && b.y === boxNewY)) {
                     return; 
                 }
+                
+                saveState(); // Guardar justo ANTES de mover la caja
                 boxes[boxIndex].x = boxNewX;
                 boxes[boxIndex].y = boxNewY;
+            } else {
+                saveState(); // Guardar justo ANTES de caminar
             }
 
             player.x = newX;
@@ -400,16 +444,13 @@
                 
                 if (currentLevelIndex < levels.length - 1) {
                     document.getElementById("btn-next").style.display = "block";
-                } else {
-                    document.getElementById("win-message").innerText = "¡FELICIDADES! ¡COMPLETASTE TODOS LOS NIVELES! 🏆";
                 }
             }
         }
 
-        // --- CONTROLES TÁCTILES ---
-        let touchStartX = 0;
-        let touchStartY = 0;
+        // Eventos táctiles y teclado
         const gameContainer = document.getElementById('game-container');
+        let touchStartX = 0, touchStartY = 0;
 
         gameContainer.addEventListener('touchstart', e => {
             touchStartX = e.changedTouches[0].screenX;
@@ -417,14 +458,9 @@
         }, {passive: true});
 
         gameContainer.addEventListener('touchend', e => {
-            let touchEndX = e.changedTouches[0].screenX;
-            let touchEndY = e.changedTouches[0].screenY;
-            handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY);
-        }, {passive: true});
-
-        function handleSwipe(startX, startY, endX, endY) {
-            const diffX = endX - startX;
-            const diffY = endY - startY;
+            if(isAnimating) return; // Bloquear swipe si está caminando
+            let diffX = e.changedTouches[0].screenX - touchStartX;
+            let diffY = e.changedTouches[0].screenY - touchStartY;
             const threshold = 30; 
 
             if (Math.abs(diffX) > Math.abs(diffY)) {
@@ -434,17 +470,54 @@
                 if (diffY > threshold) move(0, 1); 
                 else if (diffY < -threshold) move(0, -1); 
             }
-        }
+        }, {passive: true});
 
         window.addEventListener("keydown", (e) => {
+            if (isAnimating) { e.preventDefault(); return; }
+            
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
-            if (e.key === "ArrowUp") move(0, -1);
-            if (e.key === "ArrowDown") move(0, 1);
-            if (e.key === "ArrowLeft") move(-1, 0);
-            if (e.key === "ArrowRight") move(1, 0);
+            if (e.key === "ArrowUp" || e.key === "w") move(0, -1);
+            if (e.key === "ArrowDown" || e.key === "s") move(0, 1);
+            if (e.key === "ArrowLeft" || e.key === "a") move(-1, 0);
+            if (e.key === "ArrowRight" || e.key === "d") move(1, 0);
+            
+            // Atajo de teclado para Deshacer (Tecla Z o Ctrl+Z)
+            if (e.key === "z" || e.key === "Z") undoMove();
         });
 
-        function resetLevel() { initGame(currentLevelIndex); }
+        // Export/Import JSON Functions
+        function exportJSON() {
+            if(isAnimating) return;
+            const data = { game: "Sokoban", level: currentLevelIndex, date: new Date().toISOString() };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `sokoban_nivel_${currentLevelIndex + 1}.json`);
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        document.getElementById('import-file').addEventListener('change', function(e) {
+            if(isAnimating) return;
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (data.game === "Sokoban" && typeof data.level === "number" && data.level < levels.length) {
+                        currentLevelIndex = data.level;
+                        localStorage.setItem('sokoban_level_v2', currentLevelIndex);
+                        initGame(currentLevelIndex);
+                    } else alert("Archivo JSON no válido.");
+                } catch (err) { alert("Error al leer JSON."); }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; 
+        });
+
+        function resetLevel() { if(!isAnimating) initGame(currentLevelIndex); }
         
         function nextLevel() {
             if (currentLevelIndex < levels.length - 1) {
@@ -454,7 +527,6 @@
             }
         }
 
-        // Iniciar el juego
         initGame(currentLevelIndex);
     </script>
 </body>
