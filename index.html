@@ -147,10 +147,12 @@
 
 .goal::after {
     content: "";
+    position: absolute; /* Evita que empuje al avatar hacia un lado */
     width: 35%;
     height: 35%;
     background-color: #002366; /* Azul Rey */
     border-radius: 50%;
+    z-index: 0; /* Se asegura de estar debajo del avatar */
 }
 
         .box {
