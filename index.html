@@ -136,6 +136,23 @@
     cursor: not-allowed;
 }
 
+/* El Goal: círculo azul rey sólido */
+.goal { 
+    background-color: #bdc3c7; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.goal::after {
+    content: "";
+    width: 35%;
+    height: 35%;
+    background-color: #002366; /* Azul Rey */
+    border-radius: 50%;
+}
+
         .box {
             background-color: #cd853f; /* Color madera */
             border: 3px solid #8b4513; /* Borde madera oscura */
