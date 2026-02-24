@@ -166,18 +166,25 @@
             transition: transform 0.1s;
             cursor: pointer;
         }
-        .box-on-goal {
-            background-color: #2ecc71; /* Verde brillante indicando éxito */
-            border: 3px solid #1e8449; /* Borde verde oscuro */
-            box-shadow: inset 0 0 12px rgba(0,0,0,0.6), 0 0 8px rgba(46, 204, 113, 0.6); /* Brillo exterior e interior */
-            background-image: 
-                linear-gradient(45deg, transparent 45%, #1e8449 45%, #1e8449 55%, transparent 55%),
-                linear-gradient(-45deg, transparent 45%, #1e8449 45%, #1e8449 55%, transparent 55%);
-            box-sizing: border-box;
-            border-radius: 4px;
-            cursor: pointer;
-            transform: scale(0.95); /* Se encoge un poquito al encajar para un efecto visual genial */
-        }
+        
+.box-on-goal {
+    /* Color base amarillo brillante */
+    background-color: #f1c40f; 
+    /* Borde dorado oscuro para dar profundidad */
+    border: 3px solid #b7950b; 
+    /* Mantenemos el brillo interior oscuro y el resplandor exterior amarillo */
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.4), 0 0 12px rgba(241, 196, 15, 0.6); 
+    /* La "X" interna ahora en tono dorado para que combine */
+    background-image: 
+        linear-gradient(45deg, transparent 45%, #b7950b 45%, #b7950b 55%, transparent 55%),
+        linear-gradient(-45deg, transparent 45%, #b7950b 45%, #b7950b 55%, transparent 55%);
+    box-sizing: border-box;
+    border-radius: 4px;
+    cursor: pointer;
+    /* Mantenemos el efecto de encogimiento al encajar */
+    transform: scale(0.95); 
+}
+
         
         .d-pad {
             display: grid;
