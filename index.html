@@ -343,20 +343,36 @@
         window.toggleDashboard = toggleDashboard;
         window.selectLevelFromDashboard = selectLevelFromDashboard;
 
-        function parseSokFormat(text) {
+                function parseSokFormat(text) {
             const parsedLevels = [];
-            const blocks = text.split(/\n\s*\n/); 
-            for (let block of blocks) {
-                const lines = block.split('\n')
-                    .map
-        
-        let levels = [];
-        try {
-            levels = parseSokFormat(rawSokData);
-            if (levels.length === 0) throw new Error();
-        } catch(e) {
-            levels = [["#####", "#.@.#", "#####"]]; 
+            let currentLevel = [];
+            
+            // Separamos todo el texto línea por línea
+            const lines = text.split('\n');
+            
+            for (let line of lines) {
+                line = line.replace('\r', ''); // Limpiamos formato Windows
+                
+                // Si la línea tiene al menos un bloque de pared '#'
+                if (line.includes('#')) {
+                    currentLevel.push(line);
+                } 
+                // Si la línea NO tiene '#' (ej: "; 1" o líneas en blanco) 
+                // pero ya teníamos un nivel a medio construir, lo guardamos.
+                else if (currentLevel.length > 0) {
+                    parsedLevels.push(currentLevel);
+                    currentLevel = []; // Reseteamos para el siguiente nivel
+                }
+            }
+            
+            // Si el archivo termina de golpe y quedó un nivel armado, lo guardamos
+            if (currentLevel.length > 0) {
+                parsedLevels.push(currentLevel);
+            }
+            
+            return parsedLevels;
         }
+
 
         let currentLevelIndex = 0;
         let map = [];
