@@ -348,12 +348,7 @@
             const blocks = text.split(/\n\s*\n/); 
             for (let block of blocks) {
                 const lines = block.split('\n')
-                    .map(line => line.replace('\r', ''))
-                    .filter(line => line.includes('#'));
-                if (lines.length > 0) parsedLevels.push(lines);
-            }
-            return parsedLevels;
-        }
+                    .map
         
         let levels = [];
         try {
