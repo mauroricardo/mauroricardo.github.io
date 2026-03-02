@@ -343,7 +343,7 @@
         window.toggleDashboard = toggleDashboard;
         window.selectLevelFromDashboard = selectLevelFromDashboard;
 
-                function parseSokFormat(text) {
+		function parseSokFormat(text) {
             const parsedLevels = [];
             let currentLevel = [];
             
@@ -371,6 +371,14 @@
             }
             
             return parsedLevels;
+        }
+		
+		let levels = [];
+        try {
+            levels = parseSokFormat(rawSokData);
+            if (levels.length === 0) throw new Error();
+        } catch(e) {
+            levels = [["#####", "#.@.#", "#####"]]; 
         }
 
 
