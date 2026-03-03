@@ -594,7 +594,7 @@
             walkStep();
         }
 
-        function initGame(levelIndex, savedState = null) {
+        function initGame(levelIndex, savedState = null, forceReset = false) {
             isLevelComplete = false;
             isAnimating = false;
             map = []; goals = [];
@@ -631,18 +631,53 @@
                 map.push(row);
             }
 
-            if (savedState) {
-                player = savedState.player;
-                boxes = savedState.boxes;
-                historyStack = savedState.historyStack || [];
+            // NUEVO: Lógica de carga de estado
+            let stateToLoad = savedState;
+
+            // 1. Buscar si hay una partida a medias (si no forzamos reinicio)
+            if (!stateToLoad && !forceReset) {
+                const activeStateStr = localStorage.getItem('sokoban_save_state');
+                if (activeStateStr) {
+                    const activeState = JSON.parse(activeStateStr);
+                    if (activeState && activeState.level === levelIndex) {
+                        stateToLoad = activeState;
+                    }
+                }
+            }
+
+            // 2. Buscar si el nivel ya fue ganado (si no hay partida a medias y no forzamos reinicio)
+            if (!stateToLoad && !forceReset) {
+                const wonStatesStr = localStorage.getItem('sokoban_won_states');
+                if (wonStatesStr) {
+                    const wonStates = JSON.parse(wonStatesStr);
+                    if (wonStates[levelIndex]) {
+                        stateToLoad = wonStates[levelIndex];
+                    }
+                }
+            }
+
+            if (stateToLoad) {
+                player = stateToLoad.player;
+                boxes = stateToLoad.boxes;
+                historyStack = stateToLoad.historyStack || [];
             } else {
                 player = tempPlayer;
                 boxes = tempBoxes;
                 historyStack = [];
-                persistGameState(); 
+                if (!forceReset) persistGameState(); 
             }
 
             drawBoard();
+
+            // NUEVO: Verificar automáticamente si el estado que acabamos de cargar es un estado ganador
+            const won = boxes.length > 0 && boxes.every(box => goals.some(goal => goal.x === box.x && goal.y === box.y));
+            if (won) {
+                isLevelComplete = true;
+                document.getElementById("win-message").style.display = "block";
+                if (currentLevelIndex < levels.length - 1) {
+                    document.getElementById("btn-next").style.display = "block";
+                }
+            }
         }
 
         function drawBoard() {
@@ -721,6 +756,14 @@
                 isLevelComplete = true;
                 localStorage.removeItem('sokoban_save_state'); 
                 
+                // NUEVO: Guardar la "foto" exacta de cómo quedó el nivel completado
+                let wonStates = JSON.parse(localStorage.getItem('sokoban_won_states') || '{}');
+                wonStates[currentLevelIndex] = {
+                    player: { x: player.x, y: player.y },
+                    boxes: JSON.parse(JSON.stringify(boxes))
+                };
+                localStorage.setItem('sokoban_won_states', JSON.stringify(wonStates));
+
                 // Marcar el nivel como completado
                 markLevelAsCompleted(currentLevelIndex);
 
@@ -778,7 +821,9 @@
                 player: player,
                 boxes: boxes,
                 historyStack: historyStack,
-                completedLevels: completedLevels, // Ahora guarda también tus trofeos
+                completedLevels: completedLevels, 
+                // Agregamos los estados ganados a la exportación
+                completedStates: JSON.parse(localStorage.getItem('sokoban_won_states') || '{}'),
                 date: new Date().toISOString() 
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
@@ -802,10 +847,13 @@
                         currentLevelIndex = data.level;
                         localStorage.setItem('sokoban_level_v2', currentLevelIndex);
                         
-                        // Cargar historial de completados si viene en el JSON
                         if (data.completedLevels) {
                             completedLevels = data.completedLevels;
                             localStorage.setItem('sokoban_completed_levels', JSON.stringify(completedLevels));
+                        }
+                        // Importamos los estados ganados
+                        if (data.completedStates) { 
+                            localStorage.setItem('sokoban_won_states', JSON.stringify(data.completedStates));
                         }
 
                         if (data.player && data.boxes) {
@@ -823,7 +871,11 @@
         function resetLevel() { 
             if(isAnimating) return;
             localStorage.removeItem('sokoban_save_state');
-            initGame(currentLevelIndex); 
+            // Le pasamos 'true' al final para forzar el reinicio ignorando victorias previas
+            initGame(currentLevelIndex, null, true); 
+            
+            // Guardamos este tablero limpio en el progreso actual
+            persistGameState(); 
         }
         
         function nextLevel() {
