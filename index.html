@@ -296,6 +296,7 @@
         <button class="save-btn" onclick="exportJSON()">📥 Exportar</button>
         <button class="save-btn" onclick="triggerImport()">📤 Importar</button>
         <input type="file" id="import-file" style="display:none" accept=".json">
+		<button class="save-btn special" style="background-color: #d35400;" onclick="toggleTestMap()">🛠️ Probar Mapa</button>
     </div>
 
     <div id="game-view">
@@ -329,6 +330,17 @@
         <div id="level-grid" class="level-grid">
             </div>
     </div>
+	<div id="test-map-view" style="display: none; flex-direction: column; align-items: center; width: 100%; max-width: 600px;">
+		<div class="dashboard-header">
+			<h2 style="margin: 0; color: #f1c40f;">Probar Mapa</h2>
+			<button class="action-btn" onclick="toggleTestMap()">❌ Cerrar</button>
+		</div>
+		<p style="text-align: left; width: 100%; color: #bdc3c7; font-size: 13px;">Pega aquí el código en texto plano de tu nivel (con #, @, $, .). Solo se leerá el primer nivel que pegues.</p>
+		
+		<textarea id="custom-map-input" rows="12" style="width: 100%; max-width: 90vw; padding: 10px; border-radius: 8px; background-color: #34495e; color: #ecf0f1; border: 2px solid #7f8c8d; font-family: monospace; font-size: 16px; resize: vertical; box-sizing: border-box;" placeholder="#####\n#@$.#\n#####"></textarea>
+		
+		<button class="action-btn" style="background-color: #27ae60; margin-top: 15px; width: 100%; font-size: 16px; padding: 15px;" onclick="playCustomMap()">▶️ Jugar Nivel</button>
+	</div>
 
     <script type="module">
         import { rawSokData } from './levels.js';
@@ -342,6 +354,8 @@
         window.undoMove = undoMove;
         window.toggleDashboard = toggleDashboard;
         window.selectLevelFromDashboard = selectLevelFromDashboard;
+		window.toggleTestMap = toggleTestMap;
+		window.playCustomMap = playCustomMap;
 
 		function parseSokFormat(text) {
             const parsedLevels = [];
@@ -885,6 +899,61 @@
                 localStorage.setItem('sokoban_level_v2', currentLevelIndex);
                 initGame(currentLevelIndex);
             }
+        }
+		
+		// --- FUNCIONES DE PRUEBA DE MAPAS (SANDBOX) ---
+        function toggleTestMap() {
+            const gameView = document.getElementById('game-view');
+            const dashView = document.getElementById('dashboard-view');
+            const testView = document.getElementById('test-map-view');
+            
+            // Si está oculto, lo mostramos y ocultamos lo demás
+            if (testView.style.display === 'none' || testView.style.display === '') {
+                gameView.style.display = 'none';
+                dashView.style.display = 'none';
+                testView.style.display = 'flex';
+            } else {
+                // Si está visible, volvemos al juego
+                testView.style.display = 'none';
+                gameView.style.display = 'flex';
+                window.dispatchEvent(new Event('resize')); 
+            }
+        }
+
+        function playCustomMap() {
+            const inputTxt = document.getElementById('custom-map-input').value;
+            if (!inputTxt.trim()) {
+                alert("Por favor, pega el código de un mapa primero.");
+                return;
+            }
+
+            // Usamos tu función robusta para limpiar el texto
+            const parsed = parseSokFormat(inputTxt);
+            
+            if (parsed.length === 0) {
+                alert("No se detectó ningún mapa válido. Asegúrate de incluir las paredes (#).");
+                return;
+            }
+
+            // Tomamos el primer nivel que haya encontrado en el texto
+            const customLevel = parsed[0];
+
+            // Lo inyectamos al final de la lista de niveles del juego
+            const newIndex = levels.length;
+            levels.push(customLevel);
+
+            // Cerramos la ventana de pruebas
+            toggleTestMap();
+
+            // Limpiamos el guardado actual para no causar conflictos
+            localStorage.removeItem('sokoban_save_state');
+            currentLevelIndex = newIndex;
+            
+            // Iniciamos el juego forzando el reinicio
+            initGame(newIndex, null, true);
+
+            // Sobrescribimos el título para que sepas que es un mapa de prueba
+            document.getElementById("level-info").innerText = "🛠️ Nivel de Prueba";
         }
 
         initGame(currentLevelIndex, initialSavedState);
