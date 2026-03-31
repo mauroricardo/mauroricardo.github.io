@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador Financiero (Con Guardado Local)</title>
+    <style>
+        :root {
+            --bg: #f4f7f6;
+            --text: #2c3e50;
+            --green: #27ae60;
+            --red: #c0392b;
+            --blue: #2980b9;
+            --orange: #d35400;
+            --purple: #8e44ad;
+            --gray: #7f8c8d;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text);
+            max-width: 1100px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* PANEL CONFIG */
+        .config-panel {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .config-inputs {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .config-item { display: flex; flex-direction: column; }
+        
+        .config-item label {
+            font-size: 0.75rem;
+            color: #bdc3c7;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .config-item input {
+            padding: 8px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 5px;
+            width: 140px;
+            text-align: center;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .btn-reset {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            align-self: flex-end;
+            margin-bottom: 2px;
+        }
+        .btn-reset:hover { background-color: #c0392b; }
+
+        /* CONTENEDOR MESES */
+        .month-container {
+            background: #fff;
+            border: 1px solid #dfe6e9;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .month-header {
+            background-color: #ecf0f1;
+            padding: 10px 20px;
+            font-weight: 800;
+            color: var(--text);
+            border-bottom: 1px solid #bdc3c7;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        .quincenas-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        @media (max-width: 768px) {
+            .quincenas-grid { grid-template-columns: 1fr; }
+            .quincenas-grid > div:first-child { border-bottom: 1px dashed #ccc; }
+            .config-panel { flex-direction: column; align-items: flex-start; }
+            .btn-reset { align-self: flex-start; margin-top: 10px; }
+        }
+
+        .q-card {
+            padding: 15px;
+            border-right: 1px dashed #bdc3c7;
+            position: relative;
+        }
+        .q-card:last-child { border-right: none; }
+
+        .q-title {
+            font-weight: bold;
+            color: #34495e;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.05rem;
+        }
+
+        .month-tag {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            font-weight: normal;
+            margin-left: 5px;
+        }
+
+        /* SECCIONES */
+        .section {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+        .sec-cash { background-color: #eafaf1; border-left: 4px solid var(--green); }
+        .sec-card { background-color: #ebf5fb; border-left: 4px solid var(--blue); }
+        .sec-bill { background-color: #f4ecf7; border-left: 4px solid var(--purple); margin-top: 15px; border: 1px solid #e8daef; }
+
+        .lbl-sec {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 900;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* FILAS */
+        .row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+
+        input.val {
+            width: 85px;
+            padding: 4px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 0.95rem;
+        }
+
+        /* TEXTOS */
+        .txt-gr { color: var(--green); }
+        .txt-rd { color: var(--red); }
+        .txt-bl { color: var(--blue); }
+        .txt-or { color: var(--orange); }
+        .txt-pr { color: var(--purple); }
+        .bold { font-weight: bold; }
+
+        .res-row {
+            border-top: 1px solid rgba(0,0,0,0.1);
+            margin-top: 8px;
+            padding-top: 6px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1rem;
+        }
+
+        .badge {
+            font-size: 0.65rem;
+            padding: 2px 5px;
+            border-radius: 4px;
+            color: white;
+            background: #95a5a6;
+            text-transform: uppercase;
+        }
+        .bg-pay { background: #d35400; }
+
+        /* Estilo Cupo Disponible */
+        .quota-row {
+            background: #fff;
+            padding: 5px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-weight: bold;
+            color: #34495e;
+            border: 1px solid #bdc3c7;
+            display: flex; 
+            justify-content: space-between;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="config-panel">
+        <div class="config-inputs">
+            <div class="config-item">
+                <label>Cupo Total Tarjeta</label>
+                <input type="number" id="globalQuota" value="3000" oninput="recalculate()">
+            </div>
+            <div class="config-item">
+                <label>Factura Inicial (Mes 1)</label>
+                <input type="number" id="initialBill" value="0" style="color:var(--purple)" oninput="recalculate()">
+            </div>
+        </div>
+        <button class="btn-reset" onclick="resetData()">Limpiar Datos</button>
+    </div>
+
+    <div id="app"></div>
+
+    <script>
+        const months = 12;
+        const qPerMonth = 2;
+        const container = document.getElementById('app');
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+
+        // --- VALORES POR DEFECTO ---
+        const defaultData = Array(months * qPerMonth).fill(null).map((_, index) => {
+            const isQ1 = (index % 2 === 0);
+            return {
+                inc: isQ1 ? 3000 : 0,
+                sav: isQ1 ? 500 : 0,
+                exp: 0,
+                pay: 0,
+                spend: 0,
+                billGenerated: 0
+            };
+        });
+
+        let dataStore = [];
+
+        // --- LOCAL STORAGE LOGIC ---
+        function loadData() {
+            const savedData = localStorage.getItem('finanzas_data');
+            const savedQuota = localStorage.getItem('finanzas_quota');
+            const savedBill = localStorage.getItem('finanzas_bill');
+
+            if (savedData) {
+                dataStore = JSON.parse(savedData);
+            } else {
+                // Clon profundo para no mutar el defaultData base
+                dataStore = JSON.parse(JSON.stringify(defaultData)); 
+            }
+
+            if (savedQuota) document.getElementById('globalQuota').value = savedQuota;
+            if (savedBill) document.getElementById('initialBill').value = savedBill;
+        }
+
+        function saveData() {
+            localStorage.setItem('finanzas_data', JSON.stringify(dataStore));
+            localStorage.setItem('finanzas_quota', document.getElementById('globalQuota').value);
+            localStorage.setItem('finanzas_bill', document.getElementById('initialBill').value);
+        }
+
+        function resetData() {
+            if (confirm("¿Estás seguro de borrar toda tu información? Esto reiniciará la tabla a los valores por defecto.")) {
+                localStorage.removeItem('finanzas_data');
+                localStorage.removeItem('finanzas_quota');
+                localStorage.removeItem('finanzas_bill');
+                location.reload(); // Refresca la página para volver a cargar
+            }
+        }
+
+        // --- RENDERIZADO UI ---
+        function init() {
+            let idx = 0;
+            for (let m = 1; m <= months; m++) {
+                const mDiv = document.createElement('div');
+                mDiv.className = 'month-container';
+                mDiv.innerHTML = `<div class="month-header">Mes ${m}</div>`;
+
+                const grid = document.createElement('div');
+                grid.className = 'quincenas-grid';
+
+                for (let q = 1; q <= qPerMonth; q++) {
+                    const isQ1 = (q === 1);
+                    const d = dataStore[idx]; 
+
+                    const cell = document.createElement('div');
+                    cell.className = 'q-card';
+                    
+                    cell.innerHTML = `
+                        <div class="q-title">
+                            <span>Quincena ${q} <span class="month-tag">| Mes ${m}</span></span>
+                            ${isQ1 
+                                ? '<span class="badge bg-pay">Pago Día 2</span>' 
+                                : '<span class="badge">Abono Voluntario</span>'}
+                        </div>
+
+                        <div class="section sec-cash">
+                            <span class="lbl-sec txt-gr">Caja (Efectivo)</span>
+                            <div class="row"><label>Anterior:</label><strong id="cash-prev-${idx}">$0</strong></div>
+                            
+                            ${isQ1 ? `
+                            <div class="row">
+                                <label class="txt-gr">+ Ingresos:</label>
+                                <input type="number" class="val inp-inc" data-i="${idx}" value="${d.inc}">
+                            </div>
+                            <div class="row">
+                                <label class="txt-gr">+ Ahorros:</label>
+                                <input type="number" class="val inp-sav" data-i="${idx}" value="${d.sav}">
+                            </div>
+                            ` : ''}
+                            
+                            <div class="row"><label class="txt-rd">- Gastos:</label><input type="number" class="val inp-exp" data-i="${idx}" value="${d.exp}"></div>
+                            
+                            <div class="row" style="font-size:0.8rem; color:var(--orange);">
+                                <label>- Salida Pago TC:</label><span id="val-pay-note-${idx}">$0</span>
+                            </div>
+
+                            <div class="res-row txt-gr">
+                                <span>Disponible:</span><span id="cash-final-${idx}">$0</span>
+                            </div>
+                        </div>
+
+                        <div class="section sec-card">
+                            <span class="lbl-sec txt-bl">Tarjeta de Crédito</span>
+                            <div class="row"><label>Deuda Total Ant.:</label><strong id="debt-prev-${idx}">$0</strong></div>
+                            
+                            <div class="row">
+                                <label class="txt-or bold">${isQ1 ? 'Pago (Día 2):' : 'Abono Q2:'}</label>
+                                <input type="number" class="val inp-pay" data-i="${idx}" value="${d.pay}" style="color:var(--orange); font-weight:bold; border-color:var(--orange);">
+                            </div>
+
+                            <div class="row"><label class="txt-bl">+ Compras Nuevas:</label><input type="number" class="val inp-spend" data-i="${idx}" value="${d.spend}"></div>
+
+                            <div class="res-row txt-bl">
+                                <span>Deuda Total:</span><span id="debt-final-${idx}">$0</span>
+                            </div>
+                            
+                            <div class="quota-row">
+                                <label>Cupo Disponible:</label>
+                                <span id="quota-final-${idx}">$0</span>
+                            </div>
+                        </div>
+
+                        ${isQ1 ? `
+                        <div class="section sec-bill">
+                            <span class="lbl-sec txt-pr">Factura (Vence Día 2)</span>
+                            
+                            <div style="background:#fff; padding:8px; border:1px dashed var(--purple); border-radius:4px; margin-bottom:10px;">
+                                <div class="row"><label>Facturado Total:</label><span id="bill-original-${idx}">$0</span></div>
+                                <div class="row" style="color:#666; font-size:0.8rem; border-bottom:1px solid #eee;"><label>(-) Abonos Q2:</label><span id="bill-deduct-q2-${idx}">$0</span></div>
+                                <div class="row bold txt-or"><label>Pendiente Real:</label><span id="bill-pending-${idx}">$0</span></div>
+                            </div>
+
+                            <div class="row" style="font-size:0.8rem; margin-bottom:10px;">
+                                <label>Estado:</label>
+                                <span id="bill-status-${idx}">---</span>
+                            </div>
+
+                            <hr style="border:0; border-top:1px dashed #ccc;">
+
+                            <div class="row bold txt-pr">
+                                <label>Nuevo Corte (Día 15):</label>
+                                <span id="bill-new-${idx}">$0</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                    `;
+                    grid.appendChild(cell);
+                    idx++;
+                }
+                mDiv.appendChild(grid);
+                container.appendChild(mDiv);
+            }
+            document.querySelectorAll('input').forEach(inp => inp.addEventListener('input', updateData));
+        }
+
+        // --- MANEJO DE EVENTOS ---
+        function updateData(e) {
+            const el = e.target;
+            if(el.id === 'globalQuota' || el.id === 'initialBill') { recalculate(); return; }
+            const idx = parseInt(el.getAttribute('data-i'));
+            const val = parseFloat(el.value) || 0;
+
+            if(el.classList.contains('inp-inc')) dataStore[idx].inc = val;
+            if(el.classList.contains('inp-sav')) dataStore[idx].sav = val;
+            if(el.classList.contains('inp-exp')) dataStore[idx].exp = val;
+            if(el.classList.contains('inp-pay')) dataStore[idx].pay = val;
+            if(el.classList.contains('inp-spend')) dataStore[idx].spend = val;
+
+            recalculate();
+        }
+
+        // --- CÁLCULO CORE ---
+        function recalculate() {
+            const globalQuota = parseFloat(document.getElementById('globalQuota').value) || 0;
+            let initialBill = parseFloat(document.getElementById('initialBill').value) || 0;
+            
+            let cash = 0;
+            let totalDebt = initialBill; 
+            let prevQ2Spend = 0; 
+
+            for (let i = 0; i < dataStore.length; i++) {
+                const d = dataStore[i];
+                const isQ1 = (i % 2 === 0);
+
+                // 1. Mostrar Previos
+                document.getElementById(`cash-prev-${i}`).innerText = fmt(cash);
+                document.getElementById(`debt-prev-${i}`).innerText = fmt(totalDebt);
+                document.getElementById(`val-pay-note-${i}`).innerText = `-${fmt(d.pay)}`;
+
+                // 2. Caja
+                cash = cash + (d.inc || 0) + (d.sav || 0) - d.exp - d.pay;
+                const elCash = document.getElementById(`cash-final-${i}`);
+                elCash.innerText = fmt(cash);
+                elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
+
+                // 3. Deuda y Cupo
+                totalDebt = totalDebt + d.spend - d.pay;
+                document.getElementById(`debt-final-${i}`).innerText = fmt(totalDebt);
+
+                const quotaLeft = globalQuota - totalDebt;
+                const elQuota = document.getElementById(`quota-final-${i}`);
+                elQuota.innerText = fmt(quotaLeft);
+                if(quotaLeft < 0) elQuota.style.color = "var(--red)";
+                else if (quotaLeft < globalQuota * 0.1) elQuota.style.color = "var(--orange)";
+                else elQuota.style.color = "var(--green)";
+
+                // 4. Facturación
+                if (isQ1) {
+                    let billOriginal = (i === 0) ? initialBill : (i > 0 ? dataStore[i-1].billGenerated : 0);
+                    let paymentsInQ2 = (i > 0) ? dataStore[i-1].pay : 0;
+                    let billPendingReal = Math.max(0, billOriginal - paymentsInQ2);
+
+                    document.getElementById(`bill-original-${i}`).innerText = fmt(billOriginal);
+                    document.getElementById(`bill-deduct-q2-${i}`).innerText = `-${fmt(paymentsInQ2)}`;
+                    document.getElementById(`bill-pending-${i}`).innerText = fmt(billPendingReal);
+
+                    const statusEl = document.getElementById(`bill-status-${i}`);
+                    const remainingAfterToday = billPendingReal - d.pay;
+
+                    if (remainingAfterToday <= 0) {
+                        statusEl.innerText = "Cubierto";
+                        statusEl.style.color = "var(--green)";
+                    } else {
+                        statusEl.innerText = `Falta: ${fmt(remainingAfterToday)}`;
+                        statusEl.style.color = "var(--red)";
+                    }
+
+                    let newBill = prevQ2Spend + d.spend + remainingAfterToday;
+                    document.getElementById(`bill-new-${i}`).innerText = fmt(newBill);
+                    
+                    d.billGenerated = newBill;
+                    prevQ2Spend = 0; 
+                } else {
+                    prevQ2Spend = d.spend;
+                    d.billGenerated = dataStore[i-1].billGenerated; 
+                }
+            }
+            
+            // Guardar al final de cada cálculo
+            saveData();
+        }
+
+        // --- ARRANQUE DE LA APP ---
+        loadData();
+        init();
+        recalculate();
+    </script>
+</body>
+</html>
