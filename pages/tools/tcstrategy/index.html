@@ -10,7 +10,8 @@
             --text: #2c3e50;
             --green: #27ae60;
             --red: #c0392b;
-            --blue: #2980b9;
+            --blue: #3498db;
+            --blue-dark: #2980b9;
             --orange: #d35400;
             --purple: #8e44ad;
             --gray: #7f8c8d;
@@ -75,7 +76,7 @@
         }
 
         .btn-action {
-            background-color: #3498db;
+            background-color: var(--blue);
             color: white;
             border: none;
             padding: 10px 15px;
@@ -85,7 +86,7 @@
             transition: background 0.3s;
             font-size: 0.9rem;
         }
-        .btn-action:hover { background-color: #2980b9; }
+        .btn-action:hover { background-color: var(--blue-dark); }
 
         .btn-reset {
             background-color: #e74c3c;
@@ -107,12 +108,13 @@
             border-radius: 12px;
             margin-bottom: 30px;
             overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
         .month-header {
             background-color: #ecf0f1;
             padding: 10px 20px;
-            font-weight: 800;
+            font-weight: 900;
             color: var(--text);
             border-bottom: 1px solid #bdc3c7;
             font-size: 1.2rem;
@@ -132,7 +134,7 @@
         }
 
         .q-card {
-            padding: 15px;
+            padding: 15px 20px;
             border-right: 1px dashed #bdc3c7;
             position: relative;
         }
@@ -142,24 +144,25 @@
             font-weight: bold;
             color: #34495e;
             border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 8px;
+            padding-bottom: 10px;
             margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 1.05rem;
+            font-size: 1.1rem;
         }
 
-        .month-tag {
-            font-size: 0.8rem;
-            color: #7f8c8d;
-            font-weight: normal;
-            margin-left: 5px;
+        /* Nuevo estilo para los rangos de fechas (1-15 / 16-30) */
+        .date-range {
+            font-size: 1.6rem;
+            color: var(--blue);
+            font-weight: 900;
+            margin-left: 10px;
         }
 
         /* SECCIONES */
         .section {
-            padding: 10px;
+            padding: 10px 12px;
             border-radius: 6px;
             margin-bottom: 12px;
         }
@@ -168,11 +171,11 @@
         .sec-bill { background-color: #f4ecf7; border-left: 4px solid var(--purple); margin-top: 15px; border: 1px solid #e8daef; }
 
         .lbl-sec {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             font-weight: 900;
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         /* FILAS */
@@ -180,23 +183,23 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 4px;
-            font-size: 0.9rem;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
         }
 
         input.val {
-            width: 95px;
-            padding: 4px 6px;
+            width: 100px;
+            padding: 5px 8px;
             border: 1px solid #bdc3c7;
             border-radius: 4px;
             text-align: right;
             font-family: monospace;
-            font-size: 0.95rem;
+            font-size: 1rem;
             transition: all 0.2s;
         }
         input.val:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: var(--blue);
             background-color: #fdfefe;
             box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
         }
@@ -204,41 +207,62 @@
         /* TEXTOS */
         .txt-gr { color: var(--green); }
         .txt-rd { color: var(--red); }
-        .txt-bl { color: var(--blue); }
+        .txt-bl { color: var(--blue-dark); }
         .txt-or { color: var(--orange); }
         .txt-pr { color: var(--purple); }
         .bold { font-weight: bold; }
 
         .res-row {
             border-top: 1px solid rgba(0,0,0,0.1);
-            margin-top: 8px;
-            padding-top: 6px;
+            margin-top: 10px;
+            padding-top: 8px;
             font-weight: bold;
             display: flex;
             justify-content: space-between;
-            font-size: 1rem;
+            font-size: 1.05rem;
         }
 
         .badge {
             font-size: 0.65rem;
-            padding: 2px 5px;
+            padding: 3px 6px;
             border-radius: 4px;
             color: white;
             background: #95a5a6;
             text-transform: uppercase;
         }
-        .bg-pay { background: #d35400; }
+        .bg-pay { background: var(--orange); }
 
         .quota-row {
             background: #fff;
-            padding: 5px;
+            padding: 6px 8px;
             border-radius: 4px;
-            margin-top: 8px;
+            margin-top: 10px;
             font-weight: bold;
             color: #34495e;
             border: 1px solid #bdc3c7;
             display: flex; 
             justify-content: space-between;
+            font-size: 0.95rem;
+        }
+
+        /* FOOTER DEL MES (TOTAL GASTOS) */
+        .month-footer {
+            background-color: var(--blue);
+            color: white;
+            padding: 12px 25px;
+            text-align: right;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-top: 3px solid var(--blue-dark);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .month-footer span {
+            font-size: 1.3rem;
+            background: rgba(255,255,255,0.2);
+            padding: 2px 10px;
+            border-radius: 4px;
         }
 
     </style>
@@ -249,7 +273,7 @@
         <div class="config-inputs">
             <div class="config-item">
                 <label>Cupo Total Tarjeta</label>
-                <input type="text" inputmode="numeric" id="globalQuota" value="3.000">
+                <input type="text" inputmode="numeric" id="globalQuota" value="5.000.000">
             </div>
             <div class="config-item">
                 <label>Factura Inicial (Mes 1)</label>
@@ -271,11 +295,11 @@
         const qPerMonth = 2;
         const container = document.getElementById('app');
         
-        // Formateadores de moneda (Configurados para Colombia)
+        // Formateadores de moneda (Colombia)
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
-        const fmtInput = (n) => new Intl.NumberFormat('es-CO').format(n); // Formato sin el símbolo de $ para los inputs
+        const fmtInput = (n) => new Intl.NumberFormat('es-CO').format(n);
 
-        // Función para extraer números limpios ignorando puntos y comas
+        // Función para limpiar números de inputs
         function cleanNum(str) {
             if (typeof str === 'number') return str;
             if (!str) return 0;
@@ -287,7 +311,7 @@
         const defaultData = Array(months * qPerMonth).fill(null).map((_, index) => {
             const isQ1 = (index % 2 === 0);
             return {
-                inc: isQ1 ? 3000 : 0,
+                inc: isQ1 ? 3000000 : 0,
                 sav: isQ1 ? 500 : 0,
                 exp: 0,
                 pay: 0,
@@ -300,9 +324,9 @@
 
         // --- LOCAL STORAGE & IMPORT/EXPORT ---
         function loadData() {
-            const savedData = localStorage.getItem('finanzas_data');
-            const savedQuota = localStorage.getItem('finanzas_quota');
-            const savedBill = localStorage.getItem('finanzas_bill');
+            const savedData = localStorage.getItem('finanzas_data_v2');
+            const savedQuota = localStorage.getItem('finanzas_quota_v2');
+            const savedBill = localStorage.getItem('finanzas_bill_v2');
 
             if (savedData) {
                 dataStore = JSON.parse(savedData);
@@ -315,14 +339,16 @@
         }
 
         function saveData() {
-            localStorage.setItem('finanzas_data', JSON.stringify(dataStore));
-            localStorage.setItem('finanzas_quota', cleanNum(document.getElementById('globalQuota').value));
-            localStorage.setItem('finanzas_bill', cleanNum(document.getElementById('initialBill').value));
+            localStorage.setItem('finanzas_data_v2', JSON.stringify(dataStore));
+            localStorage.setItem('finanzas_quota_v2', cleanNum(document.getElementById('globalQuota').value));
+            localStorage.setItem('finanzas_bill_v2', cleanNum(document.getElementById('initialBill').value));
         }
 
         function resetData() {
             if (confirm("¿Estás seguro de borrar toda tu información? Esto reiniciará la tabla a los valores por defecto.")) {
-                localStorage.clear();
+                localStorage.removeItem('finanzas_data_v2');
+                localStorage.removeItem('finanzas_quota_v2');
+                localStorage.removeItem('finanzas_bill_v2');
                 location.reload(); 
             }
         }
@@ -350,9 +376,9 @@
                 try {
                     const imported = JSON.parse(e.target.result);
                     if(imported.dataStore) {
-                        localStorage.setItem('finanzas_data', JSON.stringify(imported.dataStore));
-                        localStorage.setItem('finanzas_quota', imported.quota || 3000);
-                        localStorage.setItem('finanzas_bill', imported.initialBill || 0);
+                        localStorage.setItem('finanzas_data_v2', JSON.stringify(imported.dataStore));
+                        localStorage.setItem('finanzas_quota_v2', imported.quota || 5000000);
+                        localStorage.setItem('finanzas_bill_v2', imported.initialBill || 0);
                         location.reload();
                     }
                 } catch (err) {
@@ -368,7 +394,7 @@
             for (let m = 1; m <= months; m++) {
                 const mDiv = document.createElement('div');
                 mDiv.className = 'month-container';
-                mDiv.innerHTML = `<div class="month-header">Mes ${m}</div>`;
+                mDiv.innerHTML = `<div class="month-header">MES ${m}</div>`;
 
                 const grid = document.createElement('div');
                 grid.className = 'quincenas-grid';
@@ -376,13 +402,19 @@
                 for (let q = 1; q <= qPerMonth; q++) {
                     const isQ1 = (q === 1);
                     const d = dataStore[idx]; 
+                    
+                    // Lógica para el título de fechas
+                    const dateRange = isQ1 ? '1 - 15' : '16 - 30';
 
                     const cell = document.createElement('div');
                     cell.className = 'q-card';
                     
                     cell.innerHTML = `
                         <div class="q-title">
-                            <span>Quincena ${q} <span class="month-tag">| Mes ${m}</span></span>
+                            <span style="display:flex; align-items:center;">
+                                Quincena ${q} 
+                                <span class="date-range">${dateRange}</span>
+                            </span>
                             ${isQ1 
                                 ? '<span class="badge bg-pay">Pago Día 2</span>' 
                                 : '<span class="badge">Abono Voluntario</span>'}
@@ -441,11 +473,11 @@
                             
                             <div style="background:#fff; padding:8px; border:1px dashed var(--purple); border-radius:4px; margin-bottom:10px;">
                                 <div class="row"><label>Facturado Total:</label><span id="bill-original-${idx}">$0</span></div>
-                                <div class="row" style="color:#666; font-size:0.8rem; border-bottom:1px solid #eee;"><label>(-) Abonos Q2:</label><span id="bill-deduct-q2-${idx}">$0</span></div>
-                                <div class="row bold txt-or"><label>Pendiente Real:</label><span id="bill-pending-${idx}">$0</span></div>
+                                <div class="row" style="color:#666; font-size:0.85rem; border-bottom:1px solid #eee; padding-bottom:5px;"><label>(-) Abonos Q2:</label><span id="bill-deduct-q2-${idx}">$0</span></div>
+                                <div class="row bold txt-or" style="margin-top:5px;"><label>Pendiente Real:</label><span id="bill-pending-${idx}">$0</span></div>
                             </div>
 
-                            <div class="row" style="font-size:0.8rem; margin-bottom:10px;">
+                            <div class="row" style="font-size:0.85rem; margin-bottom:10px;">
                                 <label>Estado:</label>
                                 <span id="bill-status-${idx}">---</span>
                             </div>
@@ -462,22 +494,28 @@
                     grid.appendChild(cell);
                     idx++;
                 }
+                
                 mDiv.appendChild(grid);
+                
+                // --- FOOTER MES (TOTAL GASTOS) ---
+                const footer = document.createElement('div');
+                footer.className = 'month-footer';
+                footer.innerHTML = `
+                    <label style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; opacity:0.9;">Total Gastos Mes (Efectivo + Tarjeta)</label>
+                    <span id="month-total-expenses-${m}">$0</span>
+                `;
+                mDiv.appendChild(footer);
+
                 container.appendChild(mDiv);
             }
 
             // Asignar los eventos de comportamiento (Formatos)
             document.querySelectorAll('input.val, input#globalQuota, input#initialBill').forEach(inp => {
-                // Al escribir, actualizamos datos en caliente
                 inp.addEventListener('input', updateData);
-                
-                // Al entrar a la celda (Focus), limpiamos el formato
                 inp.addEventListener('focus', function(e) {
                     let num = cleanNum(this.value);
-                    this.value = num === 0 ? '' : num; // Si es cero, la vaciamos para que sea fácil escribir
+                    this.value = num === 0 ? '' : num;
                 });
-                
-                // Al salir de la celda (Blur), volvemos a dar formato
                 inp.addEventListener('blur', function(e) {
                     let num = cleanNum(this.value);
                     this.value = fmtInput(num);
@@ -488,7 +526,7 @@
         // --- MANEJO DE EVENTOS ---
         function updateData(e) {
             const el = e.target;
-            const val = cleanNum(el.value); // Sacamos el número real sin puntos
+            const val = cleanNum(el.value); 
 
             if(el.id === 'globalQuota' || el.id === 'initialBill') { 
                 recalculate(); 
@@ -514,10 +552,14 @@
             let cash = 0;
             let totalDebt = initialBill; 
             let prevQ2Spend = 0; 
+            let currentMonthExpenses = 0; // Acumulador de gastos mensuales
 
             for (let i = 0; i < dataStore.length; i++) {
                 const d = dataStore[i];
                 const isQ1 = (i % 2 === 0);
+
+                // --- ACUMULAR GASTOS DEL MES ---
+                currentMonthExpenses += (d.exp || 0) + (d.spend || 0);
 
                 // 1. Mostrar Previos
                 document.getElementById(`cash-prev-${i}`).innerText = fmt(cash);
@@ -525,13 +567,13 @@
                 document.getElementById(`val-pay-note-${i}`).innerText = `-${fmt(d.pay)}`;
 
                 // 2. Caja
-                cash = cash + (d.inc || 0) + (d.sav || 0) - d.exp - d.pay;
+                cash = cash + (d.inc || 0) + (d.sav || 0) - (d.exp || 0) - (d.pay || 0);
                 const elCash = document.getElementById(`cash-final-${i}`);
                 elCash.innerText = fmt(cash);
                 elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
 
                 // 3. Deuda y Cupo
-                totalDebt = totalDebt + d.spend - d.pay;
+                totalDebt = totalDebt + (d.spend || 0) - (d.pay || 0);
                 document.getElementById(`debt-final-${i}`).innerText = fmt(totalDebt);
 
                 const quotaLeft = globalQuota - totalDebt;
@@ -552,7 +594,7 @@
                     document.getElementById(`bill-pending-${i}`).innerText = fmt(billPendingReal);
 
                     const statusEl = document.getElementById(`bill-status-${i}`);
-                    const remainingAfterToday = billPendingReal - d.pay;
+                    const remainingAfterToday = billPendingReal - (d.pay || 0);
 
                     if (remainingAfterToday <= 0) {
                         statusEl.innerText = "Cubierto";
@@ -562,18 +604,24 @@
                         statusEl.style.color = "var(--red)";
                     }
 
-                    let newBill = prevQ2Spend + d.spend + remainingAfterToday;
+                    let newBill = prevQ2Spend + (d.spend || 0) + remainingAfterToday;
                     document.getElementById(`bill-new-${i}`).innerText = fmt(newBill);
                     
                     d.billGenerated = newBill;
                     prevQ2Spend = 0; 
                 } else {
-                    prevQ2Spend = d.spend;
+                    prevQ2Spend = (d.spend || 0);
                     d.billGenerated = dataStore[i-1].billGenerated; 
+                }
+
+                // --- RENDERIZAR TOTAL GASTOS AL FINAL DE LA QUINCENA 2 ---
+                if (!isQ1) {
+                    let currentMonth = Math.floor(i / 2) + 1;
+                    document.getElementById(`month-total-expenses-${currentMonth}`).innerText = fmt(currentMonthExpenses);
+                    currentMonthExpenses = 0; // Resetear para el próximo mes
                 }
             }
             
-            // Guardar al final de cada cálculo
             saveData();
         }
 
