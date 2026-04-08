@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planificador Financiero (Con Guardado Local)</title>
+    <title>Planificador Financiero Pro</title>
     <style>
         :root {
             --bg: #f4f7f6;
@@ -68,6 +68,25 @@
             color: #2c3e50;
         }
 
+        .btn-wrap {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-action:hover { background-color: #2980b9; }
+
         .btn-reset {
             background-color: #e74c3c;
             color: white;
@@ -77,8 +96,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: background 0.3s;
-            align-self: flex-end;
-            margin-bottom: 2px;
+            font-size: 0.9rem;
         }
         .btn-reset:hover { background-color: #c0392b; }
 
@@ -110,7 +128,7 @@
             .quincenas-grid { grid-template-columns: 1fr; }
             .quincenas-grid > div:first-child { border-bottom: 1px dashed #ccc; }
             .config-panel { flex-direction: column; align-items: flex-start; }
-            .btn-reset { align-self: flex-start; margin-top: 10px; }
+            .btn-wrap { width: 100%; justify-content: flex-start; }
         }
 
         .q-card {
@@ -167,13 +185,20 @@
         }
 
         input.val {
-            width: 85px;
-            padding: 4px;
+            width: 95px;
+            padding: 4px 6px;
             border: 1px solid #bdc3c7;
             border-radius: 4px;
             text-align: right;
             font-family: monospace;
             font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        input.val:focus {
+            outline: none;
+            border-color: #3498db;
+            background-color: #fdfefe;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
         }
 
         /* TEXTOS */
@@ -204,7 +229,6 @@
         }
         .bg-pay { background: #d35400; }
 
-        /* Estilo Cupo Disponible */
         .quota-row {
             background: #fff;
             padding: 5px;
@@ -225,14 +249,19 @@
         <div class="config-inputs">
             <div class="config-item">
                 <label>Cupo Total Tarjeta</label>
-                <input type="number" id="globalQuota" value="3000" oninput="recalculate()">
+                <input type="text" inputmode="numeric" id="globalQuota" value="3.000">
             </div>
             <div class="config-item">
                 <label>Factura Inicial (Mes 1)</label>
-                <input type="number" id="initialBill" value="0" style="color:var(--purple)" oninput="recalculate()">
+                <input type="text" inputmode="numeric" id="initialBill" value="0" style="color:var(--purple)">
             </div>
         </div>
-        <button class="btn-reset" onclick="resetData()">Limpiar Datos</button>
+        <div class="btn-wrap">
+            <button class="btn-action" onclick="exportData()">Exportar JSON</button>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+            <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar JSON</button>
+            <button class="btn-reset" onclick="resetData()">Limpiar Datos</button>
+        </div>
     </div>
 
     <div id="app"></div>
@@ -241,7 +270,18 @@
         const months = 12;
         const qPerMonth = 2;
         const container = document.getElementById('app');
+        
+        // Formateadores de moneda (Configurados para Colombia)
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const fmtInput = (n) => new Intl.NumberFormat('es-CO').format(n); // Formato sin el símbolo de $ para los inputs
+
+        // Función para extraer números limpios ignorando puntos y comas
+        function cleanNum(str) {
+            if (typeof str === 'number') return str;
+            if (!str) return 0;
+            const num = parseFloat(str.toString().replace(/[^0-9-]/g, ''));
+            return isNaN(num) ? 0 : num;
+        }
 
         // --- VALORES POR DEFECTO ---
         const defaultData = Array(months * qPerMonth).fill(null).map((_, index) => {
@@ -258,7 +298,7 @@
 
         let dataStore = [];
 
-        // --- LOCAL STORAGE LOGIC ---
+        // --- LOCAL STORAGE & IMPORT/EXPORT ---
         function loadData() {
             const savedData = localStorage.getItem('finanzas_data');
             const savedQuota = localStorage.getItem('finanzas_quota');
@@ -267,27 +307,59 @@
             if (savedData) {
                 dataStore = JSON.parse(savedData);
             } else {
-                // Clon profundo para no mutar el defaultData base
                 dataStore = JSON.parse(JSON.stringify(defaultData)); 
             }
 
-            if (savedQuota) document.getElementById('globalQuota').value = savedQuota;
-            if (savedBill) document.getElementById('initialBill').value = savedBill;
+            if (savedQuota) document.getElementById('globalQuota').value = fmtInput(savedQuota);
+            if (savedBill) document.getElementById('initialBill').value = fmtInput(savedBill);
         }
 
         function saveData() {
             localStorage.setItem('finanzas_data', JSON.stringify(dataStore));
-            localStorage.setItem('finanzas_quota', document.getElementById('globalQuota').value);
-            localStorage.setItem('finanzas_bill', document.getElementById('initialBill').value);
+            localStorage.setItem('finanzas_quota', cleanNum(document.getElementById('globalQuota').value));
+            localStorage.setItem('finanzas_bill', cleanNum(document.getElementById('initialBill').value));
         }
 
         function resetData() {
             if (confirm("¿Estás seguro de borrar toda tu información? Esto reiniciará la tabla a los valores por defecto.")) {
-                localStorage.removeItem('finanzas_data');
-                localStorage.removeItem('finanzas_quota');
-                localStorage.removeItem('finanzas_bill');
-                location.reload(); // Refresca la página para volver a cargar
+                localStorage.clear();
+                location.reload(); 
             }
+        }
+
+        function exportData() {
+            const exportObj = {
+                dataStore: dataStore,
+                quota: cleanNum(document.getElementById('globalQuota').value),
+                initialBill: cleanNum(document.getElementById('initialBill').value)
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "finanzas_export.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if(imported.dataStore) {
+                        localStorage.setItem('finanzas_data', JSON.stringify(imported.dataStore));
+                        localStorage.setItem('finanzas_quota', imported.quota || 3000);
+                        localStorage.setItem('finanzas_bill', imported.initialBill || 0);
+                        location.reload();
+                    }
+                } catch (err) {
+                    alert("El archivo no es válido o está corrupto.");
+                }
+            };
+            reader.readAsText(file);
         }
 
         // --- RENDERIZADO UI ---
@@ -323,15 +395,15 @@
                             ${isQ1 ? `
                             <div class="row">
                                 <label class="txt-gr">+ Ingresos:</label>
-                                <input type="number" class="val inp-inc" data-i="${idx}" value="${d.inc}">
+                                <input type="text" inputmode="numeric" class="val inp-inc" data-i="${idx}" value="${fmtInput(d.inc)}">
                             </div>
                             <div class="row">
                                 <label class="txt-gr">+ Ahorros:</label>
-                                <input type="number" class="val inp-sav" data-i="${idx}" value="${d.sav}">
+                                <input type="text" inputmode="numeric" class="val inp-sav" data-i="${idx}" value="${fmtInput(d.sav)}">
                             </div>
                             ` : ''}
                             
-                            <div class="row"><label class="txt-rd">- Gastos:</label><input type="number" class="val inp-exp" data-i="${idx}" value="${d.exp}"></div>
+                            <div class="row"><label class="txt-rd">- Gastos:</label><input type="text" inputmode="numeric" class="val inp-exp" data-i="${idx}" value="${fmtInput(d.exp)}"></div>
                             
                             <div class="row" style="font-size:0.8rem; color:var(--orange);">
                                 <label>- Salida Pago TC:</label><span id="val-pay-note-${idx}">$0</span>
@@ -348,10 +420,10 @@
                             
                             <div class="row">
                                 <label class="txt-or bold">${isQ1 ? 'Pago (Día 2):' : 'Abono Q2:'}</label>
-                                <input type="number" class="val inp-pay" data-i="${idx}" value="${d.pay}" style="color:var(--orange); font-weight:bold; border-color:var(--orange);">
+                                <input type="text" inputmode="numeric" class="val inp-pay" data-i="${idx}" value="${fmtInput(d.pay)}" style="color:var(--orange); font-weight:bold; border-color:var(--orange);">
                             </div>
 
-                            <div class="row"><label class="txt-bl">+ Compras Nuevas:</label><input type="number" class="val inp-spend" data-i="${idx}" value="${d.spend}"></div>
+                            <div class="row"><label class="txt-bl">+ Compras Nuevas:</label><input type="text" inputmode="numeric" class="val inp-spend" data-i="${idx}" value="${fmtInput(d.spend)}"></div>
 
                             <div class="res-row txt-bl">
                                 <span>Deuda Total:</span><span id="debt-final-${idx}">$0</span>
@@ -393,15 +465,37 @@
                 mDiv.appendChild(grid);
                 container.appendChild(mDiv);
             }
-            document.querySelectorAll('input').forEach(inp => inp.addEventListener('input', updateData));
+
+            // Asignar los eventos de comportamiento (Formatos)
+            document.querySelectorAll('input.val, input#globalQuota, input#initialBill').forEach(inp => {
+                // Al escribir, actualizamos datos en caliente
+                inp.addEventListener('input', updateData);
+                
+                // Al entrar a la celda (Focus), limpiamos el formato
+                inp.addEventListener('focus', function(e) {
+                    let num = cleanNum(this.value);
+                    this.value = num === 0 ? '' : num; // Si es cero, la vaciamos para que sea fácil escribir
+                });
+                
+                // Al salir de la celda (Blur), volvemos a dar formato
+                inp.addEventListener('blur', function(e) {
+                    let num = cleanNum(this.value);
+                    this.value = fmtInput(num);
+                });
+            });
         }
 
         // --- MANEJO DE EVENTOS ---
         function updateData(e) {
             const el = e.target;
-            if(el.id === 'globalQuota' || el.id === 'initialBill') { recalculate(); return; }
+            const val = cleanNum(el.value); // Sacamos el número real sin puntos
+
+            if(el.id === 'globalQuota' || el.id === 'initialBill') { 
+                recalculate(); 
+                return; 
+            }
+
             const idx = parseInt(el.getAttribute('data-i'));
-            const val = parseFloat(el.value) || 0;
 
             if(el.classList.contains('inp-inc')) dataStore[idx].inc = val;
             if(el.classList.contains('inp-sav')) dataStore[idx].sav = val;
@@ -414,8 +508,8 @@
 
         // --- CÁLCULO CORE ---
         function recalculate() {
-            const globalQuota = parseFloat(document.getElementById('globalQuota').value) || 0;
-            let initialBill = parseFloat(document.getElementById('initialBill').value) || 0;
+            const globalQuota = cleanNum(document.getElementById('globalQuota').value);
+            let initialBill = cleanNum(document.getElementById('initialBill').value);
             
             let cash = 0;
             let totalDebt = initialBill; 
