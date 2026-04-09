@@ -152,7 +152,6 @@
             font-size: 1.1rem;
         }
 
-        /* Nuevo estilo para los rangos de fechas (1-15 / 16-30) */
         .date-range {
             font-size: 1.6rem;
             color: var(--blue);
@@ -188,13 +187,13 @@
         }
 
         input.val {
-            width: 100px;
-            padding: 5px 8px;
+            width: 95px;
+            padding: 5px 6px;
             border: 1px solid #bdc3c7;
             border-radius: 4px;
             text-align: right;
             font-family: monospace;
-            font-size: 1rem;
+            font-size: 0.95rem;
             transition: all 0.2s;
         }
         input.val:focus {
@@ -245,7 +244,7 @@
             font-size: 0.95rem;
         }
 
-        /* FOOTER DEL MES (TOTAL GASTOS) */
+        /* FOOTER DEL MES */
         .month-footer {
             background-color: var(--blue);
             color: white;
@@ -295,11 +294,10 @@
         const qPerMonth = 2;
         const container = document.getElementById('app');
         
-        // Formateadores de moneda (Colombia)
+        // Formateadores
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         const fmtInput = (n) => new Intl.NumberFormat('es-CO').format(n);
 
-        // Función para limpiar números de inputs
         function cleanNum(str) {
             if (typeof str === 'number') return str;
             if (!str) return 0;
@@ -313,7 +311,8 @@
             return {
                 inc: isQ1 ? 3000000 : 0,
                 sav: isQ1 ? 500 : 0,
-                exp: 0,
+                exp_tc: 0,
+                exp_free: 0,
                 pay: 0,
                 spend: 0,
                 billGenerated: 0
@@ -322,14 +321,20 @@
 
         let dataStore = [];
 
-        // --- LOCAL STORAGE & IMPORT/EXPORT ---
+        // --- LOCAL STORAGE ---
         function loadData() {
             const savedData = localStorage.getItem('finanzas_data_v2');
             const savedQuota = localStorage.getItem('finanzas_quota_v2');
             const savedBill = localStorage.getItem('finanzas_bill_v2');
 
             if (savedData) {
-                dataStore = JSON.parse(savedData);
+                let parsed = JSON.parse(savedData);
+                // Mapeo inteligente para no perder datos si vienen de la versión anterior (exp a exp_free)
+                dataStore = parsed.map(item => ({
+                    ...item,
+                    exp_tc: item.exp_tc || 0,
+                    exp_free: item.exp_free !== undefined ? item.exp_free : (item.exp || 0)
+                }));
             } else {
                 dataStore = JSON.parse(JSON.stringify(defaultData)); 
             }
@@ -376,7 +381,13 @@
                 try {
                     const imported = JSON.parse(e.target.result);
                     if(imported.dataStore) {
-                        localStorage.setItem('finanzas_data_v2', JSON.stringify(imported.dataStore));
+                        // Mapeo seguro al importar
+                        const safeData = imported.dataStore.map(item => ({
+                            ...item,
+                            exp_tc: item.exp_tc || 0,
+                            exp_free: item.exp_free !== undefined ? item.exp_free : (item.exp || 0)
+                        }));
+                        localStorage.setItem('finanzas_data_v2', JSON.stringify(safeData));
                         localStorage.setItem('finanzas_quota_v2', imported.quota || 5000000);
                         localStorage.setItem('finanzas_bill_v2', imported.initialBill || 0);
                         location.reload();
@@ -403,7 +414,6 @@
                     const isQ1 = (q === 1);
                     const d = dataStore[idx]; 
                     
-                    // Lógica para el título de fechas
                     const dateRange = isQ1 ? '1 - 15' : '16 - 30';
 
                     const cell = document.createElement('div');
@@ -435,7 +445,8 @@
                             </div>
                             ` : ''}
                             
-                            <div class="row"><label class="txt-rd">- Gastos:</label><input type="text" inputmode="numeric" class="val inp-exp" data-i="${idx}" value="${fmtInput(d.exp)}"></div>
+                            <div class="row"><label class="txt-rd">- Gastos est. TC:</label><input type="text" inputmode="numeric" class="val inp-exp-tc" data-i="${idx}" value="${fmtInput(d.exp_tc)}"></div>
+                            <div class="row"><label class="txt-rd">- Gastos libres:</label><input type="text" inputmode="numeric" class="val inp-exp-free" data-i="${idx}" value="${fmtInput(d.exp_free)}"></div>
                             
                             <div class="row" style="font-size:0.8rem; color:var(--orange);">
                                 <label>- Salida Pago TC:</label><span id="val-pay-note-${idx}">$0</span>
@@ -497,7 +508,7 @@
                 
                 mDiv.appendChild(grid);
                 
-                // --- FOOTER MES (TOTAL GASTOS) ---
+                // --- FOOTER MES ---
                 const footer = document.createElement('div');
                 footer.className = 'month-footer';
                 footer.innerHTML = `
@@ -509,7 +520,7 @@
                 container.appendChild(mDiv);
             }
 
-            // Asignar los eventos de comportamiento (Formatos)
+            // Asignar los eventos de comportamiento
             document.querySelectorAll('input.val, input#globalQuota, input#initialBill').forEach(inp => {
                 inp.addEventListener('input', updateData);
                 inp.addEventListener('focus', function(e) {
@@ -537,7 +548,8 @@
 
             if(el.classList.contains('inp-inc')) dataStore[idx].inc = val;
             if(el.classList.contains('inp-sav')) dataStore[idx].sav = val;
-            if(el.classList.contains('inp-exp')) dataStore[idx].exp = val;
+            if(el.classList.contains('inp-exp-tc')) dataStore[idx].exp_tc = val;     // Novedad
+            if(el.classList.contains('inp-exp-free')) dataStore[idx].exp_free = val; // Novedad
             if(el.classList.contains('inp-pay')) dataStore[idx].pay = val;
             if(el.classList.contains('inp-spend')) dataStore[idx].spend = val;
 
@@ -552,14 +564,15 @@
             let cash = 0;
             let totalDebt = initialBill; 
             let prevQ2Spend = 0; 
-            let currentMonthExpenses = 0; // Acumulador de gastos mensuales
+            let currentMonthExpenses = 0; 
 
             for (let i = 0; i < dataStore.length; i++) {
                 const d = dataStore[i];
                 const isQ1 = (i % 2 === 0);
 
                 // --- ACUMULAR GASTOS DEL MES ---
-                currentMonthExpenses += (d.exp || 0) + (d.spend || 0);
+                // Se suman los gastos est. TC, los gastos libres y las compras con TC
+                currentMonthExpenses += (d.exp_tc || 0) + (d.exp_free || 0) + (d.spend || 0);
 
                 // 1. Mostrar Previos
                 document.getElementById(`cash-prev-${i}`).innerText = fmt(cash);
@@ -567,7 +580,7 @@
                 document.getElementById(`val-pay-note-${i}`).innerText = `-${fmt(d.pay)}`;
 
                 // 2. Caja
-                cash = cash + (d.inc || 0) + (d.sav || 0) - (d.exp || 0) - (d.pay || 0);
+                cash = cash + (d.inc || 0) + (d.sav || 0) - (d.exp_tc || 0) - (d.exp_free || 0) - (d.pay || 0);
                 const elCash = document.getElementById(`cash-final-${i}`);
                 elCash.innerText = fmt(cash);
                 elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
@@ -614,11 +627,11 @@
                     d.billGenerated = dataStore[i-1].billGenerated; 
                 }
 
-                // --- RENDERIZAR TOTAL GASTOS AL FINAL DE LA QUINCENA 2 ---
+                // --- RENDERIZAR TOTAL GASTOS ---
                 if (!isQ1) {
                     let currentMonth = Math.floor(i / 2) + 1;
                     document.getElementById(`month-total-expenses-${currentMonth}`).innerText = fmt(currentMonthExpenses);
-                    currentMonthExpenses = 0; // Resetear para el próximo mes
+                    currentMonthExpenses = 0; 
                 }
             }
             
