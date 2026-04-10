@@ -329,7 +329,6 @@
 
             if (savedData) {
                 let parsed = JSON.parse(savedData);
-                // Mapeo inteligente para no perder datos si vienen de la versión anterior (exp a exp_free)
                 dataStore = parsed.map(item => ({
                     ...item,
                     exp_tc: item.exp_tc || 0,
@@ -381,7 +380,6 @@
                 try {
                     const imported = JSON.parse(e.target.result);
                     if(imported.dataStore) {
-                        // Mapeo seguro al importar
                         const safeData = imported.dataStore.map(item => ({
                             ...item,
                             exp_tc: item.exp_tc || 0,
@@ -444,6 +442,11 @@
                                 <input type="text" inputmode="numeric" class="val inp-sav" data-i="${idx}" value="${fmtInput(d.sav)}">
                             </div>
                             ` : ''}
+                            
+                            <div class="row" style="border-bottom: 1px solid #a3e4d7; padding-bottom: 8px; margin-top: 6px; margin-bottom: 10px;">
+                                <label style="color:var(--green); font-weight:bold; font-size:0.85rem;">= Total Inicial:</label>
+                                <span id="cash-subtotal-${idx}" style="color:var(--green); font-weight:bold;">$0</span>
+                            </div>
                             
                             <div class="row"><label class="txt-rd">- Gastos est. TC:</label><input type="text" inputmode="numeric" class="val inp-exp-tc" data-i="${idx}" value="${fmtInput(d.exp_tc)}"></div>
                             <div class="row"><label class="txt-rd">- Gastos libres:</label><input type="text" inputmode="numeric" class="val inp-exp-free" data-i="${idx}" value="${fmtInput(d.exp_free)}"></div>
@@ -548,8 +551,8 @@
 
             if(el.classList.contains('inp-inc')) dataStore[idx].inc = val;
             if(el.classList.contains('inp-sav')) dataStore[idx].sav = val;
-            if(el.classList.contains('inp-exp-tc')) dataStore[idx].exp_tc = val;     // Novedad
-            if(el.classList.contains('inp-exp-free')) dataStore[idx].exp_free = val; // Novedad
+            if(el.classList.contains('inp-exp-tc')) dataStore[idx].exp_tc = val;
+            if(el.classList.contains('inp-exp-free')) dataStore[idx].exp_free = val;
             if(el.classList.contains('inp-pay')) dataStore[idx].pay = val;
             if(el.classList.contains('inp-spend')) dataStore[idx].spend = val;
 
@@ -571,7 +574,6 @@
                 const isQ1 = (i % 2 === 0);
 
                 // --- ACUMULAR GASTOS DEL MES ---
-                // Se suman los gastos est. TC, los gastos libres y las compras con TC
                 currentMonthExpenses += (d.exp_tc || 0) + (d.exp_free || 0) + (d.spend || 0);
 
                 // 1. Mostrar Previos
@@ -579,8 +581,12 @@
                 document.getElementById(`debt-prev-${i}`).innerText = fmt(totalDebt);
                 document.getElementById(`val-pay-note-${i}`).innerText = `-${fmt(d.pay)}`;
 
-                // 2. Caja
-                cash = cash + (d.inc || 0) + (d.sav || 0) - (d.exp_tc || 0) - (d.exp_free || 0) - (d.pay || 0);
+                // 2. Caja y Total Inicial
+                let subtotalCash = cash + (d.inc || 0) + (d.sav || 0);
+                document.getElementById(`cash-subtotal-${i}`).innerText = fmt(subtotalCash);
+
+                cash = subtotalCash - (d.exp_tc || 0) - (d.exp_free || 0) - (d.pay || 0);
+                
                 const elCash = document.getElementById(`cash-final-${i}`);
                 elCash.innerText = fmt(cash);
                 elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
