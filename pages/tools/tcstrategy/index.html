@@ -23,7 +23,7 @@
             margin: 0;
             padding: 20px;
             color: var(--text);
-            max-width: 1100px;
+            max-width: 1150px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -45,8 +45,9 @@
 
         .config-inputs {
             display: flex;
-            gap: 20px;
+            gap: 15px;
             flex-wrap: wrap;
+            align-items: flex-end;
         }
 
         .config-item { display: flex; flex-direction: column; }
@@ -60,13 +61,36 @@
 
         .config-item input {
             padding: 8px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             border: none;
             border-radius: 5px;
-            width: 140px;
+            width: 110px;
             text-align: center;
             font-weight: bold;
             color: #2c3e50;
+            height: 38px;
+            box-sizing: border-box;
+        }
+        
+        .config-select {
+            padding: 8px;
+            font-size: 0.95rem;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+            height: 38px;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        /* DIVISOR EN EL PANEL */
+        .panel-divider {
+            width: 2px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            margin: 0 5px;
+            align-self: center;
         }
 
         .btn-wrap {
@@ -79,12 +103,13 @@
             background-color: var(--blue);
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 0 15px;
             border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
             transition: background 0.3s;
             font-size: 0.9rem;
+            height: 38px;
         }
         .btn-action:hover { background-color: var(--blue-dark); }
 
@@ -92,12 +117,13 @@
             background-color: #e74c3c;
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 0 15px;
             border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
             transition: background 0.3s;
             font-size: 0.9rem;
+            height: 38px;
         }
         .btn-reset:hover { background-color: #c0392b; }
 
@@ -126,19 +152,25 @@
             grid-template-columns: 1fr 1fr;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 950px) {
             .quincenas-grid { grid-template-columns: 1fr; }
             .quincenas-grid > div:first-child { border-bottom: 1px dashed #ccc; }
-            .config-panel { flex-direction: column; align-items: flex-start; }
-            .btn-wrap { width: 100%; justify-content: flex-start; }
+            .panel-divider { display: none; }
         }
 
         .q-card {
             padding: 15px 20px;
             border-right: 1px dashed #bdc3c7;
             position: relative;
+            transition: background-color 0.3s, box-shadow 0.3s;
         }
         .q-card:last-child { border-right: none; }
+
+        /* ALERTA DE QUINCENA NEGATIVA */
+        .q-card-alert {
+            background-color: rgba(231, 76, 60, 0.06) !important;
+            box-shadow: inset 0 0 0 3px rgba(231, 76, 60, 0.5) !important;
+        }
 
         .q-title {
             font-weight: bold;
@@ -169,6 +201,9 @@
         .sec-card { background-color: #ebf5fb; border-left: 4px solid var(--blue); }
         .sec-bill { background-color: #f4ecf7; border-left: 4px solid var(--purple); margin-top: 15px; border: 1px solid #e8daef; }
 
+        .q-card-alert .sec-cash { background-color: rgba(255,255,255,0.5); }
+        .q-card-alert .sec-card { background-color: rgba(255,255,255,0.5); }
+
         .lbl-sec {
             font-size: 0.75rem;
             text-transform: uppercase;
@@ -187,7 +222,7 @@
         }
 
         input.val {
-            width: 95px;
+            width: 100px;
             padding: 5px 6px;
             border: 1px solid #bdc3c7;
             border-radius: 4px;
@@ -271,19 +306,55 @@
     <div class="config-panel">
         <div class="config-inputs">
             <div class="config-item">
-                <label>Cupo Total Tarjeta</label>
+                <label>Cupo Tarjeta</label>
                 <input type="text" inputmode="numeric" id="globalQuota" value="5.000.000">
             </div>
             <div class="config-item">
-                <label>Factura Inicial (Mes 1)</label>
+                <label>Factura (Mes 1)</label>
                 <input type="text" inputmode="numeric" id="initialBill" value="0" style="color:var(--purple)">
             </div>
+            
+            <div class="panel-divider"></div>
+
+            <div class="config-item">
+                <label>Gasto Libre</label>
+                <input type="text" inputmode="numeric" id="globalExpFree" value="0" placeholder="Ej: 500000">
+            </div>
+            <div class="config-item">
+                <label>Mes Inicio</label>
+                <select id="globalExpFreeStart" class="config-select">
+                    <option value="1">Mes 1</option>
+                    <option value="2">Mes 2</option>
+                    <option value="3">Mes 3</option>
+                    <option value="4">Mes 4</option>
+                    <option value="5">Mes 5</option>
+                    <option value="6">Mes 6</option>
+                    <option value="7">Mes 7</option>
+                    <option value="8">Mes 8</option>
+                    <option value="9">Mes 9</option>
+                    <option value="10">Mes 10</option>
+                    <option value="11">Mes 11</option>
+                    <option value="12">Mes 12</option>
+                </select>
+            </div>
+            <div class="config-item">
+                <label>Frecuencia</label>
+                <select id="globalExpFreePeriod" class="config-select">
+                    <option value="1">Mensual</option>
+                    <option value="2">Bimensual</option>
+                    <option value="3">Trimestral</option>
+                    <option value="4">Cuatrimestral</option>
+                    <option value="6">Semestral</option>
+                </select>
+            </div>
+            <button class="btn-action" style="background-color: var(--orange);" onclick="applyGlobalExpFree()">Aplicar</button>
         </div>
+
         <div class="btn-wrap">
             <button class="btn-action" onclick="exportData()">Exportar JSON</button>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-            <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar JSON</button>
-            <button class="btn-reset" onclick="resetData()">Limpiar Datos</button>
+            <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar</button>
+            <button class="btn-reset" onclick="resetData()">Limpiar</button>
         </div>
     </div>
 
@@ -323,9 +394,13 @@
 
         // --- LOCAL STORAGE ---
         function loadData() {
-            const savedData = localStorage.getItem('finanzas_data_v2');
-            const savedQuota = localStorage.getItem('finanzas_quota_v2');
-            const savedBill = localStorage.getItem('finanzas_bill_v2');
+            const savedData = localStorage.getItem('finanzas_data_v3');
+            const savedQuota = localStorage.getItem('finanzas_quota_v3');
+            const savedBill = localStorage.getItem('finanzas_bill_v3');
+            
+            const savedGlobalExp = localStorage.getItem('finanzas_global_exp');
+            const savedGlobalPer = localStorage.getItem('finanzas_global_per');
+            const savedGlobalStart = localStorage.getItem('finanzas_global_start');
 
             if (savedData) {
                 let parsed = JSON.parse(savedData);
@@ -340,23 +415,58 @@
 
             if (savedQuota) document.getElementById('globalQuota').value = fmtInput(savedQuota);
             if (savedBill) document.getElementById('initialBill').value = fmtInput(savedBill);
+            if (savedGlobalExp) document.getElementById('globalExpFree').value = fmtInput(savedGlobalExp);
+            if (savedGlobalPer) document.getElementById('globalExpFreePeriod').value = savedGlobalPer;
+            if (savedGlobalStart) document.getElementById('globalExpFreeStart').value = savedGlobalStart;
         }
 
         function saveData() {
-            localStorage.setItem('finanzas_data_v2', JSON.stringify(dataStore));
-            localStorage.setItem('finanzas_quota_v2', cleanNum(document.getElementById('globalQuota').value));
-            localStorage.setItem('finanzas_bill_v2', cleanNum(document.getElementById('initialBill').value));
+            localStorage.setItem('finanzas_data_v3', JSON.stringify(dataStore));
+            localStorage.setItem('finanzas_quota_v3', cleanNum(document.getElementById('globalQuota').value));
+            localStorage.setItem('finanzas_bill_v3', cleanNum(document.getElementById('initialBill').value));
+            localStorage.setItem('finanzas_global_exp', cleanNum(document.getElementById('globalExpFree').value));
+            localStorage.setItem('finanzas_global_per', document.getElementById('globalExpFreePeriod').value);
+            localStorage.setItem('finanzas_global_start', document.getElementById('globalExpFreeStart').value);
         }
 
         function resetData() {
             if (confirm("¿Estás seguro de borrar toda tu información? Esto reiniciará la tabla a los valores por defecto.")) {
-                localStorage.removeItem('finanzas_data_v2');
-                localStorage.removeItem('finanzas_quota_v2');
-                localStorage.removeItem('finanzas_bill_v2');
+                localStorage.clear();
                 location.reload(); 
             }
         }
 
+        // --- HERRAMIENTA DE APLICACIÓN RECURRENTE ---
+        function applyGlobalExpFree() {
+            const val = cleanNum(document.getElementById('globalExpFree').value);
+            const period = parseInt(document.getElementById('globalExpFreePeriod').value); // 1, 2, 3, 4, 6
+            const startMonth = parseInt(document.getElementById('globalExpFreeStart').value); // 1-12
+            
+            for (let i = 0; i < dataStore.length; i++) {
+                const isQ1 = (i % 2 === 0);
+                if (isQ1) {
+                    const monthNum = Math.floor(i / 2) + 1; // Mes del 1 al 12
+                    let shouldApply = false;
+
+                    // La magia matemática: Si el mes actual es mayor o igual al mes de inicio
+                    // Y la diferencia entre el mes actual y el mes de inicio es múltiplo del periodo
+                    if (monthNum >= startMonth) {
+                        if ((monthNum - startMonth) % period === 0) {
+                            shouldApply = true;
+                        }
+                    }
+
+                    if (shouldApply) {
+                        dataStore[i].exp_free = val;
+                        const inputEl = document.querySelector(`.inp-exp-free[data-i="${i}"]`);
+                        if(inputEl) inputEl.value = fmtInput(val);
+                    }
+                }
+            }
+            recalculate();
+        }
+
+        // --- IMPORT/EXPORT ---
         function exportData() {
             const exportObj = {
                 dataStore: dataStore,
@@ -385,9 +495,9 @@
                             exp_tc: item.exp_tc || 0,
                             exp_free: item.exp_free !== undefined ? item.exp_free : (item.exp || 0)
                         }));
-                        localStorage.setItem('finanzas_data_v2', JSON.stringify(safeData));
-                        localStorage.setItem('finanzas_quota_v2', imported.quota || 5000000);
-                        localStorage.setItem('finanzas_bill_v2', imported.initialBill || 0);
+                        localStorage.setItem('finanzas_data_v3', JSON.stringify(safeData));
+                        localStorage.setItem('finanzas_quota_v3', imported.quota || 5000000);
+                        localStorage.setItem('finanzas_bill_v3', imported.initialBill || 0);
                         location.reload();
                     }
                 } catch (err) {
@@ -416,6 +526,7 @@
 
                     const cell = document.createElement('div');
                     cell.className = 'q-card';
+                    cell.id = `q-card-${idx}`; 
                     
                     cell.innerHTML = `
                         <div class="q-title">
@@ -511,7 +622,6 @@
                 
                 mDiv.appendChild(grid);
                 
-                // --- FOOTER MES ---
                 const footer = document.createElement('div');
                 footer.className = 'month-footer';
                 footer.innerHTML = `
@@ -523,17 +633,20 @@
                 container.appendChild(mDiv);
             }
 
-            // Asignar los eventos de comportamiento
-            document.querySelectorAll('input.val, input#globalQuota, input#initialBill').forEach(inp => {
-                inp.addEventListener('input', updateData);
-                inp.addEventListener('focus', function(e) {
-                    let num = cleanNum(this.value);
-                    this.value = num === 0 ? '' : num;
-                });
-                inp.addEventListener('blur', function(e) {
-                    let num = cleanNum(this.value);
-                    this.value = fmtInput(num);
-                });
+            document.querySelectorAll('input.val, input#globalQuota, input#initialBill, input#globalExpFree, select#globalExpFreePeriod, select#globalExpFreeStart').forEach(inp => {
+                if(inp.id !== 'globalExpFreePeriod' && inp.id !== 'globalExpFreeStart') {
+                    inp.addEventListener('input', updateData);
+                    inp.addEventListener('focus', function(e) {
+                        let num = cleanNum(this.value);
+                        this.value = num === 0 ? '' : num;
+                    });
+                    inp.addEventListener('blur', function(e) {
+                        let num = cleanNum(this.value);
+                        this.value = fmtInput(num);
+                    });
+                } else {
+                    inp.addEventListener('change', updateData);
+                }
             });
         }
 
@@ -542,7 +655,7 @@
             const el = e.target;
             const val = cleanNum(el.value); 
 
-            if(el.id === 'globalQuota' || el.id === 'initialBill') { 
+            if(el.id === 'globalQuota' || el.id === 'initialBill' || el.id === 'globalExpFree' || el.id === 'globalExpFreePeriod' || el.id === 'globalExpFreeStart') { 
                 recalculate(); 
                 return; 
             }
@@ -572,26 +685,26 @@
             for (let i = 0; i < dataStore.length; i++) {
                 const d = dataStore[i];
                 const isQ1 = (i % 2 === 0);
+                
+                let hasAlert = false;
 
-                // --- ACUMULAR GASTOS DEL MES ---
                 currentMonthExpenses += (d.exp_tc || 0) + (d.exp_free || 0) + (d.spend || 0);
 
-                // 1. Mostrar Previos
                 document.getElementById(`cash-prev-${i}`).innerText = fmt(cash);
                 document.getElementById(`debt-prev-${i}`).innerText = fmt(totalDebt);
                 document.getElementById(`val-pay-note-${i}`).innerText = `-${fmt(d.pay)}`;
 
-                // 2. Caja y Total Inicial
                 let subtotalCash = cash + (d.inc || 0) + (d.sav || 0);
                 document.getElementById(`cash-subtotal-${i}`).innerText = fmt(subtotalCash);
 
                 cash = subtotalCash - (d.exp_tc || 0) - (d.exp_free || 0) - (d.pay || 0);
                 
+                if (cash < 0) hasAlert = true;
+
                 const elCash = document.getElementById(`cash-final-${i}`);
                 elCash.innerText = fmt(cash);
                 elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
 
-                // 3. Deuda y Cupo
                 totalDebt = totalDebt + (d.spend || 0) - (d.pay || 0);
                 document.getElementById(`debt-final-${i}`).innerText = fmt(totalDebt);
 
@@ -602,7 +715,6 @@
                 else if (quotaLeft < globalQuota * 0.1) elQuota.style.color = "var(--orange)";
                 else elQuota.style.color = "var(--green)";
 
-                // 4. Facturación
                 if (isQ1) {
                     let billOriginal = (i === 0) ? initialBill : (i > 0 ? dataStore[i-1].billGenerated : 0);
                     let paymentsInQ2 = (i > 0) ? dataStore[i-1].pay : 0;
@@ -621,6 +733,7 @@
                     } else {
                         statusEl.innerText = `Falta: ${fmt(remainingAfterToday)}`;
                         statusEl.style.color = "var(--red)";
+                        hasAlert = true; 
                     }
 
                     let newBill = prevQ2Spend + (d.spend || 0) + remainingAfterToday;
@@ -633,7 +746,13 @@
                     d.billGenerated = dataStore[i-1].billGenerated; 
                 }
 
-                // --- RENDERIZAR TOTAL GASTOS ---
+                const cardEl = document.getElementById(`q-card-${i}`);
+                if (hasAlert) {
+                    cardEl.classList.add('q-card-alert');
+                } else {
+                    cardEl.classList.remove('q-card-alert');
+                }
+
                 if (!isQ1) {
                     let currentMonth = Math.floor(i / 2) + 1;
                     document.getElementById(`month-total-expenses-${currentMonth}`).innerText = fmt(currentMonthExpenses);
@@ -644,7 +763,6 @@
             saveData();
         }
 
-        // --- ARRANQUE DE LA APP ---
         loadData();
         init();
         recalculate();
