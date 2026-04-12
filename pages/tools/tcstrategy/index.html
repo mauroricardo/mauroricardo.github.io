@@ -299,6 +299,48 @@
             border-radius: 4px;
         }
 
+        /* PANEL RESUMEN FINAL */
+        .summary-panel {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 1px solid #dfe6e9;
+            border-left: 5px solid var(--orange);
+        }
+        .summary-title {
+            font-size: 1.2rem;
+            color: #34495e;
+            font-weight: 900;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        .summary-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .summary-item {
+            background: #fdfefe;
+            border: 1px solid #ecf0f1;
+            padding: 12px 15px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            color: var(--text);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .summary-item span.val {
+            color: var(--orange);
+        }
+
     </style>
 </head>
 <body>
@@ -359,11 +401,13 @@
     </div>
 
     <div id="app"></div>
+    <div id="summary-container" style="display: none;"></div>
 
     <script>
         const months = 12;
         const qPerMonth = 2;
         const container = document.getElementById('app');
+        const summaryContainer = document.getElementById('summary-container');
         
         // Formateadores
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
@@ -442,14 +486,14 @@
             const period = parseInt(document.getElementById('globalExpFreePeriod').value); 
             const startMonth = parseInt(document.getElementById('globalExpFreeStart').value); 
             
-            // 1. Limpiar todos los campos de exp_free
+            // Limpiar
             for (let i = 0; i < dataStore.length; i++) {
                 dataStore[i].exp_free = 0;
                 const inputEl = document.querySelector(`.inp-exp-free[data-i="${i}"]`);
                 if(inputEl) inputEl.value = fmtInput(0);
             }
 
-            // 2. Aplicar el nuevo patrón
+            // Aplicar
             for (let i = 0; i < dataStore.length; i++) {
                 const isQ1 = (i % 2 === 0);
                 if (isQ1) {
@@ -479,7 +523,10 @@
             const exportObj = {
                 dataStore: dataStore,
                 quota: cleanNum(document.getElementById('globalQuota').value),
-                initialBill: cleanNum(document.getElementById('initialBill').value)
+                initialBill: cleanNum(document.getElementById('initialBill').value),
+                globalExpFree: cleanNum(document.getElementById('globalExpFree').value),
+                globalExpFreeStart: document.getElementById('globalExpFreeStart').value,
+                globalExpFreePeriod: document.getElementById('globalExpFreePeriod').value
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
             const downloadAnchorNode = document.createElement('a');
@@ -506,6 +553,12 @@
                         localStorage.setItem('finanzas_data_v3', JSON.stringify(safeData));
                         localStorage.setItem('finanzas_quota_v3', imported.quota || 5000000);
                         localStorage.setItem('finanzas_bill_v3', imported.initialBill || 0);
+                        
+                        // Cargar campos de la herramienta
+                        if (imported.globalExpFree !== undefined) localStorage.setItem('finanzas_global_exp', imported.globalExpFree);
+                        if (imported.globalExpFreeStart !== undefined) localStorage.setItem('finanzas_global_start', imported.globalExpFreeStart);
+                        if (imported.globalExpFreePeriod !== undefined) localStorage.setItem('finanzas_global_per', imported.globalExpFreePeriod);
+
                         location.reload();
                     }
                 } catch (err) {
@@ -689,6 +742,8 @@
             let totalDebt = initialBill; 
             let prevQ2Spend = 0; 
             let currentMonthExpenses = 0; 
+            
+            let summaryHTML = '';
 
             for (let i = 0; i < dataStore.length; i++) {
                 const d = dataStore[i];
@@ -707,7 +762,6 @@
 
                 cash = subtotalCash - (d.exp_tc || 0) - (d.exp_free || 0) - (d.pay || 0);
                 
-                // VALIDACIÓN 1: Caja Negativa
                 if (cash < 0) hasAlert = true;
 
                 const elCash = document.getElementById(`cash-final-${i}`);
@@ -721,10 +775,9 @@
                 const elQuota = document.getElementById(`quota-final-${i}`);
                 elQuota.innerText = fmt(quotaLeft);
                 
-                // VALIDACIÓN 2: Cupo de Tarjeta Negativo (Sobregiro)
                 if(quotaLeft < 0) {
                     elQuota.style.color = "var(--red)";
-                    hasAlert = true; // NUEVA ALERTA
+                    hasAlert = true;
                 }
                 else if (quotaLeft < globalQuota * 0.1) elQuota.style.color = "var(--orange)";
                 else elQuota.style.color = "var(--green)";
@@ -747,7 +800,6 @@
                     } else {
                         statusEl.innerText = `Falta: ${fmt(remainingAfterToday)}`;
                         statusEl.style.color = "var(--red)";
-                        // VALIDACIÓN 3: Falta pagar la cuota
                         hasAlert = true; 
                     }
 
@@ -759,6 +811,14 @@
                 } else {
                     prevQ2Spend = (d.spend || 0);
                     d.billGenerated = dataStore[i-1].billGenerated; 
+                    
+                    // --- RESUMEN DE GASTOS LIBRES DEL MES ---
+                    let currentMonth = Math.floor(i / 2) + 1;
+                    let expFreeMonthTotal = (dataStore[i-1].exp_free || 0) + (dataStore[i].exp_free || 0);
+                    
+                    if (expFreeMonthTotal > 0) {
+                        summaryHTML += `<li class="summary-item">Mes ${currentMonth} <span class="val">${fmt(expFreeMonthTotal)}</span></li>`;
+                    }
                 }
 
                 const cardEl = document.getElementById(`q-card-${i}`);
@@ -775,6 +835,22 @@
                 }
             }
             
+            // Renderizar panel de resumen
+            if (summaryHTML === '') {
+                summaryContainer.style.display = 'none';
+                summaryContainer.innerHTML = '';
+            } else {
+                summaryContainer.style.display = 'block';
+                summaryContainer.innerHTML = `
+                    <div class="summary-panel">
+                        <div class="summary-title">Resumen: Meses con Gastos Libres</div>
+                        <ul class="summary-list">
+                            ${summaryHTML}
+                        </ul>
+                    </div>
+                `;
+            }
+
             saveData();
         }
 
