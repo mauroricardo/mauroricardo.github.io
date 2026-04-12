@@ -340,6 +340,23 @@
         .summary-item span.val {
             color: var(--orange);
         }
+        .summary-total {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px dashed #bdc3c7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: #2c3e50;
+        }
+        .summary-total span.val {
+            color: var(--red);
+            background: #fdedec;
+            padding: 4px 12px;
+            border-radius: 6px;
+        }
 
     </style>
 </head>
@@ -744,6 +761,7 @@
             let currentMonthExpenses = 0; 
             
             let summaryHTML = '';
+            let globalExpFreeTotal = 0; // Acumulador para el total anual de gastos libres
 
             for (let i = 0; i < dataStore.length; i++) {
                 const d = dataStore[i];
@@ -818,6 +836,7 @@
                     
                     if (expFreeMonthTotal > 0) {
                         summaryHTML += `<li class="summary-item">Mes ${currentMonth} <span class="val">${fmt(expFreeMonthTotal)}</span></li>`;
+                        globalExpFreeTotal += expFreeMonthTotal;
                     }
                 }
 
@@ -835,18 +854,22 @@
                 }
             }
             
-            // Renderizar panel de resumen
-            if (summaryHTML === '') {
+            // Renderizar panel de resumen con el total anual
+            if (summaryHTML === '' && globalExpFreeTotal === 0) {
                 summaryContainer.style.display = 'none';
                 summaryContainer.innerHTML = '';
             } else {
                 summaryContainer.style.display = 'block';
                 summaryContainer.innerHTML = `
                     <div class="summary-panel">
-                        <div class="summary-title">Resumen: Meses con Gastos Libres</div>
+                        <div class="summary-title">Resumen: Gastos Libres Programados</div>
                         <ul class="summary-list">
                             ${summaryHTML}
                         </ul>
+                        <div class="summary-total">
+                            <span>Total Anual Gastos Libres:</span>
+                            <span class="val">${fmt(globalExpFreeTotal)}</span>
+                        </div>
                     </div>
                 `;
             }
