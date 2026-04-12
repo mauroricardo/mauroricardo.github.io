@@ -442,14 +442,22 @@
             const period = parseInt(document.getElementById('globalExpFreePeriod').value); // 1, 2, 3, 4, 6
             const startMonth = parseInt(document.getElementById('globalExpFreeStart').value); // 1-12
             
+            // 1. Limpiar todos los campos de exp_free en todas las quincenas a 0
+            for (let i = 0; i < dataStore.length; i++) {
+                dataStore[i].exp_free = 0;
+                const inputEl = document.querySelector(`.inp-exp-free[data-i="${i}"]`);
+                if(inputEl) inputEl.value = fmtInput(0);
+            }
+
+            // 2. Aplicar el nuevo patrón solo a las quincenas 1 que correspondan
             for (let i = 0; i < dataStore.length; i++) {
                 const isQ1 = (i % 2 === 0);
                 if (isQ1) {
                     const monthNum = Math.floor(i / 2) + 1; // Mes del 1 al 12
                     let shouldApply = false;
 
-                    // La magia matemática: Si el mes actual es mayor o igual al mes de inicio
-                    // Y la diferencia entre el mes actual y el mes de inicio es múltiplo del periodo
+                    // Si el mes actual es mayor o igual al mes de inicio
+                    // Y la diferencia es múltiplo del periodo
                     if (monthNum >= startMonth) {
                         if ((monthNum - startMonth) % period === 0) {
                             shouldApply = true;
@@ -463,7 +471,9 @@
                     }
                 }
             }
+            
             recalculate();
+            alert("Gastos libres limpiados y aplicados correctamente según la nueva regla.");
         }
 
         // --- IMPORT/EXPORT ---
