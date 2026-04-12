@@ -439,25 +439,23 @@
         // --- HERRAMIENTA DE APLICACIÓN RECURRENTE ---
         function applyGlobalExpFree() {
             const val = cleanNum(document.getElementById('globalExpFree').value);
-            const period = parseInt(document.getElementById('globalExpFreePeriod').value); // 1, 2, 3, 4, 6
-            const startMonth = parseInt(document.getElementById('globalExpFreeStart').value); // 1-12
+            const period = parseInt(document.getElementById('globalExpFreePeriod').value); 
+            const startMonth = parseInt(document.getElementById('globalExpFreeStart').value); 
             
-            // 1. Limpiar todos los campos de exp_free en todas las quincenas a 0
+            // 1. Limpiar todos los campos de exp_free
             for (let i = 0; i < dataStore.length; i++) {
                 dataStore[i].exp_free = 0;
                 const inputEl = document.querySelector(`.inp-exp-free[data-i="${i}"]`);
                 if(inputEl) inputEl.value = fmtInput(0);
             }
 
-            // 2. Aplicar el nuevo patrón solo a las quincenas 1 que correspondan
+            // 2. Aplicar el nuevo patrón
             for (let i = 0; i < dataStore.length; i++) {
                 const isQ1 = (i % 2 === 0);
                 if (isQ1) {
-                    const monthNum = Math.floor(i / 2) + 1; // Mes del 1 al 12
+                    const monthNum = Math.floor(i / 2) + 1; 
                     let shouldApply = false;
 
-                    // Si el mes actual es mayor o igual al mes de inicio
-                    // Y la diferencia es múltiplo del periodo
                     if (monthNum >= startMonth) {
                         if ((monthNum - startMonth) % period === 0) {
                             shouldApply = true;
@@ -709,6 +707,7 @@
 
                 cash = subtotalCash - (d.exp_tc || 0) - (d.exp_free || 0) - (d.pay || 0);
                 
+                // VALIDACIÓN 1: Caja Negativa
                 if (cash < 0) hasAlert = true;
 
                 const elCash = document.getElementById(`cash-final-${i}`);
@@ -721,7 +720,12 @@
                 const quotaLeft = globalQuota - totalDebt;
                 const elQuota = document.getElementById(`quota-final-${i}`);
                 elQuota.innerText = fmt(quotaLeft);
-                if(quotaLeft < 0) elQuota.style.color = "var(--red)";
+                
+                // VALIDACIÓN 2: Cupo de Tarjeta Negativo (Sobregiro)
+                if(quotaLeft < 0) {
+                    elQuota.style.color = "var(--red)";
+                    hasAlert = true; // NUEVA ALERTA
+                }
                 else if (quotaLeft < globalQuota * 0.1) elQuota.style.color = "var(--orange)";
                 else elQuota.style.color = "var(--green)";
 
@@ -743,6 +747,7 @@
                     } else {
                         statusEl.innerText = `Falta: ${fmt(remainingAfterToday)}`;
                         statusEl.style.color = "var(--red)";
+                        // VALIDACIÓN 3: Falta pagar la cuota
                         hasAlert = true; 
                     }
 
