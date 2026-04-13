@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Gastos - V19 Pocket Types</title>
+    <title>Control de Gastos - V21 Celdas XL</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -121,7 +121,8 @@
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            grid-template-rows: repeat(auto-fill, minmax(130px, 1fr));
+            /* Modificado a 220px para celdas más altas */
+            grid-template-rows: repeat(auto-fill, minmax(220px, 1fr));
             gap: 10px;
             flex: 1;
         }
@@ -131,7 +132,8 @@
             border-radius: 10px; padding: 8px;
             display: flex; flex-direction: column;
             cursor: pointer; transition: all 0.2s;
-            min-height: 130px; overflow: hidden;
+            /* Modificado a 220px */
+            min-height: 220px; overflow: hidden;
         }
         .day-cell:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .day-cell.empty { background: transparent; border: none; cursor: default; pointer-events: none; }
@@ -351,12 +353,12 @@
     let activeDay = null;
     let editingPocketIndex = null;
     
-    // DB V19
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v19')) || {}; 
+    // DB V21
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v21')) || {}; 
 
     // --- MIGRACIÓN DE DATOS ---
     if (Object.keys(db).length === 0) {
-        const history = ['v18', 'v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
+        const history = ['v20', 'v19', 'v18', 'v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) {
@@ -537,7 +539,6 @@
             data.expenses[day].forEach(exp => {
                 totalSpent += exp.amount;
                 
-                // LÓGICA V19: Identificar si es crédito o efectivo BASADO EN EL BOLSILLO
                 const pocket = data.pockets.find(p => p.id === exp.pocketId);
                 const pType = pocket ? (pocket.type || 'cash') : 'cash';
                 
@@ -577,7 +578,6 @@
             const spent = spendingMap[p.id] || 0, percent = Math.min(100, (spent / p.limit) * 100) || 0;
             const baseColor = p.color || '#94a3b8', progressColor = spent > p.limit ? '#ef4444' : '#10b981';
             
-            // Determinar ícono según el tipo de bolsillo
             const pIcon = (p.type === 'credit') ? '💳' : '💵';
             
             const div = document.createElement('div');
@@ -626,13 +626,15 @@
                 if (pType === 'credit') dayCredit += exp.amount;
                 else dayCash += exp.amount;
 
-                if (index < 3) {
+                // Modificado para mostrar hasta 6 items visualmente
+                if (index < 6) {
                     const recurClass = exp.isRecurring ? 'is-recurring' : '';
                     previewsHTML += `<div class="expense-preview ${recurClass}" style="background-color: ${(pocket?pocket.color:'#94a3b8')+'66'};"><span style="overflow:hidden; text-overflow:ellipsis;" title="${exp.desc}">${methodIcon} ${exp.desc}</span><span>${formatMoney(exp.amount)}</span></div>`;
                 }
             });
             
-            if (dayExpenses.length > 3) previewsHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExpenses.length - 3} más</div>`;
+            // Modificado para coincidir con el límite visual de 6 items
+            if (dayExpenses.length > 6) previewsHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExpenses.length - 6} más</div>`;
             
             const hName = holidays[`${selectedMonth}-${d}`], hBadge = hName ? `<span class="holiday-badge" title="${hName}">${hName}</span>` : '';
             
@@ -673,7 +675,7 @@
             const p = db[getKey(selectedYear, selectedMonth)].pockets[index];
             nameInput.value = p.name; 
             limitInput.value = p.limit;
-            typeInput.value = p.type || 'cash'; // Fallback por migración
+            typeInput.value = p.type || 'cash'; 
             document.getElementById('pocketModalTitle').innerText = "Editar Bolsillo";
         } else {
             nameInput.value = ''; limitInput.value = ''; typeInput.value = 'cash';
@@ -851,7 +853,7 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v19', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('expenseAppDB_v21', JSON.stringify(db)); }
     
     function exportData() {
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"}));
