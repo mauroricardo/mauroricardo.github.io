@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Gastos - V24 Saldo Real</title>
+    <title>Control de Gastos - V25 Proyección Inteligente</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -300,12 +300,12 @@
             <div class="stat-divider" style="height: 25px;"></div>
             <div class="stat-item" title="Suma de gastos desde el día actual hasta fin de mes">
                 <span class="stat-label">Gastos pendientes</span>
-                <span class="stat-value" style="color: #fca5a5;" id="pendingExpenses">$ 0</span>
+                <span class="stat-value" style="color: #fca5a5;" id="pendingExpenses">-</span>
             </div>
             <div class="stat-divider" style="height: 25px;"></div>
             <div class="stat-item" title="Saldo proyectado: Disponible Real - Gastos pendientes">
                 <span class="stat-label">Saldo</span>
-                <span class="stat-value" id="projectionStatus" style="font-size: 1.05rem;">$ 0</span>
+                <span class="stat-value" id="projectionStatus" style="font-size: 1.05rem; color: white;">-</span>
             </div>
         </div>
     </div>
@@ -384,12 +384,12 @@
     let activeDay = null;
     let editingPocketIndex = null;
     
-    // DB V24
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v24')) || {}; 
+    // DB V25
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v25')) || {}; 
 
     // --- MIGRACIÓN DE DATOS ---
     if (Object.keys(db).length === 0) {
-        const history = ['v23', 'v22', 'v21', 'v20', 'v19', 'v18', 'v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
+        const history = ['v24', 'v23', 'v22', 'v21', 'v20', 'v19', 'v18', 'v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) {
@@ -419,6 +419,8 @@
             if(!db[currentKey]) db[currentKey] = { pockets: [], expenses: {} };
             
             db[currentKey].pockets = JSON.parse(JSON.stringify(db[prevKey].pockets));
+            // Resetear Disp. Real en la copia
+            db[currentKey].pockets.forEach(p => p.realAvailable = 0);
             db[currentKey].expenses = {};
             
             const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
@@ -536,6 +538,8 @@
         
         // Lógica de Proyección
         let totalRealAv = data.pockets.reduce((sum, p) => sum + (p.realAvailable || 0), 0);
+        let hasRealAvailable = totalRealAv > 0; // Verifica si hay algún valor ingresado en Disp. Real
+        
         let pendingExpenses = 0;
         
         const isCurrentMonth = (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth());
@@ -576,16 +580,24 @@
         
         // Render de Proyección
         document.getElementById('totalRealAv').innerText = formatMoney(totalRealAv);
-        document.getElementById('pendingExpenses').innerText = formatMoney(pendingExpenses);
         
-        const projectionBalance = totalRealAv - pendingExpenses;
         const projStatusEl = document.getElementById('projectionStatus');
+        const pendingEl = document.getElementById('pendingExpenses');
         
-        projStatusEl.innerText = formatMoney(projectionBalance); // Ahora siempre muestra el monto
-        if (projectionBalance >= 0) {
-            projStatusEl.style.color = "#86efac"; // Verde si es mayor o igual a 0
+        if (hasRealAvailable) {
+            pendingEl.innerText = formatMoney(pendingExpenses);
+            const projectionBalance = totalRealAv - pendingExpenses;
+            projStatusEl.innerText = formatMoney(projectionBalance);
+            if (projectionBalance >= 0) {
+                projStatusEl.style.color = "#86efac"; // Verde
+            } else {
+                projStatusEl.style.color = "#fca5a5"; // Rojo
+            }
         } else {
-            projStatusEl.style.color = "#fca5a5"; // Rojo si es negativo
+            // Si no se ha ingresado Disp. Real, mostrar guiones
+            pendingEl.innerText = "-";
+            projStatusEl.innerText = "-";
+            projStatusEl.style.color = "white"; 
         }
         
         renderPockets(data, pocketSpending); 
@@ -859,7 +871,7 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v24', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('expenseAppDB_v25', JSON.stringify(db)); }
     function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"})); a.download = `gastos_respaldo_${Date.now()}.json`; a.click(); }
     function importData(input) { const r = new FileReader(); r.onload = (e) => { if(confirm("¿Sobrescribir datos?")) { db = JSON.parse(e.target.result); saveDB(); location.reload(); } }; if(input.files[0]) r.readAsText(input.files[0]); }
     
