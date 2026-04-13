@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Gastos - V13 Lunes a Domingo</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --primary: #3b82f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background: var(--surface);
+            padding: 0.8rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .controls { display: flex; gap: 10px; align-items: center; }
+        
+        .financial-summary { 
+            display: flex; gap: 20px; align-items: center; 
+            background: #1e293b; color: white; 
+            padding: 10px 25px; border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-item { display: flex; flex-direction: column; align-items: flex-end; }
+        .stat-label { font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 1.1rem; font-weight: 700; }
+        .stat-divider { width: 1px; height: 30px; background: #475569; margin: 0 5px; }
+
+        input, select, button {
+            padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; outline: none; font-family: inherit;
+        }
+        button { cursor: pointer; background: white; transition: all 0.2s; font-weight: 500; }
+        button:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .btn-icon { padding: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        
+        /* --- BOLSILLOS --- */
+        .pockets-panel {
+            padding: 15px 1.5rem;
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            background: #f1f5f9;
+            border-bottom: 1px solid var(--border);
+            min-height: 120px;
+            align-items: center;
+        }
+
+        .pocket-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            min-width: 220px;
+            position: relative;
+            flex-shrink: 0;
+            display: flex; flex-direction: column; gap: 8px;
+            transition: transform 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        .pocket-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 0.95rem; color: #334155; }
+        .pocket-actions { display: flex; gap: 5px; }
+        .action-btn { color: #64748b; border: none; background: none; cursor: pointer; padding: 4px; font-size: 1.1rem; border-radius: 4px; }
+        .action-btn:hover { background: #e2e8f0; color: var(--primary); }
+        
+        .pocket-progress-bg { height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; }
+        .pocket-progress-fill { height: 100%; transition: width 0.3s ease; }
+        .pocket-data { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; }
+        
+        .add-pocket-btn {
+            background: white; border: 2px dashed #cbd5e1; color: #64748b;
+            min-width: 60px; height: 60px; border-radius: 12px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; font-size: 1.8rem; transition: 0.2s; flex-shrink: 0;
+        }
+        .add-pocket-btn:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+
+        /* --- CALENDARIO --- */
+        main {
+            flex: 1;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .calendar-header {
+            display: grid; grid-template-columns: repeat(7, 1fr);
+            text-align: center; font-weight: 700; padding-bottom: 15px; color: #64748b; text-transform: uppercase; font-size: 0.85rem;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 10px;
+            flex: 1;
+        }
+
+        .day-cell {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; padding: 8px;
+            display: flex; flex-direction: column;
+            cursor: pointer; transition: all 0.2s;
+            min-height: 110px; overflow: hidden;
+        }
+        .day-cell:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .day-cell.empty { background: transparent; border: none; cursor: default; pointer-events: none; }
+
+        /* HEADER DEL DÍA (NUMERO + FESTIVO) */
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center; 
+            margin-bottom: 6px;
+        }
+        
+        .day-number { 
+            font-weight: 700; 
+            color: #334155; 
+            font-size: 0.9rem;
+            padding: 2px 4px;
+        }
+
+        /* ESTILO FESTIVO */
+        .holiday-badge {
+            background-color: #dc2626; 
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 65%; 
+            display: inline-block;
+        }
+
+        .day-previews-container { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+        .expense-preview {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            justify-content: space-between;
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .day-total { 
+            font-weight: 700; font-size: 0.9rem; align-self: flex-end; margin-top: auto; padding-top: 5px;
+            color: var(--danger);
+        }
+
+        /* --- MODALES --- */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100;
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background: white; padding: 2rem; border-radius: 16px; width: 550px; max-width: 95%;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.2s ease-out;
+        }
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-title { margin: 0; font-size: 1.4rem; color: #1e293b; font-weight: 700; }
+        .close-btn { border: none; background: none; font-size: 1.5rem; color: #94a3b8; padding: 0; cursor: pointer; }
+
+        .modal-form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1fr auto; 
+            gap: 10px;
+            margin-bottom: 1.5rem;
+            align-items: center;
+        }
+        .modal-form-grid input, .modal-form-grid select { width: 100%; box-sizing: border-box; }
+
+        .expense-list { max-height: 250px; overflow-y: auto; padding-right: 5px; }
+        .expense-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 8px 0; border-bottom: 1px solid #f1f5f9; gap: 10px;
+        }
+        
+        .expense-info { display: flex; align-items: center; flex: 1; min-width: 0; gap: 8px; }
+        
+        .editable-input {
+            border: 1px solid transparent; background: transparent; font-family: inherit; font-size: 0.95rem; color: var(--text-main); padding: 4px; border-radius: 4px; transition: all 0.2s; width: 100%;
+        }
+        .editable-input:hover { background: #f8fafc; border-color: #e2e8f0; }
+        .editable-input:focus { background: white; border-color: var(--primary); outline: none; }
+        
+        .pocket-select-badge {
+            max-width: 110px; border: none; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1e293b; font-weight: 600; appearance: none; -webkit-appearance: none; text-align: center; flex-shrink: 0; transition: opacity 0.2s;
+        }
+        .pocket-select-badge:hover { opacity: 0.8; }
+        .pocket-select-badge:focus { outline: 2px solid var(--primary); }
+
+        .expense-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+        .delete-btn { color: #ef4444; border: none; background: none; cursor: pointer; padding: 6px; font-size: 1.1rem; border-radius: 4px; }
+        .delete-btn:hover { background: #fef2f2; }
+        
+        .modal-footer { text-align: right; font-weight: 700; font-size: 1.2rem; border-top: 2px solid var(--border); padding-top: 15px; margin-top: 10px; color: var(--text-main); }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.9rem; color: #64748b; margin-bottom: 8px; font-weight: 600; }
+        .form-group input { width: 100%; box-sizing: border-box; padding: 10px; }
+        .btn-full { width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; margin-top: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="controls">
+        <select id="monthSelect"></select>
+        <select id="yearSelect"></select>
+        <button class="btn-icon" onclick="exportData()" title="Guardar Respaldo">💾</button>
+        <button class="btn-icon" onclick="document.getElementById('importInput').click()" title="Cargar Respaldo">📂</button>
+        <input type="file" id="importInput" hidden accept=".json" onchange="importData(this)">
+    </div>
+
+    <div class="financial-summary">
+        <div class="stat-item">
+            <span class="stat-label">Ingresos</span>
+            <input type="text" id="incomeInput" 
+                   style="background:transparent; border:none; color:white; font-weight:700; width:140px; text-align:right; font-size:1.2rem; padding:0; outline:none;" 
+                   placeholder="$ 0">
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <span class="stat-label">Gastados</span>
+            <span class="stat-value" style="color: #fca5a5;" id="totalExpenses">$ 0</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <span class="stat-label">Disponible</span>
+            <span class="stat-value" style="color: #86efac;" id="balance">$ 0</span>
+        </div>
+    </div>
+</header>
+
+<div class="pockets-panel" id="pocketsContainer"></div>
+
+<main>
+    <div class="calendar-header">
+        <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+    </div>
+    <div id="calendarGrid" class="calendar-grid"></div>
+</main>
+
+<div id="expenseModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">Detalle del Día</h3>
+            <button class="close-btn" onclick="closeModal('expenseModal')">✕</button>
+        </div>
+
+        <div class="modal-form-grid">
+            <input type="text" id="descInput" placeholder="Concepto (ej. Almuerzo)">
+            <select id="pocketSelect"></select>
+            <input type="number" id="amountInput" placeholder="Monto" min="0">
+            <button class="btn-icon" style="background:var(--primary); color:white; border:none; border-radius:6px;" onclick="addExpense()">＋</button>
+        </div>
+
+        <div id="modalExpenseList" class="expense-list"></div>
+
+        <div class="modal-footer">
+            Total Día: <span id="modalTotal">$ 0</span>
+        </div>
+    </div>
+</div>
+
+<div id="pocketModal" class="modal">
+    <div class="modal-content" style="width: 350px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="pocketModalTitle">Nuevo Bolsillo</h3>
+            <button class="close-btn" onclick="closeModal('pocketModal')">✕</button>
+        </div>
+        
+        <div class="form-group">
+            <label for="newPocketName">Nombre</label>
+            <input type="text" id="newPocketName" placeholder="Ej. Mercado, Arriendo...">
+        </div>
+        
+        <div class="form-group">
+            <label for="newPocketLimit">Presupuesto Mensual</label>
+            <input type="number" id="newPocketLimit" placeholder="$ 0" min="0">
+        </div>
+
+        <button class="btn-full" id="savePocketBtn" onclick="savePocket()">Crear Bolsillo</button>
+    </div>
+</div>
+
+<script>
+    const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    
+    const POCKET_COLORS = [
+        '#3b82f6', '#f59e0b', '#10b981', '#ec4899', '#8b5cf6', '#ef4444', '#06b6d4', '#f97316', '#6366f1'
+    ];
+
+    let currentDate = new Date();
+    let selectedYear = currentDate.getFullYear();
+    let selectedMonth = currentDate.getMonth();
+    let activeDay = null;
+    let editingPocketIndex = null;
+    
+    // DB V13
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v13')) || {}; 
+
+    // --- MIGRACIÓN DE DATOS ---
+    if (Object.keys(db).length === 0) {
+        const oldDB = localStorage.getItem('expenseAppDB_v12') || localStorage.getItem('expenseAppDB_v11') || localStorage.getItem('expenseAppDB_v10');
+        if (oldDB) {
+            try {
+                db = JSON.parse(oldDB);
+                console.log("Datos migrados a V13");
+                saveDB(); 
+            } catch(e) { console.error("Error migrando datos"); }
+        }
+    }
+
+    const moneyFormatter = new Intl.NumberFormat('es-CO', {
+        style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0
+    });
+    function formatMoney(amount) { return moneyFormatter.format(amount); }
+
+    const incomeInput = document.getElementById('incomeInput');
+    incomeInput.addEventListener('focus', () => {
+        const key = getKey(selectedYear, selectedMonth);
+        const val = db[key]?.income || 0;
+        incomeInput.value = val === 0 ? '' : val; 
+    });
+    incomeInput.addEventListener('blur', () => { updateIncome(); });
+    incomeInput.addEventListener('keypress', (e) => { 
+        if(e.key === 'Enter') { updateIncome(); incomeInput.blur(); } 
+    });
+
+    function updateIncome() {
+        const rawVal = incomeInput.value;
+        const val = parseFloat(rawVal) || 0;
+        const key = getKey(selectedYear, selectedMonth);
+        if (!db[key]) db[key] = { income: 0, pockets: [], expenses: {} };
+        db[key].income = val;
+        saveDB(); render(); 
+    }
+
+    // --- CÁLCULO DE FESTIVOS COLOMBIA ---
+    function getColombianHolidays(year) {
+        const holidays = {};
+        const d2s = (date) => `${date.getMonth()}-${date.getDate()}`;
+        
+        const fixed = [
+            [0, 1, "Año Nuevo"], [4, 1, "Día del Trabajo"], 
+            [6, 20, "Independencia"], [7, 7, "Batalla de Boyacá"], 
+            [11, 8, "Inm. Concepción"], [11, 25, "Navidad"]
+        ];
+        fixed.forEach(([m, d, name]) => holidays[`${m}-${d}`] = name);
+
+        const emiliani = [
+            [0, 6, "Reyes Magos"], [2, 19, "San José"], 
+            [5, 29, "San Pedro y San Pablo"], [7, 15, "Asunción"], 
+            [9, 12, "Día de la Raza"], [10, 1, "Todos los Santos"], 
+            [10, 11, "Indep. Cartagena"]
+        ];
+
+        emiliani.forEach(([m, d, name]) => {
+            let date = new Date(year, m, d);
+            if (date.getDay() !== 1) { 
+                date.setDate(date.getDate() + (8 - date.getDay()) % 7);
+            }
+            holidays[d2s(date)] = name;
+        });
+
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const monthEaster = Math.floor((h + l - 7 * m + 114) / 31) - 1; 
+        const dayEaster = ((h + l - 7 * m + 114) % 31) + 1;
+        
+        const easterDate = new Date(year, monthEaster, dayEaster);
+
+        const thursday = new Date(easterDate); thursday.setDate(easterDate.getDate() - 3);
+        const friday = new Date(easterDate); friday.setDate(easterDate.getDate() - 2);
+        holidays[d2s(thursday)] = "Jueves Santo";
+        holidays[d2s(friday)] = "Viernes Santo";
+
+        const addDays = (days) => {
+            let d = new Date(easterDate);
+            d.setDate(d.getDate() + days);
+            if (d.getDay() !== 1) d.setDate(d.getDate() + (8 - d.getDay()) % 7);
+            return d;
+        };
+
+        holidays[d2s(addDays(40))] = "Ascensión";
+        holidays[d2s(addDays(61))] = "Corpus Christi";
+        holidays[d2s(addDays(68))] = "Sagrado Corazón";
+
+        return holidays;
+    }
+
+    function init() {
+        const yearSel = document.getElementById('yearSelect');
+        const monthSel = document.getElementById('monthSelect');
+        for(let y = selectedYear - 3; y <= selectedYear + 3; y++) {
+            yearSel.add(new Option(y, y, false, y === selectedYear));
+        }
+        months.forEach((m, i) => {
+            monthSel.add(new Option(m, i, false, i === selectedMonth));
+        });
+        yearSel.onchange = (e) => { selectedYear = parseInt(e.target.value); changeMonth(); };
+        monthSel.onchange = (e) => { selectedMonth = parseInt(e.target.value); changeMonth(); };
+        changeMonth();
+    }
+
+    function getKey(y, m) { return `${y}-${m}`; }
+
+    function changeMonth() {
+        const key = getKey(selectedYear, selectedMonth);
+        if (!db[key]) {
+            db[key] = { income: 0, pockets: [], expenses: {} };
+            let prevDate = new Date(selectedYear, selectedMonth - 1);
+            let prevKey = getKey(prevDate.getFullYear(), prevDate.getMonth());
+
+            if (db[prevKey]) {
+                const prevData = db[prevKey];
+                db[key].income = prevData.income || 0;
+                if (prevData.pockets) db[key].pockets = JSON.parse(JSON.stringify(prevData.pockets));
+                const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+                Object.keys(prevData.expenses).forEach(dayStr => {
+                    if (parseInt(dayStr) <= daysInCurrentMonth) db[key].expenses[dayStr] = JSON.parse(JSON.stringify(prevData.expenses[dayStr]));
+                });
+            }
+        }
+        saveDB(); render();
+    }
+
+    function render() {
+        const key = getKey(selectedYear, selectedMonth);
+        const data = db[key];
+        
+        if (document.activeElement !== incomeInput) {
+            incomeInput.value = data.income ? formatMoney(data.income) : '';
+            incomeInput.placeholder = data.income === 0 ? '$ 0' : formatMoney(data.income);
+        }
+
+        let totalSpent = 0;
+        let pocketSpending = {};
+        data.pockets.forEach(p => pocketSpending[p.id] = 0);
+
+        Object.keys(data.expenses).forEach(day => {
+            data.expenses[day].forEach(exp => {
+                totalSpent += exp.amount;
+                if(exp.pocketId && pocketSpending[exp.pocketId] !== undefined) pocketSpending[exp.pocketId] += exp.amount;
+            });
+        });
+
+        document.getElementById('totalExpenses').innerText = formatMoney(totalSpent);
+        const balance = (data.income || 0) - totalSpent;
+        document.getElementById('balance').innerText = formatMoney(balance);
+        document.getElementById('balance').style.color = balance >= 0 ? '#86efac' : '#fca5a5';
+
+        renderPockets(data, pocketSpending);
+        renderCalendar(data);
+    }
+
+    function renderPockets(data, spendingMap) {
+        const container = document.getElementById('pocketsContainer');
+        container.innerHTML = '';
+        const addBtn = document.createElement('div');
+        addBtn.className = 'add-pocket-btn';
+        addBtn.innerText = '+';
+        addBtn.onclick = () => openPocketModal();
+        container.appendChild(addBtn);
+
+        data.pockets.forEach((p, idx) => {
+            const spent = spendingMap[p.id] || 0;
+            const remaining = p.limit - spent;
+            const percent = Math.min(100, (spent / p.limit) * 100) || 0;
+            const baseColor = p.color || '#94a3b8';
+            const progressColor = spent > p.limit ? '#ef4444' : '#10b981';
+
+            const div = document.createElement('div');
+            div.className = 'pocket-card';
+            div.style.backgroundColor = baseColor + '4D'; 
+            div.style.border = `1px solid ${baseColor}66`;
+
+            div.innerHTML = `
+                <div class="pocket-header">
+                    <span>${p.name}</span>
+                    <div class="pocket-actions">
+                        <button class="action-btn" onclick="editPocket(${idx})" title="Editar">✎</button>
+                        <button class="action-btn" style="color:#ef4444" onclick="deletePocket(${idx})" title="Eliminar">✕</button>
+                    </div>
+                </div>
+                <div style="font-size:0.85rem; color:#475569;">Presupuesto: <b>${formatMoney(p.limit)}</b></div>
+                <div class="pocket-progress-bg"><div class="pocket-progress-fill" style="width:${percent}%; background:${progressColor};"></div></div>
+                <div class="pocket-data">
+                    <span style="color:var(--danger);">Gastado: ${formatMoney(spent)}</span>
+                    <span style="color:${remaining>=0?'#10b981':'#ef4444'}">Disp: ${formatMoney(remaining)}</span>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function renderCalendar(data) {
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        
+        // CALCULO INICIO LUNES (Lunes=0, ... Domingo=6)
+        // getDay(): Dom=0, Lun=1, ... Sab=6
+        let firstDayIndex = new Date(selectedYear, selectedMonth, 1).getDay();
+        // Convertir a Lunes=0 ... Domingo=6
+        if (firstDayIndex === 0) firstDayIndex = 6; 
+        else firstDayIndex = firstDayIndex - 1;
+
+        // Festivos
+        const holidays = getColombianHolidays(selectedYear);
+
+        for(let i=0; i<firstDayIndex; i++) grid.appendChild(document.createElement('div')).className = 'day-cell empty';
+
+        for(let d=1; d<=daysInMonth; d++) {
+            const dayExpenses = data.expenses[d] || [];
+            let dayTotal = 0;
+            let previewsHTML = '';
+
+            dayExpenses.slice(0, 3).forEach(exp => {
+                dayTotal += exp.amount;
+                const pocket = data.pockets.find(p => p.id === exp.pocketId);
+                const color = pocket ? pocket.color : '#94a3b8';
+                
+                previewsHTML += `
+                    <div class="expense-preview" style="background-color: ${color}66;">
+                        <span style="overflow:hidden; text-overflow:ellipsis;">${exp.desc}</span>
+                        <span>${formatMoney(exp.amount)}</span>
+                    </div>`;
+            });
+            dayExpenses.slice(3).forEach(exp => dayTotal += exp.amount);
+            if (dayExpenses.length > 3) previewsHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExpenses.length - 3} más</div>`;
+
+            // Lógica Festivos
+            const holidayName = holidays[`${selectedMonth}-${d}`];
+            const holidayHTML = holidayName 
+                ? `<span class="holiday-badge" title="${holidayName}">${holidayName}</span>` 
+                : '';
+
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            cell.innerHTML = `
+                <div class="day-header">
+                    <span class="day-number">${d}</span>
+                    ${holidayHTML}
+                </div>
+                <div class="day-previews-container">${previewsHTML}</div>
+                ${dayTotal > 0 ? `<div class="day-total">${formatMoney(dayTotal)}</div>` : ''}
+            `;
+            cell.onclick = () => openExpenseModal(d);
+            grid.appendChild(cell);
+        }
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+        if(modalId === 'pocketModal') {
+            document.getElementById('newPocketName').value = '';
+            document.getElementById('newPocketLimit').value = '';
+            editingPocketIndex = null;
+        } else if (modalId === 'expenseModal') {
+            document.getElementById('descInput').value = '';
+            document.getElementById('amountInput').value = '';
+        }
+        render();
+    }
+    window.onclick = function(event) { if (event.target.classList.contains('modal')) closeModal(event.target.id); }
+
+    // --- FUNCIONES BOLSILLO ---
+    function openPocketModal(index = null) {
+        editingPocketIndex = index;
+        const modalTitle = document.getElementById('pocketModalTitle');
+        const saveBtn = document.getElementById('savePocketBtn');
+        const nameInput = document.getElementById('newPocketName');
+        const limitInput = document.getElementById('newPocketLimit');
+
+        if (index !== null) {
+            const key = getKey(selectedYear, selectedMonth);
+            const pocket = db[key].pockets[index];
+            modalTitle.innerText = "Editar Bolsillo";
+            saveBtn.innerText = "Guardar Cambios";
+            nameInput.value = pocket.name;
+            limitInput.value = pocket.limit;
+        } else {
+            modalTitle.innerText = "Nuevo Bolsillo";
+            saveBtn.innerText = "Crear Bolsillo";
+            nameInput.value = '';
+            limitInput.value = '';
+        }
+
+        document.getElementById('pocketModal').style.display = 'flex';
+        nameInput.focus();
+    }
+
+    function editPocket(index) { openPocketModal(index); }
+
+    function savePocket() {
+        const nameInput = document.getElementById('newPocketName');
+        const limitInput = document.getElementById('newPocketLimit');
+        const name = nameInput.value.trim();
+        const limit = parseFloat(limitInput.value);
+
+        if(!name || isNaN(limit) || limit < 0) {
+            if(!name) nameInput.style.borderColor = '#ef4444';
+            if(isNaN(limit)) limitInput.style.borderColor = '#ef4444';
+            return;
+        }
+
+        const key = getKey(selectedYear, selectedMonth);
+        if (editingPocketIndex !== null) {
+            const pocket = db[key].pockets[editingPocketIndex];
+            pocket.name = name;
+            pocket.limit = limit;
+        } else {
+            const colorIndex = db[key].pockets.length % POCKET_COLORS.length;
+            db[key].pockets.push({ id: Date.now().toString(), name, limit, color: POCKET_COLORS[colorIndex] });
+        }
+        saveDB(); closeModal('pocketModal');
+    }
+
+    function deletePocket(idx) {
+        if(!confirm("¿Eliminar este bolsillo?")) return;
+        const key = getKey(selectedYear, selectedMonth);
+        const pocketIdToDelete = db[key].pockets[idx].id;
+        db[key].pockets.splice(idx, 1);
+        Object.values(db[key].expenses).forEach(dayList => {
+            dayList.forEach(exp => { if(exp.pocketId === pocketIdToDelete) exp.pocketId = null; });
+        });
+        saveDB(); render();
+    }
+
+    // --- GASTOS ---
+    function openExpenseModal(day) {
+        activeDay = day;
+        document.getElementById('expenseModal').style.display = 'flex';
+        const holidays = getColombianHolidays(selectedYear);
+        const holidayName = holidays[`${selectedMonth}-${day}`];
+        const titleSuffix = holidayName ? ` (${holidayName})` : '';
+        
+        document.getElementById('modalTitle').innerText = `${day} de ${months[selectedMonth]}${titleSuffix}`;
+        
+        const sel = document.getElementById('pocketSelect');
+        sel.innerHTML = ''; 
+        const pockets = db[getKey(selectedYear, selectedMonth)].pockets;
+        
+        if (pockets.length === 0) {
+            const opt = new Option("¡Crea un bolsillo primero!", "");
+            opt.disabled = true; opt.selected = true; sel.add(opt);
+            document.getElementById('amountInput').disabled = true;
+        } else {
+            document.getElementById('amountInput').disabled = false;
+            pockets.forEach(p => sel.add(new Option(p.name, p.id)));
+        }
+
+        renderModalList();
+        document.getElementById('descInput').focus();
+        document.getElementById('amountInput').onkeypress = (e) => { if(e.key==='Enter') addExpense(); }
+    }
+
+    function addExpense() {
+        const descInput = document.getElementById('descInput');
+        const amountInput = document.getElementById('amountInput');
+        const pocketSelect = document.getElementById('pocketSelect');
+        
+        if (!pocketSelect.value) { alert("Selecciona un bolsillo."); return; }
+
+        const desc = descInput.value.trim() || 'Varios';
+        const amount = parseFloat(amountInput.value);
+        const pocketId = pocketSelect.value;
+        
+        if(isNaN(amount) || amount <= 0) {
+            amountInput.style.borderColor = '#ef4444';
+            return;
+        } else amountInput.style.borderColor = '#e2e8f0';
+        
+        const key = getKey(selectedYear, selectedMonth);
+        if(!db[key].expenses[activeDay]) db[key].expenses[activeDay] = [];
+        db[key].expenses[activeDay].push({ desc, amount, pocketId });
+        
+        descInput.value = ''; amountInput.value = ''; descInput.focus();
+        saveDB(); renderModalList();
+    }
+
+    function deleteExpense(idx) {
+        const key = getKey(selectedYear, selectedMonth);
+        db[key].expenses[activeDay].splice(idx, 1);
+        saveDB(); renderModalList();
+    }
+
+    function updateExpense(index, field, value) {
+        const key = getKey(selectedYear, selectedMonth);
+        const expenses = db[key].expenses[activeDay];
+        
+        if(field === 'amount') {
+            const num = parseFloat(value);
+            if(isNaN(num) || num <= 0) return;
+            expenses[index].amount = num;
+        } else if (field === 'desc') {
+            expenses[index].desc = value;
+        } else if (field === 'pocketId') {
+            expenses[index].pocketId = value;
+            saveDB(); renderModalList(); return; 
+        }
+        
+        saveDB();
+        let totalDay = expenses.reduce((a,b) => a + b.amount, 0);
+        document.getElementById('modalTotal').innerText = formatMoney(totalDay);
+    }
+
+    function renderModalList() {
+        const list = document.getElementById('modalExpenseList');
+        list.innerHTML = '';
+        const key = getKey(selectedYear, selectedMonth);
+        const expenses = db[key].expenses[activeDay] || [];
+        const pockets = db[key].pockets;
+        let totalDay = 0;
+
+        expenses.forEach((e, i) => {
+            totalDay += e.amount;
+            const currentPocket = pockets.find(p => p.id === e.pocketId);
+            const color = currentPocket ? currentPocket.color : '#94a3b8'; 
+            
+            let optionsHTML = '';
+            pockets.forEach(p => {
+                const selected = p.id === e.pocketId ? 'selected' : '';
+                optionsHTML += `<option value="${p.id}" ${selected}>${p.name}</option>`;
+            });
+
+            const row = document.createElement('div');
+            row.className = 'expense-row';
+            row.innerHTML = `
+                <div class="expense-info">
+                    <input type="text" class="editable-input" value="${e.desc}" onchange="updateExpense(${i}, 'desc', this.value)">
+                    <select class="pocket-select-badge" 
+                            style="background-color: ${color}4D; border: 1px solid ${color}66;" 
+                            title="${currentPocket ? currentPocket.name : 'Desconocido'}"
+                            onchange="updateExpense(${i}, 'pocketId', this.value)">
+                        ${optionsHTML}
+                    </select>
+                </div>
+                <div class="expense-actions">
+                    <div style="font-weight:bold; font-size:1.05rem; display:flex; align-items:center;">
+                        <span style="font-size:0.8rem; margin-right:2px; color:#64748b;">$</span>
+                        <input type="number" class="editable-input" style="width:90px; text-align:right; font-weight:bold;" value="${e.amount}" onchange="updateExpense(${i}, 'amount', this.value)">
+                    </div>
+                    <button class="delete-btn" onclick="deleteExpense(${i})">✕</button>
+                </div>
+            `;
+            list.appendChild(row);
+        });
+        document.getElementById('modalTotal').innerText = formatMoney(totalDay);
+    }
+
+    function saveDB() { localStorage.setItem('expenseAppDB_v13', JSON.stringify(db)); }
+    
+    function exportData() {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"}));
+        a.download = `gastos_respaldo_${Date.now()}.json`;
+        a.click();
+    }
+
+    function importData(input) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            if(confirm("¿Sobrescribir datos?")) {
+                db = JSON.parse(e.target.result); saveDB(); location.reload();
+            }
+        };
+        if(input.files[0]) reader.readAsText(input.files[0]);
+    }
+
+    init();
+</script>
+</body>
+</html>
