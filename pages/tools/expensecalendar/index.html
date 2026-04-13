@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Gastos - V17 Replicar & Copiar Mes</title>
+    <title>Control de Gastos - V18 Smart Copy</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -157,6 +157,10 @@
             font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden;
             text-overflow: ellipsis; display: flex; justify-content: space-between; color: #1e293b; font-weight: 600;
         }
+        
+        .expense-preview.is-recurring {
+            border-left: 3px solid var(--primary);
+        }
 
         /* CONTENEDOR DE TOTALES DIARIOS */
         .day-totals-container {
@@ -168,19 +172,8 @@
             border-top: 1px dashed var(--border);
         }
 
-        .day-subtotal {
-            font-size: 0.7rem;
-            color: #64748b;
-            font-weight: 600;
-            line-height: 1.2;
-        }
-
-        .day-total { 
-            font-weight: 700; 
-            font-size: 0.95rem; 
-            color: var(--danger);
-            margin-top: 2px;
-        }
+        .day-subtotal { font-size: 0.7rem; color: #64748b; font-weight: 600; line-height: 1.2; }
+        .day-total { font-weight: 700; font-size: 0.95rem; color: var(--danger); margin-top: 2px; }
 
         /* --- MODALES --- */
         .modal {
@@ -189,7 +182,7 @@
             backdrop-filter: blur(2px);
         }
         .modal-content {
-            background: white; padding: 2rem; border-radius: 16px; width: 680px; max-width: 95%;
+            background: white; padding: 2rem; border-radius: 16px; width: 720px; max-width: 95%;
             box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.2s ease-out;
         }
         @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -200,12 +193,12 @@
 
         .modal-form-grid {
             display: grid;
-            grid-template-columns: 2fr 1.5fr 1fr 1fr auto; 
+            grid-template-columns: 2fr 1.5fr auto 1fr auto auto; 
             gap: 10px;
             margin-bottom: 1.5rem;
             align-items: center;
         }
-        .modal-form-grid input, .modal-form-grid select { width: 100%; box-sizing: border-box; }
+        .modal-form-grid input[type="text"], .modal-form-grid input[type="number"], .modal-form-grid select { width: 100%; box-sizing: border-box; }
 
         .expense-list { max-height: 250px; overflow-y: auto; padding-right: 5px; }
         .expense-row { 
@@ -304,12 +297,15 @@
         <div class="modal-form-grid">
             <input type="text" id="descInput" placeholder="Concepto (ej. Almuerzo)">
             <select id="pocketSelect"></select>
-            <select id="methodSelect" style="font-size:0.85rem;">
-                <option value="cash">💵 Efec/Déb</option>
-                <option value="credit">💳 Crédito</option>
+            <select id="methodSelect" style="font-size:0.85rem; padding:8px 4px;">
+                <option value="cash">💵 Efec</option>
+                <option value="credit">💳 Créd</option>
             </select>
             <input type="number" id="amountInput" placeholder="Monto" min="0">
-            <button class="btn-icon" style="background:var(--primary); color:white; border:none; border-radius:6px;" onclick="addExpense()">＋</button>
+            <label title="Gasto Recurrente (Se copia al mes siguiente)" style="cursor:pointer; font-size:1.4rem; display:flex; align-items:center;">
+                <input type="checkbox" id="recurInput" style="width:auto; transform: scale(1.3); margin-right:5px;"> 🔄
+            </label>
+            <button class="btn-icon" style="background:var(--primary); color:white; border:none; border-radius:6px; padding: 8px 15px;" onclick="addExpense()">＋</button>
         </div>
 
         <div id="modalExpenseList" class="expense-list"></div>
@@ -351,12 +347,12 @@
     let activeDay = null;
     let editingPocketIndex = null;
     
-    // DB V17
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v17')) || {}; 
+    // DB V18
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v18')) || {}; 
 
     // --- MIGRACIÓN DE DATOS ---
     if (Object.keys(db).length === 0) {
-        const history = ['v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
+        const history = ['v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) {
@@ -394,9 +390,9 @@
         render(); 
     }
 
-    // --- COPIAR MES PREVIO ---
+    // --- SMART COPY PREVIOUS MONTH ---
     function copyPreviousMonth() {
-        if(!confirm("¿Estás seguro de reemplazar TODOS los datos de este mes (ingresos, bolsillos y gastos) con los del mes anterior?")) return;
+        if(!confirm("¿Reemplazar datos actuales con configuración e ingresos del mes pasado (Y copiar gastos marcados como recurrentes 🔄)?\n\nADVERTENCIA: Esto borrará la configuración del mes actual.")) return;
         
         const currentKey = getKey(selectedYear, selectedMonth);
         
@@ -410,20 +406,60 @@
         const prevKey = getKey(prevYear, prevMonth);
         
         if(db[prevKey]) {
-            // Clonación profunda de los datos del mes previo
-            db[currentKey] = JSON.parse(JSON.stringify(db[prevKey]));
+            // Asegurar que exista el mes actual
+            if(!db[currentKey]) db[currentKey] = { income: 0, pockets: [], expenses: {} };
             
-            // Eliminar gastos de días que no existen en el mes actual (ej. 31 de copiar a febrero)
+            // 1. Copiar ingresos y bolsillos
+            db[currentKey].income = db[prevKey].income;
+            db[currentKey].pockets = JSON.parse(JSON.stringify(db[prevKey].pockets));
+            
+            // 2. Limpiar gastos del mes actual
+            db[currentKey].expenses = {};
+            
             const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-            Object.keys(db[currentKey].expenses).forEach(dayStr => {
-                if (parseInt(dayStr) > daysInCurrentMonth) {
-                    delete db[currentKey].expenses[dayStr];
+            
+            // 3. Buscar y copiar SOLO gastos recurrentes (isRecurring === true) usando "Día Equivalente"
+            Object.keys(db[prevKey].expenses).forEach(sourceDayStr => {
+                const sourceDay = parseInt(sourceDayStr);
+                const sourceDate = new Date(prevYear, prevMonth, sourceDay);
+                const dayOfWeek = sourceDate.getDay(); // 0-6 (Dom-Sab)
+                
+                // Calcular qué número de aparición es este día en el mes anterior (Ej: 3er Sabado -> occurrence = 3)
+                const occurrence = Math.ceil(sourceDay / 7);
+                
+                // Filtrar solo los gastos que tienen el flag de recurrencia activado
+                const recurringExpenses = db[prevKey].expenses[sourceDayStr].filter(e => e.isRecurring);
+                
+                if (recurringExpenses.length > 0) {
+                    // Buscar la MISMA aparición (occurrence) de ese MISMO día de la semana en el MES ACTUAL
+                    let currentOccurrence = 0;
+                    let targetDay = null;
+                    
+                    for (let d = 1; d <= daysInCurrentMonth; d++) {
+                        const loopDate = new Date(selectedYear, selectedMonth, d);
+                        if (loopDate.getDay() === dayOfWeek) {
+                            currentOccurrence++;
+                            if (currentOccurrence === occurrence) {
+                                targetDay = d;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Si se encontró el día equivalente en el mes objetivo, se insertan los gastos
+                    if (targetDay !== null) {
+                        if (!db[currentKey].expenses[targetDay]) db[currentKey].expenses[targetDay] = [];
+                        
+                        recurringExpenses.forEach(exp => {
+                            db[currentKey].expenses[targetDay].push(JSON.parse(JSON.stringify(exp)));
+                        });
+                    }
                 }
             });
             
             saveDB();
             render();
-            alert("Configuración del mes previo copiada con éxito.");
+            alert("Configuración y gastos recurrentes copiados con éxito.");
         } else {
             alert("No hay información registrada en el mes anterior para copiar.");
         }
@@ -483,18 +519,8 @@
     function changeMonth() {
         const key = getKey(selectedYear, selectedMonth);
         if (!db[key]) {
+            // AHORA INICIA COMPLETAMENTE VACÍO AL CAMBIAR DE MES (Si no hay datos)
             db[key] = { income: 0, pockets: [], expenses: {} };
-            let prevDate = new Date(selectedYear, selectedMonth - 1);
-            let prevKey = getKey(prevDate.getFullYear(), prevDate.getMonth());
-            if (db[prevKey]) {
-                const prevData = db[prevKey];
-                db[key].income = prevData.income || 0;
-                if (prevData.pockets) db[key].pockets = JSON.parse(JSON.stringify(prevData.pockets));
-                const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-                Object.keys(prevData.expenses).forEach(dayStr => {
-                    if (parseInt(dayStr) <= daysInCurrentMonth) db[key].expenses[dayStr] = JSON.parse(JSON.stringify(prevData.expenses[dayStr]));
-                });
-            }
         }
         saveDB(); render();
     }
@@ -582,7 +608,8 @@
                 if (index < 3) {
                     const pocket = data.pockets.find(p => p.id === exp.pocketId);
                     const methodIcon = exp.method === 'credit' ? '💳' : '💵';
-                    previewsHTML += `<div class="expense-preview" style="background-color: ${(pocket?pocket.color:'#94a3b8')+'66'};"><span style="overflow:hidden; text-overflow:ellipsis;" title="${exp.desc}">${methodIcon} ${exp.desc}</span><span>${formatMoney(exp.amount)}</span></div>`;
+                    const recurClass = exp.isRecurring ? 'is-recurring' : '';
+                    previewsHTML += `<div class="expense-preview ${recurClass}" style="background-color: ${(pocket?pocket.color:'#94a3b8')+'66'};"><span style="overflow:hidden; text-overflow:ellipsis;" title="${exp.desc}">${methodIcon} ${exp.desc}</span><span>${formatMoney(exp.amount)}</span></div>`;
                 }
             });
             
@@ -613,6 +640,7 @@
     function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
         if(modalId === 'pocketModal') { editingPocketIndex = null; }
+        if(modalId === 'expenseModal') { document.getElementById('recurInput').checked = false; }
         render();
     }
 
@@ -668,6 +696,9 @@
         document.getElementById('modalTitle').innerText = `${day} de ${months[selectedMonth]}${hName ? ' ('+hName+')' : ''}`;
         const sel = document.getElementById('pocketSelect'); sel.innerHTML = '';
         const pockets = db[getKey(selectedYear, selectedMonth)].pockets;
+        
+        document.getElementById('recurInput').checked = false; // Resetear checkbox
+        
         if (pockets.length === 0) {
             const opt = new Option("¡Crea un bolsillo!", ""); opt.disabled = true; sel.add(opt);
             document.getElementById('amountInput').disabled = true;
@@ -687,6 +718,7 @@
         const aIn = document.getElementById('amountInput');
         const pSel = document.getElementById('pocketSelect');
         const mSel = document.getElementById('methodSelect');
+        const rIn = document.getElementById('recurInput');
         const amount = parseFloat(aIn.value);
         
         if(!pSel.value || isNaN(amount) || amount <= 0) return;
@@ -698,17 +730,19 @@
             desc: dIn.value.trim() || 'Varios', 
             amount: amount, 
             pocketId: pSel.value,
-            method: mSel.value 
+            method: mSel.value,
+            isRecurring: rIn.checked // Guardar el flag recurrente
         });
         
         dIn.value = ''; aIn.value = ''; dIn.focus();
+        rIn.checked = false; // Resetear checkbox tras agregar
         saveDB(); 
         renderModalList();
     }
 
     function deleteExpense(idx) { db[getKey(selectedYear, selectedMonth)].expenses[activeDay].splice(idx, 1); saveDB(); renderModalList(); }
 
-    // --- REPLICAR GASTO ---
+    // --- REPLICAR GASTO EN MES ACTUAL ---
     function replicateExpense(idx) {
         const key = getKey(selectedYear, selectedMonth);
         const expenseToCopy = db[key].expenses[activeDay][idx];
@@ -718,14 +752,11 @@
         
         let replicatedCount = 0;
         
-        // Iterar desde el día siguiente hasta el final del mes
         for (let d = activeDay + 1; d <= daysInMonth; d++) {
             const loopDate = new Date(selectedYear, selectedMonth, d);
             
-            // Si es el mismo día de la semana (ej. Sábado == Sábado)
             if (loopDate.getDay() === currentDayOfWeek) {
                 if (!db[key].expenses[d]) db[key].expenses[d] = [];
-                // Clonación profunda del gasto
                 db[key].expenses[d].push(JSON.parse(JSON.stringify(expenseToCopy)));
                 replicatedCount++;
             }
@@ -750,6 +781,8 @@
             exps[idx].pocketId = val; saveDB(); renderModalList(); return; 
         } else if (field === 'method') {
             exps[idx].method = val;
+        } else if (field === 'isRecurring') {
+            exps[idx].isRecurring = val; saveDB(); return; // Solo guardar, no re-renderizar todo
         }
         saveDB(); 
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
@@ -765,6 +798,7 @@
             let opts = ''; pks.forEach(pk => opts += `<option value="${pk.id}" ${pk.id===e.pocketId?'selected':''}>${pk.name}</option>`);
             
             const isCredit = e.method === 'credit';
+            const isRecur = e.isRecurring ? 'checked' : '';
             
             const row = document.createElement('div'); row.className = 'expense-row';
             row.innerHTML = `
@@ -773,8 +807,8 @@
                     <select class="pocket-select-badge" style="background-color: ${color}4D; border: 1px solid ${color}66;" onchange="updateExpense(${i}, 'pocketId', this.value)">${opts}</select>
                     
                     <select class="editable-input" style="width: auto; font-size: 0.8rem; flex-shrink: 0;" onchange="updateExpense(${i}, 'method', this.value)">
-                        <option value="cash" ${!isCredit ? 'selected' : ''}>💵 Efec/Déb</option>
-                        <option value="credit" ${isCredit ? 'selected' : ''}>💳 Crédito</option>
+                        <option value="cash" ${!isCredit ? 'selected' : ''}>💵 Efec</option>
+                        <option value="credit" ${isCredit ? 'selected' : ''}>💳 Créd</option>
                     </select>
                 </div>
                 <div class="expense-actions">
@@ -782,6 +816,9 @@
                         <span style="font-size:0.8rem; color:#64748b;">$</span>
                         <input type="number" class="editable-input" style="width:90px; text-align:right;" value="${e.amount}" onchange="updateExpense(${i}, 'amount', this.value)">
                     </div>
+                    <label title="Activar/Desactivar Recurrencia para copiar al mes siguiente" style="cursor:pointer; display:flex; align-items:center; margin: 0 5px;">
+                        <input type="checkbox" ${isRecur} onchange="updateExpense(${i}, 'isRecurring', this.checked)"> 🔄
+                    </label>
                     <button class="action-btn" onclick="replicateExpense(${i})" title="Replicar a futuros días equivalentes de este mes" style="padding: 6px;">🔁</button>
                     <button class="delete-btn" onclick="deleteExpense(${i})" title="Eliminar gasto">✕</button>
                 </div>`;
@@ -790,7 +827,7 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v17', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('expenseAppDB_v18', JSON.stringify(db)); }
     
     function exportData() {
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"}));
