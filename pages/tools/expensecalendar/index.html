@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Gastos - V21 Celdas XL</title>
+    <title>Control de Gastos - V24 Saldo Real</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -43,17 +43,23 @@
         .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         
         .financial-summary { 
-            display: flex; gap: 15px; align-items: center; 
+            display: flex; gap: 12px; align-items: center; 
             background: #1e293b; color: white; 
-            padding: 10px 20px; border-radius: 8px;
+            padding: 8px 15px; border-radius: 8px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             flex-wrap: wrap;
         }
         
         .stat-item { display: flex; flex-direction: column; align-items: flex-end; }
-        .stat-label { font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 1.1rem; font-weight: 700; }
+        .stat-label { font-size: 0.65rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 1.05rem; font-weight: 700; }
         .stat-divider { width: 1px; height: 30px; background: #475569; margin: 0 5px; }
+        
+        .projection-section {
+            display: flex; gap: 12px; align-items: center; 
+            background: #0f172a; padding: 6px 12px; border-radius: 6px;
+            border: 1px solid #334155;
+        }
 
         input, select, button {
             padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; outline: none; font-family: inherit;
@@ -78,12 +84,13 @@
             background: white;
             border-radius: 12px;
             padding: 12px;
-            min-width: 220px;
+            min-width: 230px;
             position: relative;
             flex-shrink: 0;
-            display: flex; flex-direction: column; gap: 8px;
+            display: flex; flex-direction: column; gap: 6px;
             transition: transform 0.2s;
             border: 1px solid transparent;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         
         .pocket-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 0.95rem; color: #334155; }
@@ -91,9 +98,9 @@
         .action-btn { color: #64748b; border: none; background: none; cursor: pointer; padding: 4px; font-size: 1.1rem; border-radius: 4px; }
         .action-btn:hover { background: #e2e8f0; color: var(--primary); }
         
-        .pocket-progress-bg { height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; }
+        .pocket-progress-bg { height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; margin-top: 2px; }
         .pocket-progress-fill { height: 100%; transition: width 0.3s ease; }
-        .pocket-data { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; }
+        .pocket-data { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; }
         
         .add-pocket-btn {
             background: white; border: 2px dashed #cbd5e1; color: #64748b;
@@ -121,7 +128,6 @@
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            /* Modificado a 220px para celdas más altas */
             grid-template-rows: repeat(auto-fill, minmax(220px, 1fr));
             gap: 10px;
             flex: 1;
@@ -132,11 +138,23 @@
             border-radius: 10px; padding: 8px;
             display: flex; flex-direction: column;
             cursor: pointer; transition: all 0.2s;
-            /* Modificado a 220px */
             min-height: 220px; overflow: hidden;
         }
         .day-cell:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .day-cell.empty { background: transparent; border: none; cursor: default; pointer-events: none; }
+
+        /* DÍA ACTUAL RESALTADO */
+        .current-day {
+            border: 2px solid var(--primary);
+            background-color: #f0f9ff;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+        }
+        .current-day .day-number {
+            background-color: var(--primary);
+            color: white;
+            border-radius: 5px;
+            padding: 2px 6px;
+        }
 
         /* HEADER DEL DÍA (NUMERO + FESTIVO) */
         .day-header {
@@ -160,9 +178,7 @@
             text-overflow: ellipsis; display: flex; justify-content: space-between; color: #1e293b; font-weight: 600;
         }
         
-        .expense-preview.is-recurring {
-            border-left: 3px solid var(--primary);
-        }
+        .expense-preview.is-recurring { border-left: 3px solid var(--primary); }
 
         /* CONTENEDOR DE TOTALES DIARIOS */
         .day-totals-container {
@@ -245,37 +261,52 @@
         <select id="monthSelect"></select>
         <select id="yearSelect"></select>
         <button class="btn-icon" onclick="copyPreviousMonth()" title="Reemplazar configuración actual con la del mes pasado" style="color:#059669; border-color:#a7f3d0;">📋 Copiar Mes Previo</button>
-        <button class="btn-icon" onclick="clearMonth()" title="Limpiar todos los datos del mes (Ingresos, Gastos y Bolsillos)" style="color:#ef4444; border-color:#fecaca;">🗑️ Limpiar</button>
+        <button class="btn-icon" onclick="clearMonth()" title="Limpiar todos los datos del mes" style="color:#ef4444; border-color:#fecaca;">🗑️ Limpiar</button>
         <button class="btn-icon" onclick="exportData()" title="Descargar archivo de respaldo">💾 Exportar</button>
         <button class="btn-icon" onclick="document.getElementById('importInput').click()" title="Cargar archivo de respaldo">📂 Importar</button>
         <input type="file" id="importInput" hidden accept=".json" onchange="importData(this)">
     </div>
 
     <div class="financial-summary">
-        <div class="stat-item">
-            <span class="stat-label">Ingresos</span>
-            <input type="text" id="incomeInput" 
-                   style="background:transparent; border:none; color:white; font-weight:700; width:120px; text-align:right; font-size:1.1rem; padding:0; outline:none;" 
-                   placeholder="$ 0">
+        <div class="stat-item" title="Suma de todos los presupuestos asignados a los bolsillos">
+            <span class="stat-label">Ingresos (Ppto)</span>
+            <span class="stat-value" id="incomeDisplay" style="color: white;">$ 0</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item" title="Total Gastado">
             <span class="stat-label">Total Gasto</span>
             <span class="stat-value" style="color: #fca5a5;" id="totalExpenses">$ 0</span>
         </div>
-        <div class="stat-divider"></div>
         <div class="stat-item" title="Gastos desde bolsillos Efectivo/Débito">
             <span class="stat-label">💵 Efec/Déb</span>
-            <span class="stat-value" style="color: #cbd5e1; font-size: 1rem;" id="totalCash">$ 0</span>
+            <span class="stat-value" style="color: #cbd5e1; font-size: 0.95rem;" id="totalCash">$ 0</span>
         </div>
         <div class="stat-item" title="Gastos desde bolsillos Tarjeta de Crédito">
             <span class="stat-label">💳 Crédito</span>
-            <span class="stat-value" style="color: #cbd5e1; font-size: 1rem;" id="totalCredit">$ 0</span>
+            <span class="stat-value" style="color: #cbd5e1; font-size: 0.95rem;" id="totalCredit">$ 0</span>
         </div>
         <div class="stat-divider"></div>
-        <div class="stat-item">
+        <div class="stat-item" title="Disponible Teórico (Ingresos Ppto - Total Gastado)">
             <span class="stat-label">Disponible</span>
             <span class="stat-value" style="color: #86efac;" id="balance">$ 0</span>
+        </div>
+        <div class="stat-divider"></div>
+        
+        <div class="projection-section">
+            <div class="stat-item" title="Suma de lo que realmente tienes disponible (Disp. Real en bolsillos)">
+                <span class="stat-label">Disp. Real Total</span>
+                <span class="stat-value" style="color: #93c5fd;" id="totalRealAv">$ 0</span>
+            </div>
+            <div class="stat-divider" style="height: 25px;"></div>
+            <div class="stat-item" title="Suma de gastos desde el día actual hasta fin de mes">
+                <span class="stat-label">Gastos pendientes</span>
+                <span class="stat-value" style="color: #fca5a5;" id="pendingExpenses">$ 0</span>
+            </div>
+            <div class="stat-divider" style="height: 25px;"></div>
+            <div class="stat-item" title="Saldo proyectado: Disponible Real - Gastos pendientes">
+                <span class="stat-label">Saldo</span>
+                <span class="stat-value" id="projectionStatus" style="font-size: 1.05rem;">$ 0</span>
+            </div>
         </div>
     </div>
 </header>
@@ -347,18 +378,18 @@
     const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     const POCKET_COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#ec4899', '#8b5cf6', '#ef4444', '#06b6d4', '#f97316', '#6366f1'];
 
-    let currentDate = new Date();
+    let currentDate = new Date(); 
     let selectedYear = currentDate.getFullYear();
     let selectedMonth = currentDate.getMonth();
     let activeDay = null;
     let editingPocketIndex = null;
     
-    // DB V21
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v21')) || {}; 
+    // DB V24
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v24')) || {}; 
 
     // --- MIGRACIÓN DE DATOS ---
     if (Object.keys(db).length === 0) {
-        const history = ['v20', 'v19', 'v18', 'v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
+        const history = ['v23', 'v22', 'v21', 'v20', 'v19', 'v18', 'v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) {
@@ -374,47 +405,19 @@
     });
     function formatMoney(amount) { return moneyFormatter.format(amount); }
 
-    const incomeInput = document.getElementById('incomeInput');
-    incomeInput.addEventListener('focus', () => {
-        const key = getKey(selectedYear, selectedMonth);
-        const val = db[key]?.income || 0;
-        incomeInput.value = val === 0 ? '' : val; 
-    });
-    
-    incomeInput.addEventListener('blur', () => updateIncome());
-    incomeInput.addEventListener('keypress', (e) => { 
-        if(e.key === 'Enter') { updateIncome(); incomeInput.blur(); } 
-    });
-
-    function updateIncome() {
-        const rawVal = incomeInput.value.replace(/\D/g, ''); 
-        const val = parseFloat(rawVal) || 0;
-        const key = getKey(selectedYear, selectedMonth);
-        if (!db[key]) db[key] = { income: 0, pockets: [], expenses: {} };
-        db[key].income = val;
-        saveDB(); 
-        render(); 
-    }
-
     // --- SMART COPY PREVIOUS MONTH ---
     function copyPreviousMonth() {
-        if(!confirm("¿Reemplazar datos actuales con configuración e ingresos del mes pasado (Y copiar gastos marcados como recurrentes 🔄)?\n\nADVERTENCIA: Esto borrará la configuración del mes actual.")) return;
+        if(!confirm("¿Reemplazar datos actuales con configuración del mes pasado (Y copiar gastos recurrentes 🔄)?\n\nADVERTENCIA: Esto borrará la configuración del mes actual.")) return;
         
         const currentKey = getKey(selectedYear, selectedMonth);
-        
-        let prevMonth = selectedMonth - 1;
-        let prevYear = selectedYear;
-        if(prevMonth < 0) {
-            prevMonth = 11;
-            prevYear--;
-        }
+        let prevMonth = selectedMonth - 1, prevYear = selectedYear;
+        if(prevMonth < 0) { prevMonth = 11; prevYear--; }
         
         const prevKey = getKey(prevYear, prevMonth);
         
         if(db[prevKey]) {
-            if(!db[currentKey]) db[currentKey] = { income: 0, pockets: [], expenses: {} };
+            if(!db[currentKey]) db[currentKey] = { pockets: [], expenses: {} };
             
-            db[currentKey].income = db[prevKey].income;
             db[currentKey].pockets = JSON.parse(JSON.stringify(db[prevKey].pockets));
             db[currentKey].expenses = {};
             
@@ -429,32 +432,23 @@
                 const recurringExpenses = db[prevKey].expenses[sourceDayStr].filter(e => e.isRecurring);
                 
                 if (recurringExpenses.length > 0) {
-                    let currentOccurrence = 0;
-                    let targetDay = null;
-                    
+                    let currentOccurrence = 0; let targetDay = null;
                     for (let d = 1; d <= daysInCurrentMonth; d++) {
                         const loopDate = new Date(selectedYear, selectedMonth, d);
                         if (loopDate.getDay() === dayOfWeek) {
                             currentOccurrence++;
-                            if (currentOccurrence === occurrence) {
-                                targetDay = d;
-                                break;
-                            }
+                            if (currentOccurrence === occurrence) { targetDay = d; break; }
                         }
                     }
-                    
                     if (targetDay !== null) {
                         if (!db[currentKey].expenses[targetDay]) db[currentKey].expenses[targetDay] = [];
-                        
                         recurringExpenses.forEach(exp => {
                             db[currentKey].expenses[targetDay].push(JSON.parse(JSON.stringify(exp)));
                         });
                     }
                 }
             });
-            
-            saveDB();
-            render();
+            saveDB(); render();
             alert("Configuración y gastos recurrentes copiados con éxito.");
         } else {
             alert("No hay información registrada en el mes anterior para copiar.");
@@ -462,14 +456,11 @@
     }
 
     function clearMonth() {
-        if(confirm("¿Estás seguro de eliminar TODOS los datos (ingresos, gastos Y bolsillos) de este mes?")) {
+        if(confirm("¿Estás seguro de eliminar TODOS los datos de este mes?")) {
             const key = getKey(selectedYear, selectedMonth);
             if(db[key]) {
-                db[key].expenses = {};
-                db[key].income = 0;
-                db[key].pockets = []; 
-                saveDB();
-                render();
+                db[key].expenses = {}; db[key].pockets = []; 
+                saveDB(); render();
             }
         }
     }
@@ -515,18 +506,26 @@
     function changeMonth() {
         const key = getKey(selectedYear, selectedMonth);
         if (!db[key]) {
-            db[key] = { income: 0, pockets: [], expenses: {} };
+            db[key] = { pockets: [], expenses: {} };
         }
         saveDB(); render();
+    }
+
+    function updateRealAv(pocketIndex, val) {
+        const rawVal = val.replace(/\D/g, ''); 
+        const num = parseFloat(rawVal) || 0;
+        const key = getKey(selectedYear, selectedMonth);
+        db[key].pockets[pocketIndex].realAvailable = num;
+        saveDB();
+        render();
     }
 
     function render() {
         const key = getKey(selectedYear, selectedMonth), data = db[key];
         
-        if (document.activeElement !== incomeInput) {
-            incomeInput.value = data.income ? formatMoney(data.income) : '';
-            incomeInput.placeholder = data.income === 0 ? '$ 0' : formatMoney(data.income);
-        }
+        // 1. Ingresos Automáticos (Suma de Pptos)
+        const autoIncome = data.pockets.reduce((sum, p) => sum + p.limit, 0);
+        document.getElementById('incomeDisplay').innerText = formatMoney(autoIncome);
         
         let totalSpent = 0;
         let totalCredit = 0;
@@ -535,21 +534,33 @@
         
         data.pockets.forEach(p => pocketSpending[p.id] = 0);
         
-        Object.keys(data.expenses).forEach(day => {
-            data.expenses[day].forEach(exp => {
+        // Lógica de Proyección
+        let totalRealAv = data.pockets.reduce((sum, p) => sum + (p.realAvailable || 0), 0);
+        let pendingExpenses = 0;
+        
+        const isCurrentMonth = (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth());
+        const isFutureMonth = (selectedYear > currentDate.getFullYear() || (selectedYear === currentDate.getFullYear() && selectedMonth > currentDate.getMonth()));
+
+        Object.keys(data.expenses).forEach(dayStr => {
+            const dayNum = parseInt(dayStr);
+            data.expenses[dayStr].forEach(exp => {
                 totalSpent += exp.amount;
                 
                 const pocket = data.pockets.find(p => p.id === exp.pocketId);
                 const pType = pocket ? (pocket.type || 'cash') : 'cash';
                 
-                if (pType === 'credit') {
-                    totalCredit += exp.amount;
-                } else {
-                    totalCash += exp.amount;
-                }
+                if (pType === 'credit') totalCredit += exp.amount;
+                else totalCash += exp.amount;
 
                 if(exp.pocketId && pocketSpending[exp.pocketId] !== undefined) {
                     pocketSpending[exp.pocketId] += exp.amount;
+                }
+                
+                // Sumar Gastos Pendientes (Hoy en adelante, o todo si es mes futuro)
+                if (isFutureMonth) {
+                    pendingExpenses += exp.amount;
+                } else if (isCurrentMonth && dayNum >= currentDate.getDate()) {
+                    pendingExpenses += exp.amount;
                 }
             });
         });
@@ -558,9 +569,24 @@
         document.getElementById('totalCredit').innerText = formatMoney(totalCredit);
         document.getElementById('totalCash').innerText = formatMoney(totalCash);
         
-        const balance = (data.income || 0) - totalSpent;
+        // Restaurar Balance/Disponible Teórico
+        const balance = autoIncome - totalSpent;
         document.getElementById('balance').innerText = formatMoney(balance);
         document.getElementById('balance').style.color = balance >= 0 ? '#86efac' : '#fca5a5';
+        
+        // Render de Proyección
+        document.getElementById('totalRealAv').innerText = formatMoney(totalRealAv);
+        document.getElementById('pendingExpenses').innerText = formatMoney(pendingExpenses);
+        
+        const projectionBalance = totalRealAv - pendingExpenses;
+        const projStatusEl = document.getElementById('projectionStatus');
+        
+        projStatusEl.innerText = formatMoney(projectionBalance); // Ahora siempre muestra el monto
+        if (projectionBalance >= 0) {
+            projStatusEl.style.color = "#86efac"; // Verde si es mayor o igual a 0
+        } else {
+            projStatusEl.style.color = "#fca5a5"; // Rojo si es negativo
+        }
         
         renderPockets(data, pocketSpending); 
         renderCalendar(data);
@@ -575,13 +601,19 @@
         container.appendChild(addBtn);
         
         data.pockets.forEach((p, idx) => {
-            const spent = spendingMap[p.id] || 0, percent = Math.min(100, (spent / p.limit) * 100) || 0;
-            const baseColor = p.color || '#94a3b8', progressColor = spent > p.limit ? '#ef4444' : '#10b981';
+            const spent = spendingMap[p.id] || 0;
+            const percent = Math.min(100, (spent / p.limit) * 100) || 0;
+            const baseColor = p.color || '#94a3b8';
+            const progressColor = spent > p.limit ? '#ef4444' : '#10b981';
             
             const pIcon = (p.type === 'credit') ? '💳' : '💵';
+            const realAv = p.realAvailable || 0;
             
             const div = document.createElement('div');
-            div.className = 'pocket-card'; div.style.backgroundColor = baseColor + '4D'; div.style.border = `1px solid ${baseColor}66`;
+            div.className = 'pocket-card'; 
+            div.style.backgroundColor = baseColor + '33'; 
+            div.style.border = `1px solid ${baseColor}66`;
+            
             div.innerHTML = `
                 <div class="pocket-header">
                     <span>${pIcon} ${p.name}</span>
@@ -590,11 +622,24 @@
                         <button class="action-btn" style="color:#ef4444" onclick="deletePocket(${idx})">✕</button>
                     </div>
                 </div>
-                <div style="font-size:0.85rem; color:#475569;">Presupuesto: <b>${formatMoney(p.limit)}</b></div>
+                
+                <div style="font-size:0.8rem; color:#475569; display:flex; justify-content:space-between;">
+                    <span>Ppto: <b>${formatMoney(p.limit)}</b></span>
+                    <span style="color:var(--danger);">Gasto: <b>${formatMoney(spent)}</b></span>
+                </div>
+                
                 <div class="pocket-progress-bg"><div class="pocket-progress-fill" style="width:${percent}%; background:${progressColor};"></div></div>
-                <div class="pocket-data">
-                    <span style="color:var(--danger);">Gastado: ${formatMoney(spent)}</span>
-                    <span style="color:${p.limit - spent>=0?'#10b981':'#ef4444'}">Disp: ${formatMoney(p.limit - spent)}</span>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; border-top: 1px dashed #cbd5e1; padding-top: 6px;">
+                    <span style="font-size:0.75rem; color:#475569; font-weight:700;">Disp. Real:</span>
+                    <div style="display:flex; align-items:center; gap:2px;">
+                        <span style="color:#64748b; font-size:0.8rem;">$</span>
+                        <input type="text" class="editable-input" 
+                               style="width:80px; text-align:right; font-weight:bold; font-size:0.85rem; padding:2px 4px; background:white; border: 1px solid #cbd5e1; border-radius:4px;" 
+                               value="${realAv === 0 ? '' : realAv}" placeholder="0" 
+                               onblur="updateRealAv(${idx}, this.value)" 
+                               onkeypress="if(event.key==='Enter') this.blur()">
+                    </div>
                 </div>
             `;
             container.appendChild(div);
@@ -609,31 +654,26 @@
         const holidays = getColombianHolidays(selectedYear);
         for(let i=0; i<firstDayIndex; i++) grid.appendChild(document.createElement('div')).className = 'day-cell empty';
         
+        const isCurrentMonth = (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth());
+        
         for(let d=1; d<=daysInMonth; d++) {
             const dayExpenses = data.expenses[d] || [];
-            let dayTotal = 0;
-            let dayCash = 0;
-            let dayCredit = 0;
-            let previewsHTML = '';
+            let dayTotal = 0, dayCash = 0, dayCredit = 0, previewsHTML = '';
             
             dayExpenses.forEach((exp, index) => {
                 dayTotal += exp.amount;
-                
                 const pocket = data.pockets.find(p => p.id === exp.pocketId);
                 const pType = pocket ? (pocket.type || 'cash') : 'cash';
                 const methodIcon = pType === 'credit' ? '💳' : '💵';
                 
-                if (pType === 'credit') dayCredit += exp.amount;
-                else dayCash += exp.amount;
+                if (pType === 'credit') dayCredit += exp.amount; else dayCash += exp.amount;
 
-                // Modificado para mostrar hasta 6 items visualmente
                 if (index < 6) {
                     const recurClass = exp.isRecurring ? 'is-recurring' : '';
                     previewsHTML += `<div class="expense-preview ${recurClass}" style="background-color: ${(pocket?pocket.color:'#94a3b8')+'66'};"><span style="overflow:hidden; text-overflow:ellipsis;" title="${exp.desc}">${methodIcon} ${exp.desc}</span><span>${formatMoney(exp.amount)}</span></div>`;
                 }
             });
             
-            // Modificado para coincidir con el límite visual de 6 items
             if (dayExpenses.length > 6) previewsHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExpenses.length - 6} más</div>`;
             
             const hName = holidays[`${selectedMonth}-${d}`], hBadge = hName ? `<span class="holiday-badge" title="${hName}">${hName}</span>` : '';
@@ -647,13 +687,21 @@
             }
 
             const cell = document.createElement('div');
-            cell.className = 'day-cell';
+            
+            // Lógica Día Actual
+            const isToday = (isCurrentMonth && d === currentDate.getDate());
+            cell.className = 'day-cell' + (isToday ? ' current-day' : '');
+            
             cell.innerHTML = `
                 <div class="day-header"><span class="day-number">${d}</span>${hBadge}</div>
                 <div class="day-previews-container">${previewsHTML}</div>
                 ${totalsHTML}
             `;
-            cell.onclick = () => openExpenseModal(d);
+            cell.onclick = (e) => {
+                if (e.target.tagName !== 'INPUT') { // Prevenir abrir modal al hacer clic en inputs si los hubiera
+                    openExpenseModal(d);
+                }
+            };
             grid.appendChild(cell);
         }
     }
@@ -667,15 +715,10 @@
 
     function openPocketModal(index = null) {
         editingPocketIndex = index;
-        const nameInput = document.getElementById('newPocketName');
-        const limitInput = document.getElementById('newPocketLimit');
-        const typeInput = document.getElementById('newPocketType');
-        
+        const nameInput = document.getElementById('newPocketName'), limitInput = document.getElementById('newPocketLimit'), typeInput = document.getElementById('newPocketType');
         if (index !== null) {
             const p = db[getKey(selectedYear, selectedMonth)].pockets[index];
-            nameInput.value = p.name; 
-            limitInput.value = p.limit;
-            typeInput.value = p.type || 'cash'; 
+            nameInput.value = p.name; limitInput.value = p.limit; typeInput.value = p.type || 'cash'; 
             document.getElementById('pocketModalTitle').innerText = "Editar Bolsillo";
         } else {
             nameInput.value = ''; limitInput.value = ''; typeInput.value = 'cash';
@@ -688,13 +731,8 @@
     function editPocket(index) { openPocketModal(index); }
 
     function savePocket() {
-        const nameInput = document.getElementById('newPocketName'), 
-              limitInput = document.getElementById('newPocketLimit'),
-              typeInput = document.getElementById('newPocketType');
-              
-        const name = nameInput.value.trim(), 
-              limit = parseFloat(limitInput.value),
-              type = typeInput.value;
+        const nameInput = document.getElementById('newPocketName'), limitInput = document.getElementById('newPocketLimit'), typeInput = document.getElementById('newPocketType');
+        const name = nameInput.value.trim(), limit = parseFloat(limitInput.value), type = typeInput.value;
               
         if(!name || isNaN(limit) || limit < 0) return;
         const key = getKey(selectedYear, selectedMonth);
@@ -702,24 +740,20 @@
             const p = db[key].pockets[editingPocketIndex];
             p.name = name; p.limit = limit; p.type = type;
         } else {
-            db[key].pockets.push({ id: Date.now().toString(), name, limit, type, color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length] });
+            db[key].pockets.push({ id: Date.now().toString(), name, limit, type, realAvailable: 0, color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length] });
         }
         saveDB(); closeModal('pocketModal');
     }
 
     function deletePocket(idx) {
-        if(!confirm("¿Eliminar este bolsillo? ADVERTENCIA: Se eliminarán TODOS los gastos de este mes que estén asociados a él.")) return;
+        if(!confirm("¿Eliminar bolsillo? ADVERTENCIA: Se eliminarán TODOS los gastos de este mes asociados a él.")) return;
         const key = getKey(selectedYear, selectedMonth);
         const pId = db[key].pockets[idx].id;
-        
         db[key].pockets.splice(idx, 1);
-        
         Object.keys(db[key].expenses).forEach(day => {
             db[key].expenses[day] = db[key].expenses[day].filter(exp => exp.pocketId !== pId);
         });
-        
-        saveDB(); 
-        render();
+        saveDB(); render();
     }
 
     function openExpenseModal(day) {
@@ -729,7 +763,6 @@
         
         const sel = document.getElementById('pocketSelect'); sel.innerHTML = '';
         const pockets = db[getKey(selectedYear, selectedMonth)].pockets;
-        
         document.getElementById('recurInput').checked = false;
         
         if (pockets.length === 0) {
@@ -748,28 +781,16 @@
     }
 
     function addExpense() {
-        const dIn = document.getElementById('descInput');
-        const aIn = document.getElementById('amountInput');
-        const pSel = document.getElementById('pocketSelect');
-        const rIn = document.getElementById('recurInput');
+        const dIn = document.getElementById('descInput'), aIn = document.getElementById('amountInput'), pSel = document.getElementById('pocketSelect'), rIn = document.getElementById('recurInput');
         const amount = parseFloat(aIn.value);
-        
         if(!pSel.value || isNaN(amount) || amount <= 0) return;
         
         const key = getKey(selectedYear, selectedMonth);
         if(!db[key].expenses[activeDay]) db[key].expenses[activeDay] = [];
+        db[key].expenses[activeDay].push({ desc: dIn.value.trim() || 'Varios', amount: amount, pocketId: pSel.value, isRecurring: rIn.checked });
         
-        db[key].expenses[activeDay].push({ 
-            desc: dIn.value.trim() || 'Varios', 
-            amount: amount, 
-            pocketId: pSel.value,
-            isRecurring: rIn.checked 
-        });
-        
-        dIn.value = ''; aIn.value = ''; dIn.focus();
-        rIn.checked = false; 
-        saveDB(); 
-        renderModalList();
+        dIn.value = ''; aIn.value = ''; dIn.focus(); rIn.checked = false; 
+        saveDB(); renderModalList();
     }
 
     function deleteExpense(idx) { db[getKey(selectedYear, selectedMonth)].expenses[activeDay].splice(idx, 1); saveDB(); renderModalList(); }
@@ -777,42 +798,29 @@
     function replicateExpense(idx) {
         const key = getKey(selectedYear, selectedMonth);
         const expenseToCopy = db[key].expenses[activeDay][idx];
-        
         const currentDayOfWeek = new Date(selectedYear, selectedMonth, activeDay).getDay();
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-        
         let replicatedCount = 0;
         
         for (let d = activeDay + 1; d <= daysInMonth; d++) {
             const loopDate = new Date(selectedYear, selectedMonth, d);
-            
             if (loopDate.getDay() === currentDayOfWeek) {
                 if (!db[key].expenses[d]) db[key].expenses[d] = [];
                 db[key].expenses[d].push(JSON.parse(JSON.stringify(expenseToCopy)));
                 replicatedCount++;
             }
         }
-        
-        if (replicatedCount > 0) {
-            saveDB();
-            render(); 
-            alert(`Gasto replicado exitosamente en ${replicatedCount} día(s) adicional(es) de este mes.`);
-        } else {
-            alert("No quedan más días equivalentes en lo que resta de este mes.");
-        }
+        if (replicatedCount > 0) { saveDB(); render(); alert(`Gasto replicado en ${replicatedCount} día(s).`); } 
+        else { alert("No quedan más días equivalentes en este mes."); }
     }
 
     function updateExpense(idx, field, val) {
         const key = getKey(selectedYear, selectedMonth), exps = db[key].expenses[activeDay];
         if(field === 'amount') {
             const num = parseFloat(val); if(isNaN(num) || num <= 0) return; exps[idx].amount = num;
-        } else if (field === 'desc') {
-            exps[idx].desc = val;
-        } else if (field === 'pocketId') { 
-            exps[idx].pocketId = val; saveDB(); renderModalList(); return; 
-        } else if (field === 'isRecurring') {
-            exps[idx].isRecurring = val; saveDB(); return; 
-        }
+        } else if (field === 'desc') { exps[idx].desc = val;
+        } else if (field === 'pocketId') { exps[idx].pocketId = val; saveDB(); renderModalList(); return; 
+        } else if (field === 'isRecurring') { exps[idx].isRecurring = val; saveDB(); return; }
         saveDB(); 
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
         render(); 
@@ -828,9 +836,7 @@
                 const pIcon = pk.type === 'credit' ? '💳' : '💵';
                 opts += `<option value="${pk.id}" ${pk.id===e.pocketId?'selected':''}>${pIcon} ${pk.name}</option>`;
             });
-            
             const isRecur = e.isRecurring ? 'checked' : '';
-            
             const row = document.createElement('div'); row.className = 'expense-row';
             row.innerHTML = `
                 <div class="expense-info">
@@ -842,10 +848,10 @@
                         <span style="font-size:0.8rem; color:#64748b;">$</span>
                         <input type="number" class="editable-input" style="width:90px; text-align:right;" value="${e.amount}" onchange="updateExpense(${i}, 'amount', this.value)">
                     </div>
-                    <label title="Activar/Desactivar Recurrencia para copiar al mes siguiente" style="cursor:pointer; display:flex; align-items:center; margin: 0 5px;">
+                    <label title="Recurrente (Copiar al mes siguiente)" style="cursor:pointer; display:flex; align-items:center; margin: 0 5px;">
                         <input type="checkbox" ${isRecur} onchange="updateExpense(${i}, 'isRecurring', this.checked)"> 🔄
                     </label>
-                    <button class="action-btn" onclick="replicateExpense(${i})" title="Replicar a futuros días equivalentes de este mes" style="padding: 6px;">🔁</button>
+                    <button class="action-btn" onclick="replicateExpense(${i})" title="Replicar a futuros días" style="padding: 6px;">🔁</button>
                     <button class="delete-btn" onclick="deleteExpense(${i})" title="Eliminar gasto">✕</button>
                 </div>`;
             list.appendChild(row);
@@ -853,18 +859,9 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v21', JSON.stringify(db)); }
-    
-    function exportData() {
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"}));
-        a.download = `gastos_respaldo_${Date.now()}.json`; a.click();
-    }
-    
-    function importData(input) {
-        const reader = new FileReader();
-        reader.onload = (e) => { if(confirm("¿Sobrescribir todos los datos de la aplicación?")) { db = JSON.parse(e.target.result); saveDB(); location.reload(); } };
-        if(input.files[0]) reader.readAsText(input.files[0]);
-    }
+    function saveDB() { localStorage.setItem('expenseAppDB_v24', JSON.stringify(db)); }
+    function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"})); a.download = `gastos_respaldo_${Date.now()}.json`; a.click(); }
+    function importData(input) { const r = new FileReader(); r.onload = (e) => { if(confirm("¿Sobrescribir datos?")) { db = JSON.parse(e.target.result); saveDB(); location.reload(); } }; if(input.files[0]) r.readAsText(input.files[0]); }
     
     init();
 </script>
