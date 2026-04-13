@@ -26,6 +26,7 @@
             max-width: 1150px;
             margin-left: auto;
             margin-right: auto;
+            scroll-behavior: smooth;
         }
 
         /* PANEL CONFIG */
@@ -84,7 +85,6 @@
             cursor: pointer;
         }
 
-        /* DIVISOR EN EL PANEL */
         .panel-divider {
             width: 2px;
             height: 40px;
@@ -135,6 +135,7 @@
             margin-bottom: 30px;
             overflow: hidden;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            scroll-margin-top: 20px;
         }
 
         .month-header {
@@ -166,7 +167,6 @@
         }
         .q-card:last-child { border-right: none; }
 
-        /* ALERTA DE QUINCENA NEGATIVA */
         .q-card-alert {
             background-color: rgba(231, 76, 60, 0.06) !important;
             box-shadow: inset 0 0 0 3px rgba(231, 76, 60, 0.5) !important;
@@ -191,7 +191,6 @@
             margin-left: 10px;
         }
 
-        /* SECCIONES */
         .section {
             padding: 10px 12px;
             border-radius: 6px;
@@ -201,9 +200,6 @@
         .sec-card { background-color: #ebf5fb; border-left: 4px solid var(--blue); }
         .sec-bill { background-color: #f4ecf7; border-left: 4px solid var(--purple); margin-top: 15px; border: 1px solid #e8daef; }
 
-        .q-card-alert .sec-cash { background-color: rgba(255,255,255,0.5); }
-        .q-card-alert .sec-card { background-color: rgba(255,255,255,0.5); }
-
         .lbl-sec {
             font-size: 0.75rem;
             text-transform: uppercase;
@@ -212,7 +208,6 @@
             margin-bottom: 10px;
         }
 
-        /* FILAS */
         .row {
             display: flex;
             justify-content: space-between;
@@ -238,7 +233,6 @@
             box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
         }
 
-        /* TEXTOS */
         .txt-gr { color: var(--green); }
         .txt-rd { color: var(--red); }
         .txt-bl { color: var(--blue-dark); }
@@ -279,7 +273,6 @@
             font-size: 0.95rem;
         }
 
-        /* FOOTER DEL MES */
         .month-footer {
             background-color: var(--blue);
             color: white;
@@ -299,18 +292,31 @@
             border-radius: 4px;
         }
 
-        /* PANEL RESUMEN FINAL */
+        /* PANELES DE RESUMEN */
+        .summary-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 800px) {
+            .summary-container { grid-template-columns: 1fr; }
+        }
+
         .summary-panel {
             background: #fff;
             border-radius: 12px;
             padding: 20px 25px;
-            margin-bottom: 40px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             border: 1px solid #dfe6e9;
-            border-left: 5px solid var(--orange);
         }
+
+        .p-orange { border-left: 5px solid var(--orange); }
+        .p-red { border-left: 5px solid var(--red); }
+
         .summary-title {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: #34495e;
             font-weight: 900;
             border-bottom: 2px solid #ecf0f1;
@@ -323,39 +329,47 @@
             padding: 0;
             margin: 0;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
         }
         .summary-item {
             background: #fdfefe;
             border: 1px solid #ecf0f1;
-            padding: 12px 15px;
+            padding: 10px 12px;
             border-radius: 6px;
             display: flex;
             justify-content: space-between;
             font-weight: bold;
             color: var(--text);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            font-size: 0.9rem;
         }
-        .summary-item span.val {
-            color: var(--orange);
+        .summary-item.clickable {
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
         }
+        .summary-item.clickable:hover {
+            transform: translateY(-2px);
+            background: #f4f7f6;
+            border-color: var(--red);
+        }
+        .summary-item span.val { color: var(--orange); }
+        .summary-item span.alert-tag { color: var(--red); }
+
         .summary-total {
-            margin-top: 20px;
-            padding-top: 15px;
+            margin-top: 15px;
+            padding-top: 12px;
             border-top: 2px dashed #bdc3c7;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 900;
-            color: #2c3e50;
         }
         .summary-total span.val {
             color: var(--red);
             background: #fdedec;
-            padding: 4px 12px;
-            border-radius: 6px;
+            padding: 2px 10px;
+            border-radius: 4px;
         }
 
     </style>
@@ -372,45 +386,31 @@
                 <label>Factura (Mes 1)</label>
                 <input type="text" inputmode="numeric" id="initialBill" value="0" style="color:var(--purple)">
             </div>
-            
             <div class="panel-divider"></div>
-
             <div class="config-item">
                 <label>Gasto Libre</label>
-                <input type="text" inputmode="numeric" id="globalExpFree" value="0" placeholder="Ej: 500000">
+                <input type="text" inputmode="numeric" id="globalExpFree" value="0">
             </div>
             <div class="config-item">
                 <label>Mes Inicio</label>
                 <select id="globalExpFreeStart" class="config-select">
-                    <option value="1">Mes 1</option>
-                    <option value="2">Mes 2</option>
-                    <option value="3">Mes 3</option>
-                    <option value="4">Mes 4</option>
-                    <option value="5">Mes 5</option>
-                    <option value="6">Mes 6</option>
-                    <option value="7">Mes 7</option>
-                    <option value="8">Mes 8</option>
-                    <option value="9">Mes 9</option>
-                    <option value="10">Mes 10</option>
-                    <option value="11">Mes 11</option>
-                    <option value="12">Mes 12</option>
+                    <option value="1">Mes 1</option><option value="2">Mes 2</option><option value="3">Mes 3</option><option value="4">Mes 4</option>
+                    <option value="5">Mes 5</option><option value="6">Mes 6</option><option value="7">Mes 7</option><option value="8">Mes 8</option>
+                    <option value="9">Mes 9</option><option value="10">Mes 10</option><option value="11">Mes 11</option><option value="12">Mes 12</option>
                 </select>
             </div>
             <div class="config-item">
                 <label>Frecuencia</label>
                 <select id="globalExpFreePeriod" class="config-select">
-                    <option value="1">Mensual</option>
-                    <option value="2">Bimensual</option>
-                    <option value="3">Trimestral</option>
-                    <option value="4">Cuatrimestral</option>
-                    <option value="6">Semestral</option>
+                    <option value="1">Mensual</option><option value="2">Bimensual</option><option value="3">Trimestral</option>
+                    <option value="4">Cuatrimestral</option><option value="6">Semestral</option>
                 </select>
             </div>
             <button class="btn-action" style="background-color: var(--orange);" onclick="applyGlobalExpFree()">Aplicar</button>
         </div>
 
         <div class="btn-wrap">
-            <button class="btn-action" onclick="exportData()">Exportar JSON</button>
+            <button class="btn-action" onclick="exportData()">Exportar</button>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
             <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar</button>
             <button class="btn-reset" onclick="resetData()">Limpiar</button>
@@ -418,15 +418,19 @@
     </div>
 
     <div id="app"></div>
-    <div id="summary-container" style="display: none;"></div>
+
+    <div class="summary-container">
+        <div id="summary-exp-free" class="summary-panel p-orange" style="display:none;"></div>
+        <div id="summary-desfase" class="summary-panel p-red" style="display:none;"></div>
+    </div>
 
     <script>
         const months = 12;
         const qPerMonth = 2;
         const container = document.getElementById('app');
-        const summaryContainer = document.getElementById('summary-container');
+        const summaryExpContainer = document.getElementById('summary-exp-free');
+        const summaryDesfaseContainer = document.getElementById('summary-desfase');
         
-        // Formateadores
         const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
         const fmtInput = (n) => new Intl.NumberFormat('es-CO').format(n);
 
@@ -437,42 +441,24 @@
             return isNaN(num) ? 0 : num;
         }
 
-        // --- VALORES POR DEFECTO ---
         const defaultData = Array(months * qPerMonth).fill(null).map((_, index) => {
             const isQ1 = (index % 2 === 0);
-            return {
-                inc: isQ1 ? 3000000 : 0,
-                sav: isQ1 ? 500 : 0,
-                exp_tc: 0,
-                exp_free: 0,
-                pay: 0,
-                spend: 0,
-                billGenerated: 0
-            };
+            return { inc: isQ1 ? 3000000 : 0, sav: isQ1 ? 500 : 0, exp_tc: 0, exp_free: 0, pay: 0, spend: 0, billGenerated: 0 };
         });
 
         let dataStore = [];
 
-        // --- LOCAL STORAGE ---
         function loadData() {
             const savedData = localStorage.getItem('finanzas_data_v3');
             const savedQuota = localStorage.getItem('finanzas_quota_v3');
             const savedBill = localStorage.getItem('finanzas_bill_v3');
-            
             const savedGlobalExp = localStorage.getItem('finanzas_global_exp');
             const savedGlobalPer = localStorage.getItem('finanzas_global_per');
             const savedGlobalStart = localStorage.getItem('finanzas_global_start');
 
             if (savedData) {
-                let parsed = JSON.parse(savedData);
-                dataStore = parsed.map(item => ({
-                    ...item,
-                    exp_tc: item.exp_tc || 0,
-                    exp_free: item.exp_free !== undefined ? item.exp_free : (item.exp || 0)
-                }));
-            } else {
-                dataStore = JSON.parse(JSON.stringify(defaultData)); 
-            }
+                dataStore = JSON.parse(savedData).map(item => ({...item, exp_tc: item.exp_tc || 0, exp_free: item.exp_free !== undefined ? item.exp_free : (item.exp || 0)}));
+            } else { dataStore = JSON.parse(JSON.stringify(defaultData)); }
 
             if (savedQuota) document.getElementById('globalQuota').value = fmtInput(savedQuota);
             if (savedBill) document.getElementById('initialBill').value = fmtInput(savedBill);
@@ -491,284 +477,135 @@
         }
 
         function resetData() {
-            if (confirm("¿Estás seguro de borrar toda tu información? Esto reiniciará la tabla a los valores por defecto.")) {
-                localStorage.clear();
-                location.reload(); 
-            }
+            if (confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); }
         }
 
-        // --- HERRAMIENTA DE APLICACIÓN RECURRENTE ---
         function applyGlobalExpFree() {
             const val = cleanNum(document.getElementById('globalExpFree').value);
             const period = parseInt(document.getElementById('globalExpFreePeriod').value); 
             const startMonth = parseInt(document.getElementById('globalExpFreeStart').value); 
-            
-            // Limpiar
             for (let i = 0; i < dataStore.length; i++) {
                 dataStore[i].exp_free = 0;
-                const inputEl = document.querySelector(`.inp-exp-free[data-i="${i}"]`);
-                if(inputEl) inputEl.value = fmtInput(0);
-            }
-
-            // Aplicar
-            for (let i = 0; i < dataStore.length; i++) {
-                const isQ1 = (i % 2 === 0);
-                if (isQ1) {
-                    const monthNum = Math.floor(i / 2) + 1; 
-                    let shouldApply = false;
-
-                    if (monthNum >= startMonth) {
-                        if ((monthNum - startMonth) % period === 0) {
-                            shouldApply = true;
-                        }
-                    }
-
-                    if (shouldApply) {
-                        dataStore[i].exp_free = val;
-                        const inputEl = document.querySelector(`.inp-exp-free[data-i="${i}"]`);
-                        if(inputEl) inputEl.value = fmtInput(val);
-                    }
+                if (i % 2 === 0) {
+                    const mNum = Math.floor(i / 2) + 1;
+                    if (mNum >= startMonth && (mNum - startMonth) % period === 0) dataStore[i].exp_free = val;
                 }
             }
-            
-            recalculate();
-            alert("Gastos libres limpiados y aplicados correctamente según la nueva regla.");
+            init(); recalculate();
         }
 
-        // --- IMPORT/EXPORT ---
         function exportData() {
-            const exportObj = {
-                dataStore: dataStore,
-                quota: cleanNum(document.getElementById('globalQuota').value),
-                initialBill: cleanNum(document.getElementById('initialBill').value),
-                globalExpFree: cleanNum(document.getElementById('globalExpFree').value),
-                globalExpFreeStart: document.getElementById('globalExpFreeStart').value,
-                globalExpFreePeriod: document.getElementById('globalExpFreePeriod').value
-            };
+            const exportObj = { dataStore, quota: cleanNum(document.getElementById('globalQuota').value), initialBill: cleanNum(document.getElementById('initialBill').value), globalExpFree: cleanNum(document.getElementById('globalExpFree').value), globalExpFreeStart: document.getElementById('globalExpFreeStart').value, globalExpFreePeriod: document.getElementById('globalExpFreePeriod').value };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "finanzas_export.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
+            const a = document.createElement('a'); a.href = dataStr; a.download = "finanzas_export.json"; a.click();
         }
 
         function importData(event) {
-            const file = event.target.files[0];
-            if(!file) return;
             const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if(imported.dataStore) {
-                        const safeData = imported.dataStore.map(item => ({
-                            ...item,
-                            exp_tc: item.exp_tc || 0,
-                            exp_free: item.exp_free !== undefined ? item.exp_free : (item.exp || 0)
-                        }));
-                        localStorage.setItem('finanzas_data_v3', JSON.stringify(safeData));
-                        localStorage.setItem('finanzas_quota_v3', imported.quota || 5000000);
-                        localStorage.setItem('finanzas_bill_v3', imported.initialBill || 0);
-                        
-                        // Cargar campos de la herramienta
-                        if (imported.globalExpFree !== undefined) localStorage.setItem('finanzas_global_exp', imported.globalExpFree);
-                        if (imported.globalExpFreeStart !== undefined) localStorage.setItem('finanzas_global_start', imported.globalExpFreeStart);
-                        if (imported.globalExpFreePeriod !== undefined) localStorage.setItem('finanzas_global_per', imported.globalExpFreePeriod);
-
-                        location.reload();
-                    }
-                } catch (err) {
-                    alert("El archivo no es válido o está corrupto.");
+            reader.onload = (e) => {
+                const imp = JSON.parse(e.target.result);
+                if (imp.dataStore) {
+                    localStorage.setItem('finanzas_data_v3', JSON.stringify(imp.dataStore));
+                    localStorage.setItem('finanzas_quota_v3', imp.quota); localStorage.setItem('finanzas_bill_v3', imp.initialBill);
+                    localStorage.setItem('finanzas_global_exp', imp.globalExpFree); localStorage.setItem('finanzas_global_start', imp.globalExpFreeStart);
+                    localStorage.setItem('finanzas_global_per', imp.globalExpFreePeriod);
+                    location.reload();
                 }
             };
-            reader.readAsText(file);
+            reader.readAsText(event.target.files[0]);
         }
 
-        // --- RENDERIZADO UI ---
         function init() {
+            container.innerHTML = '';
             let idx = 0;
             for (let m = 1; m <= months; m++) {
                 const mDiv = document.createElement('div');
                 mDiv.className = 'month-container';
+                mDiv.id = `month-section-${m}`;
                 mDiv.innerHTML = `<div class="month-header">MES ${m}</div>`;
-
                 const grid = document.createElement('div');
                 grid.className = 'quincenas-grid';
 
                 for (let q = 1; q <= qPerMonth; q++) {
                     const isQ1 = (q === 1);
                     const d = dataStore[idx]; 
-                    
-                    const dateRange = isQ1 ? '1 - 15' : '16 - 30';
-
-                    const cell = document.createElement('div');
-                    cell.className = 'q-card';
-                    cell.id = `q-card-${idx}`; 
-                    
-                    cell.innerHTML = `
-                        <div class="q-title">
-                            <span style="display:flex; align-items:center;">
-                                Quincena ${q} 
-                                <span class="date-range">${dateRange}</span>
-                            </span>
-                            ${isQ1 
-                                ? '<span class="badge bg-pay">Pago Día 2</span>' 
-                                : '<span class="badge">Abono Voluntario</span>'}
-                        </div>
-
-                        <div class="section sec-cash">
-                            <span class="lbl-sec txt-gr">Caja (Efectivo)</span>
-                            <div class="row"><label>Anterior:</label><strong id="cash-prev-${idx}">$0</strong></div>
-                            
-                            ${isQ1 ? `
-                            <div class="row">
-                                <label class="txt-gr">+ Ingresos:</label>
-                                <input type="text" inputmode="numeric" class="val inp-inc" data-i="${idx}" value="${fmtInput(d.inc)}">
+                    grid.innerHTML += `
+                        <div class="q-card" id="q-card-${idx}">
+                            <div class="q-title">
+                                <span>Quincena ${q} <span class="date-range">${isQ1 ? '1 - 15' : '16 - 30'}</span></span>
+                                ${isQ1 ? '<span class="badge bg-pay">Pago Día 2</span>' : '<span class="badge">Abono Voluntario</span>'}
                             </div>
-                            <div class="row">
-                                <label class="txt-gr">+ Ahorros:</label>
-                                <input type="text" inputmode="numeric" class="val inp-sav" data-i="${idx}" value="${fmtInput(d.sav)}">
+                            <div class="section sec-cash">
+                                <span class="lbl-sec txt-gr">Caja (Efectivo)</span>
+                                <div class="row"><label>Anterior:</label><strong id="cash-prev-${idx}">$0</strong></div>
+                                ${isQ1 ? `<div class="row"><label class="txt-gr">+ Ingresos:</label><input type="text" class="val inp-inc" data-i="${idx}" value="${fmtInput(d.inc)}"></div>
+                                <div class="row"><label class="txt-gr">+ Ahorros:</label><input type="text" class="val inp-sav" data-i="${idx}" value="${fmtInput(d.sav)}"></div>` : ''}
+                                <div class="row" style="border-bottom: 1px solid #a3e4d7; padding-bottom: 8px; margin-top: 6px;"><label class="txt-gr bold">= Total Inicial:</label><span id="cash-subtotal-${idx}" class="txt-gr bold">$0</span></div>
+                                <div class="row"><label class="txt-rd">- Gastos est. TC:</label><input type="text" class="val inp-exp-tc" data-i="${idx}" value="${fmtInput(d.exp_tc)}"></div>
+                                <div class="row"><label class="txt-rd">- Gastos libres:</label><input type="text" class="val inp-exp-free" data-i="${idx}" value="${fmtInput(d.exp_free)}"></div>
+                                <div class="row" style="font-size:0.8rem; color:var(--orange);"><label>- Salida Pago TC:</label><span id="val-pay-note-${idx}">$0</span></div>
+                                <div class="res-row txt-gr"><span>Disponible:</span><span id="cash-final-${idx}">$0</span></div>
                             </div>
-                            ` : ''}
-                            
-                            <div class="row" style="border-bottom: 1px solid #a3e4d7; padding-bottom: 8px; margin-top: 6px; margin-bottom: 10px;">
-                                <label style="color:var(--green); font-weight:bold; font-size:0.85rem;">= Total Inicial:</label>
-                                <span id="cash-subtotal-${idx}" style="color:var(--green); font-weight:bold;">$0</span>
+                            <div class="section sec-card">
+                                <span class="lbl-sec txt-bl">Tarjeta de Crédito</span>
+                                <div class="row"><label>Deuda Ant.:</label><strong id="debt-prev-${idx}">$0</strong></div>
+                                <div class="row"><label class="txt-or bold">${isQ1 ? 'Pago (Día 2):' : 'Abono Q2:'}</label><input type="text" class="val inp-pay" data-i="${idx}" value="${fmtInput(d.pay)}" style="color:var(--orange); font-weight:bold;"></div>
+                                <div class="row"><label class="txt-bl">+ Compras Nuevas:</label><input type="text" class="val inp-spend" data-i="${idx}" value="${fmtInput(d.spend)}"></div>
+                                <div class="res-row txt-bl"><span>Deuda Total:</span><span id="debt-final-${idx}">$0</span></div>
+                                <div class="quota-row"><label>Cupo Disp.:</label><span id="quota-final-${idx}">$0</span></div>
                             </div>
-                            
-                            <div class="row"><label class="txt-rd">- Gastos est. TC:</label><input type="text" inputmode="numeric" class="val inp-exp-tc" data-i="${idx}" value="${fmtInput(d.exp_tc)}"></div>
-                            <div class="row"><label class="txt-rd">- Gastos libres:</label><input type="text" inputmode="numeric" class="val inp-exp-free" data-i="${idx}" value="${fmtInput(d.exp_free)}"></div>
-                            
-                            <div class="row" style="font-size:0.8rem; color:var(--orange);">
-                                <label>- Salida Pago TC:</label><span id="val-pay-note-${idx}">$0</span>
-                            </div>
-
-                            <div class="res-row txt-gr">
-                                <span>Disponible:</span><span id="cash-final-${idx}">$0</span>
-                            </div>
-                        </div>
-
-                        <div class="section sec-card">
-                            <span class="lbl-sec txt-bl">Tarjeta de Crédito</span>
-                            <div class="row"><label>Deuda Total Ant.:</label><strong id="debt-prev-${idx}">$0</strong></div>
-                            
-                            <div class="row">
-                                <label class="txt-or bold">${isQ1 ? 'Pago (Día 2):' : 'Abono Q2:'}</label>
-                                <input type="text" inputmode="numeric" class="val inp-pay" data-i="${idx}" value="${fmtInput(d.pay)}" style="color:var(--orange); font-weight:bold; border-color:var(--orange);">
-                            </div>
-
-                            <div class="row"><label class="txt-bl">+ Compras Nuevas:</label><input type="text" inputmode="numeric" class="val inp-spend" data-i="${idx}" value="${fmtInput(d.spend)}"></div>
-
-                            <div class="res-row txt-bl">
-                                <span>Deuda Total:</span><span id="debt-final-${idx}">$0</span>
-                            </div>
-                            
-                            <div class="quota-row">
-                                <label>Cupo Disponible:</label>
-                                <span id="quota-final-${idx}">$0</span>
-                            </div>
-                        </div>
-
-                        ${isQ1 ? `
-                        <div class="section sec-bill">
-                            <span class="lbl-sec txt-pr">Factura (Vence Día 2)</span>
-                            
-                            <div style="background:#fff; padding:8px; border:1px dashed var(--purple); border-radius:4px; margin-bottom:10px;">
-                                <div class="row"><label>Facturado Total:</label><span id="bill-original-${idx}">$0</span></div>
-                                <div class="row" style="color:#666; font-size:0.85rem; border-bottom:1px solid #eee; padding-bottom:5px;"><label>(-) Abonos Q2:</label><span id="bill-deduct-q2-${idx}">$0</span></div>
-                                <div class="row bold txt-or" style="margin-top:5px;"><label>Pendiente Real:</label><span id="bill-pending-${idx}">$0</span></div>
-                            </div>
-
-                            <div class="row" style="font-size:0.85rem; margin-bottom:10px;">
-                                <label>Estado:</label>
-                                <span id="bill-status-${idx}">---</span>
-                            </div>
-
-                            <hr style="border:0; border-top:1px dashed #ccc;">
-
-                            <div class="row bold txt-pr">
-                                <label>Nuevo Corte (Día 15):</label>
-                                <span id="bill-new-${idx}">$0</span>
-                            </div>
-                        </div>
-                        ` : ''}
-                    `;
-                    grid.appendChild(cell);
+                            ${isQ1 ? `<div class="section sec-bill"><span class="lbl-sec txt-pr">Factura</span>
+                                <div style="background:#fff; padding:8px; border:1px dashed var(--purple); border-radius:4px;">
+                                    <div class="row"><label>Facturado:</label><span id="bill-original-${idx}">$0</span></div>
+                                    <div class="row" style="color:#666; font-size:0.85rem;"><label>(-) Abonos Q2:</label><span id="bill-deduct-q2-${idx}">$0</span></div>
+                                    <div class="row bold txt-or"><label>Pendiente:</label><span id="bill-pending-${idx}">$0</span></div>
+                                </div>
+                                <div class="row" style="font-size:0.85rem; margin-top:5px;"><label>Estado:</label><span id="bill-status-${idx}">---</span></div>
+                                <div class="row bold txt-pr" style="margin-top:10px;"><label>Nuevo Corte (Día 15):</label><span id="bill-new-${idx}">$0</span></div>
+                            </div>` : ''}
+                        </div>`;
                     idx++;
                 }
-                
                 mDiv.appendChild(grid);
-                
                 const footer = document.createElement('div');
                 footer.className = 'month-footer';
-                footer.innerHTML = `
-                    <label style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; opacity:0.9;">Total Gastos Mes (Efectivo + Tarjeta)</label>
-                    <span id="month-total-expenses-${m}">$0</span>
-                `;
+                footer.innerHTML = `<label>Total Gastos Mes:</label><span id="month-total-expenses-${m}">$0</span>`;
                 mDiv.appendChild(footer);
-
                 container.appendChild(mDiv);
             }
-
-            document.querySelectorAll('input.val, input#globalQuota, input#initialBill, input#globalExpFree, select#globalExpFreePeriod, select#globalExpFreeStart').forEach(inp => {
-                if(inp.id !== 'globalExpFreePeriod' && inp.id !== 'globalExpFreeStart') {
-                    inp.addEventListener('input', updateData);
-                    inp.addEventListener('focus', function(e) {
-                        let num = cleanNum(this.value);
-                        this.value = num === 0 ? '' : num;
-                    });
-                    inp.addEventListener('blur', function(e) {
-                        let num = cleanNum(this.value);
-                        this.value = fmtInput(num);
-                    });
-                } else {
-                    inp.addEventListener('change', updateData);
-                }
+            document.querySelectorAll('input.val').forEach(inp => {
+                inp.addEventListener('input', updateData);
+                inp.addEventListener('focus', function() { let n = cleanNum(this.value); this.value = n === 0 ? '' : n; });
+                inp.addEventListener('blur', function() { this.value = fmtInput(cleanNum(this.value)); });
             });
         }
 
-        // --- MANEJO DE EVENTOS ---
         function updateData(e) {
-            const el = e.target;
-            const val = cleanNum(el.value); 
-
-            if(el.id === 'globalQuota' || el.id === 'initialBill' || el.id === 'globalExpFree' || el.id === 'globalExpFreePeriod' || el.id === 'globalExpFreeStart') { 
-                recalculate(); 
-                return; 
-            }
-
-            const idx = parseInt(el.getAttribute('data-i'));
-
-            if(el.classList.contains('inp-inc')) dataStore[idx].inc = val;
-            if(el.classList.contains('inp-sav')) dataStore[idx].sav = val;
-            if(el.classList.contains('inp-exp-tc')) dataStore[idx].exp_tc = val;
-            if(el.classList.contains('inp-exp-free')) dataStore[idx].exp_free = val;
-            if(el.classList.contains('inp-pay')) dataStore[idx].pay = val;
-            if(el.classList.contains('inp-spend')) dataStore[idx].spend = val;
-
+            const el = e.target; const val = cleanNum(el.value); const idx = parseInt(el.getAttribute('data-i'));
+            if (el.classList.contains('inp-inc')) dataStore[idx].inc = val;
+            if (el.classList.contains('inp-sav')) dataStore[idx].sav = val;
+            if (el.classList.contains('inp-exp-tc')) dataStore[idx].exp_tc = val;
+            if (el.classList.contains('inp-exp-free')) dataStore[idx].exp_free = val;
+            if (el.classList.contains('inp-pay')) dataStore[idx].pay = val;
+            if (el.classList.contains('inp-spend')) dataStore[idx].spend = val;
             recalculate();
         }
 
-        // --- CÁLCULO CORE ---
+        function scrollToMonth(mNum) {
+            const el = document.getElementById(`month-section-${mNum}`);
+            if(el) el.scrollIntoView({ behavior: 'smooth' });
+        }
+
         function recalculate() {
             const globalQuota = cleanNum(document.getElementById('globalQuota').value);
             let initialBill = cleanNum(document.getElementById('initialBill').value);
-            
-            let cash = 0;
-            let totalDebt = initialBill; 
-            let prevQ2Spend = 0; 
-            let currentMonthExpenses = 0; 
-            
-            let summaryHTML = '';
-            let globalExpFreeTotal = 0; // Acumulador para el total anual de gastos libres
+            let cash = 0, totalDebt = initialBill, prevQ2Spend = 0, currentMonthExpenses = 0;
+            let expFreeHTML = '', desfaseHTML = '', globalExpFreeTotal = 0;
+            let desfaseMonths = new Set();
 
             for (let i = 0; i < dataStore.length; i++) {
-                const d = dataStore[i];
-                const isQ1 = (i % 2 === 0);
-                
+                const d = dataStore[i], isQ1 = (i % 2 === 0), mNum = Math.floor(i / 2) + 1;
                 let hasAlert = false;
-
                 currentMonthExpenses += (d.exp_tc || 0) + (d.exp_free || 0) + (d.spend || 0);
 
                 document.getElementById(`cash-prev-${i}`).innerText = fmt(cash);
@@ -777,109 +614,62 @@
 
                 let subtotalCash = cash + (d.inc || 0) + (d.sav || 0);
                 document.getElementById(`cash-subtotal-${i}`).innerText = fmt(subtotalCash);
-
                 cash = subtotalCash - (d.exp_tc || 0) - (d.exp_free || 0) - (d.pay || 0);
-                
                 if (cash < 0) hasAlert = true;
-
                 const elCash = document.getElementById(`cash-final-${i}`);
-                elCash.innerText = fmt(cash);
-                elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
+                elCash.innerText = fmt(cash); elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
 
                 totalDebt = totalDebt + (d.spend || 0) - (d.pay || 0);
                 document.getElementById(`debt-final-${i}`).innerText = fmt(totalDebt);
-
                 const quotaLeft = globalQuota - totalDebt;
                 const elQuota = document.getElementById(`quota-final-${i}`);
-                elQuota.innerText = fmt(quotaLeft);
-                
-                if(quotaLeft < 0) {
-                    elQuota.style.color = "var(--red)";
-                    hasAlert = true;
-                }
-                else if (quotaLeft < globalQuota * 0.1) elQuota.style.color = "var(--orange)";
-                else elQuota.style.color = "var(--green)";
+                elQuota.innerText = fmt(quotaLeft); elQuota.style.color = quotaLeft < 0 ? "var(--red)" : (quotaLeft < globalQuota * 0.1 ? "var(--orange)" : "var(--green)");
+                if (quotaLeft < 0) hasAlert = true;
 
                 if (isQ1) {
-                    let billOriginal = (i === 0) ? initialBill : (i > 0 ? dataStore[i-1].billGenerated : 0);
-                    let paymentsInQ2 = (i > 0) ? dataStore[i-1].pay : 0;
-                    let billPendingReal = Math.max(0, billOriginal - paymentsInQ2);
-
-                    document.getElementById(`bill-original-${i}`).innerText = fmt(billOriginal);
-                    document.getElementById(`bill-deduct-q2-${i}`).innerText = `-${fmt(paymentsInQ2)}`;
-                    document.getElementById(`bill-pending-${i}`).innerText = fmt(billPendingReal);
-
-                    const statusEl = document.getElementById(`bill-status-${i}`);
-                    const remainingAfterToday = billPendingReal - (d.pay || 0);
-
-                    if (remainingAfterToday <= 0) {
-                        statusEl.innerText = "Cubierto";
-                        statusEl.style.color = "var(--green)";
-                    } else {
-                        statusEl.innerText = `Falta: ${fmt(remainingAfterToday)}`;
-                        statusEl.style.color = "var(--red)";
-                        hasAlert = true; 
-                    }
-
-                    let newBill = prevQ2Spend + (d.spend || 0) + remainingAfterToday;
-                    document.getElementById(`bill-new-${i}`).innerText = fmt(newBill);
-                    
-                    d.billGenerated = newBill;
-                    prevQ2Spend = 0; 
+                    let billOrig = (i === 0) ? initialBill : dataStore[i-1].billGenerated;
+                    let payQ2 = (i > 0) ? dataStore[i-1].pay : 0;
+                    let billPend = Math.max(0, billOrig - payQ2);
+                    document.getElementById(`bill-original-${i}`).innerText = fmt(billOrig);
+                    document.getElementById(`bill-deduct-q2-${i}`).innerText = `-${fmt(payQ2)}`;
+                    document.getElementById(`bill-pending-${i}`).innerText = fmt(billPend);
+                    const rem = billPend - (d.pay || 0);
+                    const st = document.getElementById(`bill-status-${i}`);
+                    if (rem <= 0) { st.innerText = "Cubierto"; st.style.color = "var(--green)"; } 
+                    else { st.innerText = `Falta: ${fmt(rem)}`; st.style.color = "var(--red)"; hasAlert = true; }
+                    d.billGenerated = prevQ2Spend + (d.spend || 0) + rem;
+                    document.getElementById(`bill-new-${i}`).innerText = fmt(d.billGenerated);
+                    prevQ2Spend = 0;
                 } else {
-                    prevQ2Spend = (d.spend || 0);
-                    d.billGenerated = dataStore[i-1].billGenerated; 
-                    
-                    // --- RESUMEN DE GASTOS LIBRES DEL MES ---
-                    let currentMonth = Math.floor(i / 2) + 1;
-                    let expFreeMonthTotal = (dataStore[i-1].exp_free || 0) + (dataStore[i].exp_free || 0);
-                    
-                    if (expFreeMonthTotal > 0) {
-                        summaryHTML += `<li class="summary-item">Mes ${currentMonth} <span class="val">${fmt(expFreeMonthTotal)}</span></li>`;
-                        globalExpFreeTotal += expFreeMonthTotal;
-                    }
+                    prevQ2Spend = d.spend; d.billGenerated = dataStore[i-1].billGenerated;
+                    let mTotalFree = (dataStore[i-1].exp_free || 0) + (d.exp_free || 0);
+                    if (mTotalFree > 0) { expFreeHTML += `<li class="summary-item">Mes ${mNum} <span class="val">${fmt(mTotalFree)}</span></li>`; globalExpFreeTotal += mTotalFree; }
+                    document.getElementById(`month-total-expenses-${mNum}`).innerText = fmt(currentMonthExpenses); currentMonthExpenses = 0;
                 }
 
-                const cardEl = document.getElementById(`q-card-${i}`);
-                if (hasAlert) {
-                    cardEl.classList.add('q-card-alert');
-                } else {
-                    cardEl.classList.remove('q-card-alert');
-                }
+                if (hasAlert) desfaseMonths.add(mNum);
+                document.getElementById(`q-card-${i}`).className = `q-card ${hasAlert ? 'q-card-alert' : ''}`;
+            }
 
-                if (!isQ1) {
-                    let currentMonth = Math.floor(i / 2) + 1;
-                    document.getElementById(`month-total-expenses-${currentMonth}`).innerText = fmt(currentMonthExpenses);
-                    currentMonthExpenses = 0; 
-                }
-            }
-            
-            // Renderizar panel de resumen con el total anual
-            if (summaryHTML === '' && globalExpFreeTotal === 0) {
-                summaryContainer.style.display = 'none';
-                summaryContainer.innerHTML = '';
-            } else {
-                summaryContainer.style.display = 'block';
-                summaryContainer.innerHTML = `
-                    <div class="summary-panel">
-                        <div class="summary-title">Resumen: Gastos Libres Programados</div>
-                        <ul class="summary-list">
-                            ${summaryHTML}
-                        </ul>
-                        <div class="summary-total">
-                            <span>Total Anual Gastos Libres:</span>
-                            <span class="val">${fmt(globalExpFreeTotal)}</span>
-                        </div>
-                    </div>
-                `;
-            }
+            // Renderizado Paneles
+            if (expFreeHTML) {
+                summaryExpContainer.style.display = 'block';
+                summaryExpContainer.innerHTML = `<div class="summary-title">Gastos Libres</div><ul class="summary-list">${expFreeHTML}</ul><div class="summary-total">Total Anual: <span class="val">${fmt(globalExpFreeTotal)}</span></div>`;
+            } else summaryExpContainer.style.display = 'none';
+
+            if (desfaseMonths.size > 0) {
+                summaryDesfaseContainer.style.display = 'block';
+                let listHTML = '';
+                Array.from(desfaseMonths).sort((a,b)=>a-b).forEach(m => {
+                    listHTML += `<li class="summary-item clickable" onclick="scrollToMonth(${m})">Mes ${m} <span class="alert-tag">Revisar ↓</span></li>`;
+                });
+                summaryDesfaseContainer.innerHTML = `<div class="summary-title">Meses con Desfase</div><ul class="summary-list">${listHTML}</ul>`;
+            } else summaryDesfaseContainer.style.display = 'none';
 
             saveData();
         }
 
-        loadData();
-        init();
-        recalculate();
+        loadData(); init(); recalculate();
     </script>
 </body>
 </html>
