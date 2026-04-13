@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Gastos - V18 Smart Copy</title>
+    <title>Control de Gastos - V19 Pocket Types</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -193,7 +193,7 @@
 
         .modal-form-grid {
             display: grid;
-            grid-template-columns: 2fr 1.5fr auto 1fr auto auto; 
+            grid-template-columns: 2.5fr 1.5fr 1fr auto auto; 
             gap: 10px;
             margin-bottom: 1.5rem;
             align-items: center;
@@ -215,7 +215,7 @@
         .editable-input:focus { background: white; border-color: var(--primary); outline: none; }
         
         .pocket-select-badge {
-            max-width: 100px; border: none; border-radius: 12px; padding: 2px 6px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1e293b; font-weight: 600; appearance: none; -webkit-appearance: none; text-align: center; flex-shrink: 0; transition: opacity 0.2s;
+            max-width: 140px; border: none; border-radius: 12px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1e293b; font-weight: 600; appearance: none; -webkit-appearance: none; text-align: center; flex-shrink: 0; transition: opacity 0.2s;
         }
         .pocket-select-badge:hover { opacity: 0.8; }
         .pocket-select-badge:focus { outline: 2px solid var(--primary); }
@@ -228,7 +228,7 @@
 
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 0.9rem; color: #64748b; margin-bottom: 8px; font-weight: 600; }
-        .form-group input { width: 100%; box-sizing: border-box; padding: 10px; }
+        .form-group input, .form-group select { width: 100%; box-sizing: border-box; padding: 10px; }
         .btn-full { width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; margin-top: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; }
 
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -262,11 +262,11 @@
             <span class="stat-value" style="color: #fca5a5;" id="totalExpenses">$ 0</span>
         </div>
         <div class="stat-divider"></div>
-        <div class="stat-item" title="Gastos en Efectivo o Tarjeta Débito">
+        <div class="stat-item" title="Gastos desde bolsillos Efectivo/Débito">
             <span class="stat-label">💵 Efec/Déb</span>
             <span class="stat-value" style="color: #cbd5e1; font-size: 1rem;" id="totalCash">$ 0</span>
         </div>
-        <div class="stat-item" title="Gastos en Tarjeta de Crédito">
+        <div class="stat-item" title="Gastos desde bolsillos Tarjeta de Crédito">
             <span class="stat-label">💳 Crédito</span>
             <span class="stat-value" style="color: #cbd5e1; font-size: 1rem;" id="totalCredit">$ 0</span>
         </div>
@@ -297,10 +297,6 @@
         <div class="modal-form-grid">
             <input type="text" id="descInput" placeholder="Concepto (ej. Almuerzo)">
             <select id="pocketSelect"></select>
-            <select id="methodSelect" style="font-size:0.85rem; padding:8px 4px;">
-                <option value="cash">💵 Efec</option>
-                <option value="credit">💳 Créd</option>
-            </select>
             <input type="number" id="amountInput" placeholder="Monto" min="0">
             <label title="Gasto Recurrente (Se copia al mes siguiente)" style="cursor:pointer; font-size:1.4rem; display:flex; align-items:center;">
                 <input type="checkbox" id="recurInput" style="width:auto; transform: scale(1.3); margin-right:5px;"> 🔄
@@ -329,6 +325,14 @@
         </div>
         
         <div class="form-group">
+            <label for="newPocketType">Tipo de Bolsillo</label>
+            <select id="newPocketType">
+                <option value="cash">💵 Efectivo / Débito</option>
+                <option value="credit">💳 Tarjeta de Crédito</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
             <label for="newPocketLimit">Presupuesto Mensual</label>
             <input type="number" id="newPocketLimit" placeholder="$ 0" min="0">
         </div>
@@ -347,12 +351,12 @@
     let activeDay = null;
     let editingPocketIndex = null;
     
-    // DB V18
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v18')) || {}; 
+    // DB V19
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v19')) || {}; 
 
     // --- MIGRACIÓN DE DATOS ---
     if (Object.keys(db).length === 0) {
-        const history = ['v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
+        const history = ['v18', 'v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) {
@@ -406,32 +410,23 @@
         const prevKey = getKey(prevYear, prevMonth);
         
         if(db[prevKey]) {
-            // Asegurar que exista el mes actual
             if(!db[currentKey]) db[currentKey] = { income: 0, pockets: [], expenses: {} };
             
-            // 1. Copiar ingresos y bolsillos
             db[currentKey].income = db[prevKey].income;
             db[currentKey].pockets = JSON.parse(JSON.stringify(db[prevKey].pockets));
-            
-            // 2. Limpiar gastos del mes actual
             db[currentKey].expenses = {};
             
             const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
             
-            // 3. Buscar y copiar SOLO gastos recurrentes (isRecurring === true) usando "Día Equivalente"
             Object.keys(db[prevKey].expenses).forEach(sourceDayStr => {
                 const sourceDay = parseInt(sourceDayStr);
                 const sourceDate = new Date(prevYear, prevMonth, sourceDay);
-                const dayOfWeek = sourceDate.getDay(); // 0-6 (Dom-Sab)
+                const dayOfWeek = sourceDate.getDay(); 
                 
-                // Calcular qué número de aparición es este día en el mes anterior (Ej: 3er Sabado -> occurrence = 3)
                 const occurrence = Math.ceil(sourceDay / 7);
-                
-                // Filtrar solo los gastos que tienen el flag de recurrencia activado
                 const recurringExpenses = db[prevKey].expenses[sourceDayStr].filter(e => e.isRecurring);
                 
                 if (recurringExpenses.length > 0) {
-                    // Buscar la MISMA aparición (occurrence) de ese MISMO día de la semana en el MES ACTUAL
                     let currentOccurrence = 0;
                     let targetDay = null;
                     
@@ -446,7 +441,6 @@
                         }
                     }
                     
-                    // Si se encontró el día equivalente en el mes objetivo, se insertan los gastos
                     if (targetDay !== null) {
                         if (!db[currentKey].expenses[targetDay]) db[currentKey].expenses[targetDay] = [];
                         
@@ -519,7 +513,6 @@
     function changeMonth() {
         const key = getKey(selectedYear, selectedMonth);
         if (!db[key]) {
-            // AHORA INICIA COMPLETAMENTE VACÍO AL CAMBIAR DE MES (Si no hay datos)
             db[key] = { income: 0, pockets: [], expenses: {} };
         }
         saveDB(); render();
@@ -544,7 +537,11 @@
             data.expenses[day].forEach(exp => {
                 totalSpent += exp.amount;
                 
-                if (exp.method === 'credit') {
+                // LÓGICA V19: Identificar si es crédito o efectivo BASADO EN EL BOLSILLO
+                const pocket = data.pockets.find(p => p.id === exp.pocketId);
+                const pType = pocket ? (pocket.type || 'cash') : 'cash';
+                
+                if (pType === 'credit') {
                     totalCredit += exp.amount;
                 } else {
                     totalCash += exp.amount;
@@ -575,12 +572,31 @@
         addBtn.className = 'add-pocket-btn'; addBtn.innerText = '+';
         addBtn.onclick = () => openPocketModal();
         container.appendChild(addBtn);
+        
         data.pockets.forEach((p, idx) => {
             const spent = spendingMap[p.id] || 0, percent = Math.min(100, (spent / p.limit) * 100) || 0;
             const baseColor = p.color || '#94a3b8', progressColor = spent > p.limit ? '#ef4444' : '#10b981';
+            
+            // Determinar ícono según el tipo de bolsillo
+            const pIcon = (p.type === 'credit') ? '💳' : '💵';
+            
             const div = document.createElement('div');
             div.className = 'pocket-card'; div.style.backgroundColor = baseColor + '4D'; div.style.border = `1px solid ${baseColor}66`;
-            div.innerHTML = `<div class="pocket-header"><span>${p.name}</span><div class="pocket-actions"><button class="action-btn" onclick="editPocket(${idx})">✎</button><button class="action-btn" style="color:#ef4444" onclick="deletePocket(${idx})">✕</button></div></div><div style="font-size:0.85rem; color:#475569;">Presupuesto: <b>${formatMoney(p.limit)}</b></div><div class="pocket-progress-bg"><div class="pocket-progress-fill" style="width:${percent}%; background:${progressColor};"></div></div><div class="pocket-data"><span style="color:var(--danger);">Gastado: ${formatMoney(spent)}</span><span style="color:${p.limit - spent>=0?'#10b981':'#ef4444'}">Disp: ${formatMoney(p.limit - spent)}</span></div>`;
+            div.innerHTML = `
+                <div class="pocket-header">
+                    <span>${pIcon} ${p.name}</span>
+                    <div class="pocket-actions">
+                        <button class="action-btn" onclick="editPocket(${idx})">✎</button>
+                        <button class="action-btn" style="color:#ef4444" onclick="deletePocket(${idx})">✕</button>
+                    </div>
+                </div>
+                <div style="font-size:0.85rem; color:#475569;">Presupuesto: <b>${formatMoney(p.limit)}</b></div>
+                <div class="pocket-progress-bg"><div class="pocket-progress-fill" style="width:${percent}%; background:${progressColor};"></div></div>
+                <div class="pocket-data">
+                    <span style="color:var(--danger);">Gastado: ${formatMoney(spent)}</span>
+                    <span style="color:${p.limit - spent>=0?'#10b981':'#ef4444'}">Disp: ${formatMoney(p.limit - spent)}</span>
+                </div>
+            `;
             container.appendChild(div);
         });
     }
@@ -602,12 +618,15 @@
             
             dayExpenses.forEach((exp, index) => {
                 dayTotal += exp.amount;
-                if (exp.method === 'credit') dayCredit += exp.amount;
+                
+                const pocket = data.pockets.find(p => p.id === exp.pocketId);
+                const pType = pocket ? (pocket.type || 'cash') : 'cash';
+                const methodIcon = pType === 'credit' ? '💳' : '💵';
+                
+                if (pType === 'credit') dayCredit += exp.amount;
                 else dayCash += exp.amount;
 
                 if (index < 3) {
-                    const pocket = data.pockets.find(p => p.id === exp.pocketId);
-                    const methodIcon = exp.method === 'credit' ? '💳' : '💵';
                     const recurClass = exp.isRecurring ? 'is-recurring' : '';
                     previewsHTML += `<div class="expense-preview ${recurClass}" style="background-color: ${(pocket?pocket.color:'#94a3b8')+'66'};"><span style="overflow:hidden; text-overflow:ellipsis;" title="${exp.desc}">${methodIcon} ${exp.desc}</span><span>${formatMoney(exp.amount)}</span></div>`;
                 }
@@ -646,13 +665,18 @@
 
     function openPocketModal(index = null) {
         editingPocketIndex = index;
-        const nameInput = document.getElementById('newPocketName'), limitInput = document.getElementById('newPocketLimit');
+        const nameInput = document.getElementById('newPocketName');
+        const limitInput = document.getElementById('newPocketLimit');
+        const typeInput = document.getElementById('newPocketType');
+        
         if (index !== null) {
             const p = db[getKey(selectedYear, selectedMonth)].pockets[index];
-            nameInput.value = p.name; limitInput.value = p.limit;
+            nameInput.value = p.name; 
+            limitInput.value = p.limit;
+            typeInput.value = p.type || 'cash'; // Fallback por migración
             document.getElementById('pocketModalTitle').innerText = "Editar Bolsillo";
         } else {
-            nameInput.value = ''; limitInput.value = '';
+            nameInput.value = ''; limitInput.value = ''; typeInput.value = 'cash';
             document.getElementById('pocketModalTitle').innerText = "Nuevo Bolsillo";
         }
         document.getElementById('pocketModal').style.display = 'flex';
@@ -662,15 +686,21 @@
     function editPocket(index) { openPocketModal(index); }
 
     function savePocket() {
-        const nameInput = document.getElementById('newPocketName'), limitInput = document.getElementById('newPocketLimit');
-        const name = nameInput.value.trim(), limit = parseFloat(limitInput.value);
+        const nameInput = document.getElementById('newPocketName'), 
+              limitInput = document.getElementById('newPocketLimit'),
+              typeInput = document.getElementById('newPocketType');
+              
+        const name = nameInput.value.trim(), 
+              limit = parseFloat(limitInput.value),
+              type = typeInput.value;
+              
         if(!name || isNaN(limit) || limit < 0) return;
         const key = getKey(selectedYear, selectedMonth);
         if (editingPocketIndex !== null) {
             const p = db[key].pockets[editingPocketIndex];
-            p.name = name; p.limit = limit;
+            p.name = name; p.limit = limit; p.type = type;
         } else {
-            db[key].pockets.push({ id: Date.now().toString(), name, limit, color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length] });
+            db[key].pockets.push({ id: Date.now().toString(), name, limit, type, color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length] });
         }
         saveDB(); closeModal('pocketModal');
     }
@@ -694,19 +724,21 @@
         activeDay = day; document.getElementById('expenseModal').style.display = 'flex';
         const holidays = getColombianHolidays(selectedYear), hName = holidays[`${selectedMonth}-${day}`];
         document.getElementById('modalTitle').innerText = `${day} de ${months[selectedMonth]}${hName ? ' ('+hName+')' : ''}`;
+        
         const sel = document.getElementById('pocketSelect'); sel.innerHTML = '';
         const pockets = db[getKey(selectedYear, selectedMonth)].pockets;
         
-        document.getElementById('recurInput').checked = false; // Resetear checkbox
+        document.getElementById('recurInput').checked = false;
         
         if (pockets.length === 0) {
             const opt = new Option("¡Crea un bolsillo!", ""); opt.disabled = true; sel.add(opt);
             document.getElementById('amountInput').disabled = true;
-            document.getElementById('methodSelect').disabled = true;
         } else {
             document.getElementById('amountInput').disabled = false;
-            document.getElementById('methodSelect').disabled = false;
-            pockets.forEach(p => sel.add(new Option(p.name, p.id)));
+            pockets.forEach(p => {
+                const pIcon = p.type === 'credit' ? '💳' : '💵';
+                sel.add(new Option(`${pIcon} ${p.name}`, p.id));
+            });
         }
         renderModalList();
         document.getElementById('descInput').focus();
@@ -717,7 +749,6 @@
         const dIn = document.getElementById('descInput');
         const aIn = document.getElementById('amountInput');
         const pSel = document.getElementById('pocketSelect');
-        const mSel = document.getElementById('methodSelect');
         const rIn = document.getElementById('recurInput');
         const amount = parseFloat(aIn.value);
         
@@ -730,19 +761,17 @@
             desc: dIn.value.trim() || 'Varios', 
             amount: amount, 
             pocketId: pSel.value,
-            method: mSel.value,
-            isRecurring: rIn.checked // Guardar el flag recurrente
+            isRecurring: rIn.checked 
         });
         
         dIn.value = ''; aIn.value = ''; dIn.focus();
-        rIn.checked = false; // Resetear checkbox tras agregar
+        rIn.checked = false; 
         saveDB(); 
         renderModalList();
     }
 
     function deleteExpense(idx) { db[getKey(selectedYear, selectedMonth)].expenses[activeDay].splice(idx, 1); saveDB(); renderModalList(); }
 
-    // --- REPLICAR GASTO EN MES ACTUAL ---
     function replicateExpense(idx) {
         const key = getKey(selectedYear, selectedMonth);
         const expenseToCopy = db[key].expenses[activeDay][idx];
@@ -779,10 +808,8 @@
             exps[idx].desc = val;
         } else if (field === 'pocketId') { 
             exps[idx].pocketId = val; saveDB(); renderModalList(); return; 
-        } else if (field === 'method') {
-            exps[idx].method = val;
         } else if (field === 'isRecurring') {
-            exps[idx].isRecurring = val; saveDB(); return; // Solo guardar, no re-renderizar todo
+            exps[idx].isRecurring = val; saveDB(); return; 
         }
         saveDB(); 
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
@@ -795,9 +822,11 @@
         
         exps.forEach((e, i) => {
             const p = pks.find(pk => pk.id === e.pocketId), color = p ? p.color : '#94a3b8';
-            let opts = ''; pks.forEach(pk => opts += `<option value="${pk.id}" ${pk.id===e.pocketId?'selected':''}>${pk.name}</option>`);
+            let opts = ''; pks.forEach(pk => {
+                const pIcon = pk.type === 'credit' ? '💳' : '💵';
+                opts += `<option value="${pk.id}" ${pk.id===e.pocketId?'selected':''}>${pIcon} ${pk.name}</option>`;
+            });
             
-            const isCredit = e.method === 'credit';
             const isRecur = e.isRecurring ? 'checked' : '';
             
             const row = document.createElement('div'); row.className = 'expense-row';
@@ -805,11 +834,6 @@
                 <div class="expense-info">
                     <input type="text" class="editable-input" value="${e.desc}" onchange="updateExpense(${i}, 'desc', this.value)">
                     <select class="pocket-select-badge" style="background-color: ${color}4D; border: 1px solid ${color}66;" onchange="updateExpense(${i}, 'pocketId', this.value)">${opts}</select>
-                    
-                    <select class="editable-input" style="width: auto; font-size: 0.8rem; flex-shrink: 0;" onchange="updateExpense(${i}, 'method', this.value)">
-                        <option value="cash" ${!isCredit ? 'selected' : ''}>💵 Efec</option>
-                        <option value="credit" ${isCredit ? 'selected' : ''}>💳 Créd</option>
-                    </select>
                 </div>
                 <div class="expense-actions">
                     <div style="font-weight:bold; display:flex; align-items:center;">
@@ -827,7 +851,7 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v18', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('expenseAppDB_v19', JSON.stringify(db)); }
     
     function exportData() {
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"}));
