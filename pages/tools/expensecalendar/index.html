@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Gastos - V15 Subtotales Diarios</title>
+    <title>Control de Gastos - V16 Reset Total</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -121,7 +121,7 @@
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            grid-template-rows: repeat(auto-fill, minmax(130px, 1fr)); /* Un poco más de altura para los subtotales */
+            grid-template-rows: repeat(auto-fill, minmax(130px, 1fr));
             gap: 10px;
             flex: 1;
         }
@@ -165,7 +165,7 @@
             align-items: flex-end;
             margin-top: auto;
             padding-top: 5px;
-            border-top: 1px dashed var(--border); /* Línea sutil para separar gastos del total */
+            border-top: 1px dashed var(--border);
         }
 
         .day-subtotal {
@@ -249,7 +249,7 @@
     <div class="controls">
         <select id="monthSelect"></select>
         <select id="yearSelect"></select>
-        <button class="btn-icon" onclick="clearMonth()" title="Limpiar todos los gastos e ingresos del mes (Conserva bolsillos)" style="color:#ef4444; border-color:#fecaca;">🗑️ Limpiar</button>
+        <button class="btn-icon" onclick="clearMonth()" title="Limpiar todos los datos del mes (Ingresos, Gastos y Bolsillos)" style="color:#ef4444; border-color:#fecaca;">🗑️ Limpiar</button>
         <button class="btn-icon" onclick="exportData()" title="Descargar archivo de respaldo">💾 Exportar</button>
         <button class="btn-icon" onclick="document.getElementById('importInput').click()" title="Cargar archivo de respaldo">📂 Importar</button>
         <input type="file" id="importInput" hidden accept=".json" onchange="importData(this)">
@@ -350,12 +350,12 @@
     let activeDay = null;
     let editingPocketIndex = null;
     
-    // DB V15
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v15')) || {}; 
+    // DB V16
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v16')) || {}; 
 
     // --- MIGRACIÓN DE DATOS ---
     if (Object.keys(db).length === 0) {
-        const history = ['v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
+        const history = ['v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) {
@@ -375,7 +375,6 @@
     incomeInput.addEventListener('focus', () => {
         const key = getKey(selectedYear, selectedMonth);
         const val = db[key]?.income || 0;
-        // Al hacer focus, mostramos solo los números (sin formato) para fácil edición
         incomeInput.value = val === 0 ? '' : val; 
     });
     
@@ -385,8 +384,6 @@
     });
 
     function updateIncome() {
-        // SOLUCIÓN AL BUG: Limpiamos cualquier símbolo no numérico antes de intentar convertir a Float
-        // Esto evita que el string formateado como "$ 2.000" devuelva NaN y reinicie el ingreso a 0.
         const rawVal = incomeInput.value.replace(/\D/g, ''); 
         const val = parseFloat(rawVal) || 0;
         
@@ -397,12 +394,14 @@
         render(); 
     }
 
+    // --- FUNCIÓN LIMPIAR CORREGIDA ---
     function clearMonth() {
-        if(confirm("¿Estás seguro de eliminar TODOS los gastos e ingresos de este mes? (Tus bolsillos se conservarán)")) {
+        if(confirm("¿Estás seguro de eliminar TODOS los datos (ingresos, gastos Y bolsillos) de este mes?")) {
             const key = getKey(selectedYear, selectedMonth);
             if(db[key]) {
                 db[key].expenses = {};
                 db[key].income = 0;
+                db[key].pockets = []; // Ahora también vacía la lista de bolsillos
                 saveDB();
                 render();
             }
@@ -688,7 +687,7 @@
         }
         saveDB(); 
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
-        render(); // Se actualizan totales del mes y día de forma automática
+        render(); 
     }
 
     function renderModalList() {
@@ -724,7 +723,7 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v15', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('expenseAppDB_v16', JSON.stringify(db)); }
     
     function exportData() {
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"}));
