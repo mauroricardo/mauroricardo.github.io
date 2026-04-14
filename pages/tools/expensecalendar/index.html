@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Gastos - V27 Full Expandida</title>
+    <title>Control de Gastos - V28 Orden y Título</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -106,7 +106,6 @@
         .pocket-progress-bg { height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; margin-top: 2px; }
         .pocket-progress-fill { height: 100%; transition: width 0.3s ease; }
         
-        /* NUEVO: Contenedor para mostrar presupuesto y gasto */
         .pocket-ppto-info {
             display: flex; justify-content: space-between; font-size: 0.75rem; color: #475569; margin-top: 2px;
         }
@@ -195,7 +194,7 @@
         }
         .modal-content {
             background: white; padding: 1.5rem; border-radius: 16px; 
-            width: 900px; /* MODAL MÁS ANCHO */
+            width: 900px; 
             max-width: 100%;
             max-height: 90vh; overflow-y: auto;
             box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.2s ease-out;
@@ -228,12 +227,9 @@
         .pocket-select-badge:hover { opacity: 0.8; }
         
         .expense-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .action-btn { color: #64748b; border: none; background: none; cursor: pointer; padding: 6px; font-size: 1.1rem; border-radius: 4px; }
-        .action-btn:hover { background: #e2e8f0; color: var(--primary); }
         .delete-btn { color: #ef4444; border: none; background: none; cursor: pointer; padding: 6px; font-size: 1.1rem; border-radius: 4px; }
         .delete-btn:hover { background: #fef2f2; }
         
-        /* BOTÓN DE ACTUALIZACIÓN MASIVA */
         .bulk-update-btn { 
             color: var(--primary); border: 1px solid var(--primary); padding: 4px 8px; font-size: 0.8rem; font-weight: 600; border-radius: 6px; background: #eff6ff; cursor: pointer; transition: 0.2s;
         }
@@ -250,7 +246,6 @@
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-        /* RESPONSIVE MOBILE DESIGN */
         @media (max-width: 768px) {
             header { padding: 10px; flex-direction: column; align-items: stretch; }
             .controls { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
@@ -290,6 +285,8 @@
         <button class="btn-icon" onclick="exportData()" title="Descargar respaldo">💾 Exportar</button>
         <button class="btn-icon" onclick="document.getElementById('importInput').click()" title="Cargar respaldo">📂 Importar</button>
         <input type="file" id="importInput" hidden accept=".json" onchange="importData(this)">
+        
+        <h2 id="monthTitle" style="margin: 0 0 0 15px; font-size: 1.8rem; color: var(--text-main); text-transform: capitalize;"></h2>
     </div>
 
     <div class="financial-summary">
@@ -409,12 +406,11 @@
     let activeDay = null;
     let editingPocketIndex = null;
     
-    // DB V27
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v27')) || {}; 
+    // DB V28
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v28')) || {}; 
 
-    // MIGRACIÓN DE DATOS
     if (Object.keys(db).length === 0) {
-        const history = ['v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20', 'v19'];
+        const history = ['v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20', 'v19'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) {
@@ -430,12 +426,10 @@
     });
     function formatMoney(amount) { return moneyFormatter.format(amount); }
 
-    // NUEVO: Generador de ID Interno para agrupar gastos
     function generateInternalId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
     }
 
-    // --- LÓGICA DE SINCRONIZACIÓN CON GO ---
     const API_URL = 'https://mauroricardo-github-io.onrender.com/api/sync';
 
     async function loadFromCloud() {
@@ -497,7 +491,6 @@
             if(!db[currentKey]) db[currentKey] = { pockets: [], expenses: {} };
             
             db[currentKey].pockets = JSON.parse(JSON.stringify(db[prevKey].pockets));
-            // Resetear Disp. Real en la copia
             db[currentKey].pockets.forEach(p => p.realAvailable = 0);
             db[currentKey].expenses = {};
             
@@ -523,7 +516,6 @@
                     if (targetDay !== null) {
                         if (!db[currentKey].expenses[targetDay]) db[currentKey].expenses[targetDay] = [];
                         recurringExpenses.forEach(exp => {
-                            // Al pasar de mes, conservamos el ID o generamos uno nuevo? Generamos nuevo para desvincularlos del mes pasado.
                             let newExp = JSON.parse(JSON.stringify(exp));
                             newExp.internalId = generateInternalId();
                             db[currentKey].expenses[targetDay].push(newExp);
@@ -583,8 +575,6 @@
         monthSel.onchange = (e) => { selectedMonth = parseInt(e.target.value); changeMonth(); };
         
         changeMonth();
-        
-        // Cargar datos de la DB al iniciar
         loadFromCloud();
     }
 
@@ -608,8 +598,10 @@
     }
 
     function render() {
+        // ACTUALIZAR LABEL DE MES GRANDE
+        document.getElementById('monthTitle').innerText = `${months[selectedMonth]} ${selectedYear}`;
+
         const key = getKey(selectedYear, selectedMonth), data = db[key];
-        
         const autoIncome = data.pockets.reduce((sum, p) => sum + p.limit, 0);
         document.getElementById('incomeDisplay').innerText = formatMoney(autoIncome);
         
@@ -892,7 +884,7 @@
             amount: amount, 
             pocketId: pSel.value, 
             isRecurring: rIn.checked,
-            internalId: generateInternalId() // ASIGNACIÓN DE ID INTERNO
+            internalId: generateInternalId()
         });
         
         dIn.value = ''; aIn.value = ''; dIn.focus(); rIn.checked = false; 
@@ -909,7 +901,6 @@
         const key = getKey(selectedYear, selectedMonth);
         const expenseToCopy = db[key].expenses[activeDay][idx];
         
-        // Verificación de compatibilidad con gastos antiguos sin ID
         if (!expenseToCopy.internalId) {
             expenseToCopy.internalId = generateInternalId();
         }
@@ -922,7 +913,6 @@
             const loopDate = new Date(selectedYear, selectedMonth, d);
             if (loopDate.getDay() === currentDayOfWeek) {
                 if (!db[key].expenses[d]) db[key].expenses[d] = [];
-                // Copiamos el gasto EXACTO, manteniendo el mismo internalId
                 db[key].expenses[d].push(JSON.parse(JSON.stringify(expenseToCopy)));
                 replicatedCount++;
             }
@@ -931,7 +921,6 @@
         else { alert("No quedan más días equivalentes en este mes."); }
     }
 
-    // NUEVO: ACTUALIZACIÓN MASIVA BASADA EN ID INTERNO
     function updateAllMatchingExpenses(idx) {
         const key = getKey(selectedYear, selectedMonth);
         const currentExpense = db[key].expenses[activeDay][idx];
@@ -971,6 +960,28 @@
         render(); 
     }
 
+    // NUEVO: FUNCIÓN PARA CAMBIAR EL ORDEN
+    function moveExpense(idx, direction) {
+        const key = getKey(selectedYear, selectedMonth);
+        const exps = db[key].expenses[activeDay];
+        
+        if (direction === 'up' && idx > 0) {
+            const temp = exps[idx];
+            exps[idx] = exps[idx - 1];
+            exps[idx - 1] = temp;
+        } else if (direction === 'down' && idx < exps.length - 1) {
+            const temp = exps[idx];
+            exps[idx] = exps[idx + 1];
+            exps[idx + 1] = temp;
+        } else {
+            return; // No se puede mover más
+        }
+        
+        saveDB();
+        renderModalList();
+        render(); // Se ejecuta para que el calendario también refleje el nuevo orden en los previews
+    }
+
     function renderModalList() {
         const list = document.getElementById('modalExpenseList'); list.innerHTML = '';
         const key = getKey(selectedYear, selectedMonth), exps = db[key].expenses[activeDay] || [], pks = db[key].pockets;
@@ -986,6 +997,10 @@
             const row = document.createElement('div'); 
             row.className = 'expense-row';
             row.innerHTML = `
+                <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; margin-right: 5px;">
+                    <button class="action-btn" style="padding:0px 4px; font-size:0.75rem;" onclick="moveExpense(${i}, 'up')" ${i === 0 ? 'disabled style="opacity:0.3; cursor:default;"' : 'title="Subir"'}>▲</button>
+                    <button class="action-btn" style="padding:0px 4px; font-size:0.75rem;" onclick="moveExpense(${i}, 'down')" ${i === exps.length - 1 ? 'disabled style="opacity:0.3; cursor:default;"' : 'title="Bajar"'}>▼</button>
+                </div>
                 <div class="expense-info">
                     <input type="text" class="editable-input" value="${e.desc}" onchange="updateExpense(${i}, 'desc', this.value)">
                     <select class="pocket-select-badge" style="background-color: ${color}4D; border: 1px solid ${color}66;" onchange="updateExpense(${i}, 'pocketId', this.value)">${opts}</select>
@@ -1007,7 +1022,7 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v27', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('expenseAppDB_v28', JSON.stringify(db)); }
     function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"})); a.download = `gastos_respaldo_${Date.now()}.json`; a.click(); }
     function importData(input) { const r = new FileReader(); r.onload = (e) => { if(confirm("¿Sobrescribir datos?")) { db = JSON.parse(e.target.result); saveDB(); location.reload(); } }; if(input.files[0]) r.readAsText(input.files[0]); }
     
