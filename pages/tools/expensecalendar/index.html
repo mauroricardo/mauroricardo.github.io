@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Gastos - V25 Proyección Inteligente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control de Gastos - V26 Mobile Responsive</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -15,6 +15,8 @@
             --success: #10b981;
             --primary: #3b82f6;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -34,10 +36,12 @@
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             z-index: 10;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 15px;
+            overflow-y: auto;
+            max-height: 40vh;
         }
 
         .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -79,6 +83,8 @@
             min-height: 120px;
             align-items: center;
         }
+        /* Ocultar barra de scroll en panel de bolsillos pero permitir scroll */
+        .pockets-panel::-webkit-scrollbar { height: 6px; }
 
         .pocket-card {
             background: white;
@@ -156,12 +162,8 @@
             padding: 2px 6px;
         }
 
-        /* HEADER DEL DÍA (NUMERO + FESTIVO) */
         .day-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center; 
-            margin-bottom: 6px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
         }
         
         .day-number { font-weight: 700; color: #334155; font-size: 0.9rem; padding: 2px 4px; }
@@ -177,17 +179,11 @@
             font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden;
             text-overflow: ellipsis; display: flex; justify-content: space-between; color: #1e293b; font-weight: 600;
         }
-        
         .expense-preview.is-recurring { border-left: 3px solid var(--primary); }
 
-        /* CONTENEDOR DE TOTALES DIARIOS */
         .day-totals-container {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            margin-top: auto;
-            padding-top: 5px;
-            border-top: 1px dashed var(--border);
+            display: flex; flex-direction: column; align-items: flex-end; margin-top: auto;
+            padding-top: 5px; border-top: 1px dashed var(--border);
         }
 
         .day-subtotal { font-size: 0.7rem; color: #64748b; font-weight: 600; line-height: 1.2; }
@@ -197,10 +193,11 @@
         .modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100;
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px); padding: 10px;
         }
         .modal-content {
-            background: white; padding: 2rem; border-radius: 16px; width: 720px; max-width: 95%;
+            background: white; padding: 1.5rem; border-radius: 16px; width: 720px; max-width: 100%;
+            max-height: 90vh; overflow-y: auto;
             box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.2s ease-out;
         }
         @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -216,42 +213,113 @@
             margin-bottom: 1.5rem;
             align-items: center;
         }
-        .modal-form-grid input[type="text"], .modal-form-grid input[type="number"], .modal-form-grid select { width: 100%; box-sizing: border-box; }
+        .modal-form-grid input, .modal-form-grid select { width: 100%; }
 
-        .expense-list { max-height: 250px; overflow-y: auto; padding-right: 5px; }
+        .expense-list { display: flex; flex-direction: column; gap: 8px; }
         .expense-row { 
             display: flex; justify-content: space-between; align-items: center; 
             padding: 8px 0; border-bottom: 1px solid #f1f5f9; gap: 10px;
         }
         
         .expense-info { display: flex; align-items: center; flex: 1; min-width: 0; gap: 6px; }
-        
-        .editable-input {
-            border: 1px solid transparent; background: transparent; font-family: inherit; font-size: 0.9rem; color: var(--text-main); padding: 4px; border-radius: 4px; transition: all 0.2s; width: 100%;
-        }
+        .editable-input { border: 1px solid transparent; background: transparent; font-family: inherit; font-size: 0.9rem; color: var(--text-main); padding: 4px; border-radius: 4px; transition: all 0.2s; width: 100%; }
         .editable-input:hover { background: #f8fafc; border-color: #e2e8f0; }
         .editable-input:focus { background: white; border-color: var(--primary); outline: none; }
         
-        .pocket-select-badge {
-            max-width: 140px; border: none; border-radius: 12px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1e293b; font-weight: 600; appearance: none; -webkit-appearance: none; text-align: center; flex-shrink: 0; transition: opacity 0.2s;
-        }
-        .pocket-select-badge:hover { opacity: 0.8; }
-        .pocket-select-badge:focus { outline: 2px solid var(--primary); }
-
+        .pocket-select-badge { max-width: 140px; border: none; border-radius: 12px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1e293b; font-weight: 600; appearance: none; -webkit-appearance: none; text-align: center; flex-shrink: 0; transition: opacity 0.2s; }
         .expense-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
         .delete-btn { color: #ef4444; border: none; background: none; cursor: pointer; padding: 6px; font-size: 1.1rem; border-radius: 4px; }
-        .delete-btn:hover { background: #fef2f2; }
         
         .modal-footer { text-align: right; font-weight: 700; font-size: 1.2rem; border-top: 2px solid var(--border); padding-top: 15px; margin-top: 10px; color: var(--text-main); }
 
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 0.9rem; color: #64748b; margin-bottom: 8px; font-weight: 600; }
-        .form-group input, .form-group select { width: 100%; box-sizing: border-box; padding: 10px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; }
         .btn-full { width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; margin-top: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; }
 
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* =========================================================
+           RESPONSIVE MOBILE DESIGN (Para celulares y pantallas < 768px)
+           ========================================================= */
+        @media (max-width: 768px) {
+            header { padding: 10px; flex-direction: column; align-items: stretch; }
+            
+            .controls {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                width: 100%;
+                gap: 8px;
+            }
+            .controls select, .controls button { width: 100%; justify-content: center; font-size: 0.8rem; padding: 10px; }
+
+            .financial-summary {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                padding: 12px;
+                gap: 12px;
+                width: 100%;
+            }
+            .stat-item { align-items: flex-start; }
+            .stat-divider { display: none; } /* Ocultar rayas divisorias para no dañar el grid */
+            
+            .projection-section {
+                grid-column: span 2;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                width: 100%;
+                padding: 12px 10px;
+                background: #1e293b; /* Emparejar con el fondo general del panel en móvil */
+                border: 1px dashed #475569;
+            }
+            .projection-section .stat-divider { display: none; }
+
+            .pockets-panel { padding: 10px; }
+            
+            main { padding: 10px; }
+            .calendar-header { display: none; } /* Ocultar Lunes, Martes... */
+            
+            /* Convertir cuadrícula en lista vertical */
+            .calendar-grid {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .day-cell {
+                min-height: auto;
+                padding: 15px;
+            }
+            .day-cell.empty { display: none; } /* Ocultar celdas vacías (no aplican en lista) */
+            
+            .day-header { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; }
+            .day-number { font-size: 1.2rem; }
+            
+            /* Ajustes Modales */
+            .modal-content { padding: 15px; }
+            .modal-form-grid {
+                grid-template-columns: 1fr; /* Apilar campos uno debajo del otro */
+                gap: 12px;
+                background: #f8fafc;
+                padding: 15px;
+                border-radius: 8px;
+            }
+            .modal-form-grid label { align-self: flex-start; }
+            
+            .expense-row {
+                flex-direction: column;
+                align-items: flex-start;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                padding: 12px;
+                border-radius: 8px;
+                gap: 12px;
+            }
+            .expense-info { width: 100%; flex-direction: column; align-items: stretch; }
+            .pocket-select-badge { max-width: 100%; text-align: left; }
+            .expense-actions { width: 100%; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -260,50 +328,50 @@
     <div class="controls">
         <select id="monthSelect"></select>
         <select id="yearSelect"></select>
-        <button class="btn-icon" onclick="copyPreviousMonth()" title="Reemplazar configuración actual con la del mes pasado" style="color:#059669; border-color:#a7f3d0;">📋 Copiar Mes Previo</button>
-        <button class="btn-icon" onclick="clearMonth()" title="Limpiar todos los datos del mes" style="color:#ef4444; border-color:#fecaca;">🗑️ Limpiar</button>
-        <button class="btn-icon" onclick="exportData()" title="Descargar archivo de respaldo">💾 Exportar</button>
-        <button class="btn-icon" onclick="document.getElementById('importInput').click()" title="Cargar archivo de respaldo">📂 Importar</button>
+        <button class="btn-icon" onclick="copyPreviousMonth()" title="Reemplazar configuración" style="color:#059669; border-color:#a7f3d0;">📋 Copiar Mes</button>
+        <button class="btn-icon" onclick="clearMonth()" title="Limpiar todos los datos" style="color:#ef4444; border-color:#fecaca;">🗑️ Limpiar</button>
+        <button class="btn-icon" onclick="exportData()" title="Descargar respaldo">💾 Exportar</button>
+        <button class="btn-icon" onclick="document.getElementById('importInput').click()" title="Cargar respaldo">📂 Importar</button>
         <input type="file" id="importInput" hidden accept=".json" onchange="importData(this)">
     </div>
 
     <div class="financial-summary">
-        <div class="stat-item" title="Suma de todos los presupuestos asignados a los bolsillos">
+        <div class="stat-item">
             <span class="stat-label">Ingresos (Ppto)</span>
             <span class="stat-value" id="incomeDisplay" style="color: white;">$ 0</span>
         </div>
         <div class="stat-divider"></div>
-        <div class="stat-item" title="Total Gastado">
+        <div class="stat-item">
             <span class="stat-label">Total Gasto</span>
             <span class="stat-value" style="color: #fca5a5;" id="totalExpenses">$ 0</span>
         </div>
-        <div class="stat-item" title="Gastos desde bolsillos Efectivo/Débito">
+        <div class="stat-item">
             <span class="stat-label">💵 Efec/Déb</span>
             <span class="stat-value" style="color: #cbd5e1; font-size: 0.95rem;" id="totalCash">$ 0</span>
         </div>
-        <div class="stat-item" title="Gastos desde bolsillos Tarjeta de Crédito">
+        <div class="stat-item">
             <span class="stat-label">💳 Crédito</span>
             <span class="stat-value" style="color: #cbd5e1; font-size: 0.95rem;" id="totalCredit">$ 0</span>
         </div>
         <div class="stat-divider"></div>
-        <div class="stat-item" title="Disponible Teórico (Ingresos Ppto - Total Gastado)">
+        <div class="stat-item">
             <span class="stat-label">Disponible</span>
             <span class="stat-value" style="color: #86efac;" id="balance">$ 0</span>
         </div>
         <div class="stat-divider"></div>
         
         <div class="projection-section">
-            <div class="stat-item" title="Suma de lo que realmente tienes disponible (Disp. Real en bolsillos)">
+            <div class="stat-item">
                 <span class="stat-label">Disp. Real Total</span>
                 <span class="stat-value" style="color: #93c5fd;" id="totalRealAv">$ 0</span>
             </div>
             <div class="stat-divider" style="height: 25px;"></div>
-            <div class="stat-item" title="Suma de gastos desde el día actual hasta fin de mes">
+            <div class="stat-item">
                 <span class="stat-label">Gastos pendientes</span>
                 <span class="stat-value" style="color: #fca5a5;" id="pendingExpenses">-</span>
             </div>
             <div class="stat-divider" style="height: 25px;"></div>
-            <div class="stat-item" title="Saldo proyectado: Disponible Real - Gastos pendientes">
+            <div class="stat-item">
                 <span class="stat-label">Saldo</span>
                 <span class="stat-value" id="projectionStatus" style="font-size: 1.05rem; color: white;">-</span>
             </div>
@@ -330,11 +398,11 @@
         <div class="modal-form-grid">
             <input type="text" id="descInput" placeholder="Concepto (ej. Almuerzo)">
             <select id="pocketSelect"></select>
-            <input type="number" id="amountInput" placeholder="Monto" min="0">
-            <label title="Gasto Recurrente (Se copia al mes siguiente)" style="cursor:pointer; font-size:1.4rem; display:flex; align-items:center;">
-                <input type="checkbox" id="recurInput" style="width:auto; transform: scale(1.3); margin-right:5px;"> 🔄
+            <input type="number" id="amountInput" placeholder="Monto ($)" min="0">
+            <label style="cursor:pointer; font-size:1rem; display:flex; align-items:center; gap: 8px;">
+                <input type="checkbox" id="recurInput" style="width:auto; transform: scale(1.3);"> 🔄 Recurrente
             </label>
-            <button class="btn-icon" style="background:var(--primary); color:white; border:none; border-radius:6px; padding: 8px 15px;" onclick="addExpense()">＋</button>
+            <button class="btn-full" style="margin-top:0;" onclick="addExpense()">Agregar Gasto</button>
         </div>
 
         <div id="modalExpenseList" class="expense-list"></div>
@@ -384,12 +452,12 @@
     let activeDay = null;
     let editingPocketIndex = null;
     
-    // DB V25
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v25')) || {}; 
+    // DB V26
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v26')) || {}; 
 
     // --- MIGRACIÓN DE DATOS ---
     if (Object.keys(db).length === 0) {
-        const history = ['v24', 'v23', 'v22', 'v21', 'v20', 'v19', 'v18', 'v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
+        const history = ['v25', 'v24', 'v23', 'v22', 'v21', 'v20', 'v19', 'v18', 'v17', 'v16', 'v15', 'v14', 'v13', 'v12', 'v11', 'v10', 'v9'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) {
@@ -405,7 +473,6 @@
     });
     function formatMoney(amount) { return moneyFormatter.format(amount); }
 
-    // --- SMART COPY PREVIOUS MONTH ---
     function copyPreviousMonth() {
         if(!confirm("¿Reemplazar datos actuales con configuración del mes pasado (Y copiar gastos recurrentes 🔄)?\n\nADVERTENCIA: Esto borrará la configuración del mes actual.")) return;
         
@@ -419,7 +486,6 @@
             if(!db[currentKey]) db[currentKey] = { pockets: [], expenses: {} };
             
             db[currentKey].pockets = JSON.parse(JSON.stringify(db[prevKey].pockets));
-            // Resetear Disp. Real en la copia
             db[currentKey].pockets.forEach(p => p.realAvailable = 0);
             db[currentKey].expenses = {};
             
@@ -525,7 +591,6 @@
     function render() {
         const key = getKey(selectedYear, selectedMonth), data = db[key];
         
-        // 1. Ingresos Automáticos (Suma de Pptos)
         const autoIncome = data.pockets.reduce((sum, p) => sum + p.limit, 0);
         document.getElementById('incomeDisplay').innerText = formatMoney(autoIncome);
         
@@ -536,9 +601,8 @@
         
         data.pockets.forEach(p => pocketSpending[p.id] = 0);
         
-        // Lógica de Proyección
         let totalRealAv = data.pockets.reduce((sum, p) => sum + (p.realAvailable || 0), 0);
-        let hasRealAvailable = totalRealAv > 0; // Verifica si hay algún valor ingresado en Disp. Real
+        let hasRealAvailable = totalRealAv > 0; 
         
         let pendingExpenses = 0;
         
@@ -560,7 +624,6 @@
                     pocketSpending[exp.pocketId] += exp.amount;
                 }
                 
-                // Sumar Gastos Pendientes (Hoy en adelante, o todo si es mes futuro)
                 if (isFutureMonth) {
                     pendingExpenses += exp.amount;
                 } else if (isCurrentMonth && dayNum >= currentDate.getDate()) {
@@ -573,12 +636,10 @@
         document.getElementById('totalCredit').innerText = formatMoney(totalCredit);
         document.getElementById('totalCash').innerText = formatMoney(totalCash);
         
-        // Restaurar Balance/Disponible Teórico
         const balance = autoIncome - totalSpent;
         document.getElementById('balance').innerText = formatMoney(balance);
         document.getElementById('balance').style.color = balance >= 0 ? '#86efac' : '#fca5a5';
         
-        // Render de Proyección
         document.getElementById('totalRealAv').innerText = formatMoney(totalRealAv);
         
         const projStatusEl = document.getElementById('projectionStatus');
@@ -589,12 +650,11 @@
             const projectionBalance = totalRealAv - pendingExpenses;
             projStatusEl.innerText = formatMoney(projectionBalance);
             if (projectionBalance >= 0) {
-                projStatusEl.style.color = "#86efac"; // Verde
+                projStatusEl.style.color = "#86efac"; 
             } else {
-                projStatusEl.style.color = "#fca5a5"; // Rojo
+                projStatusEl.style.color = "#fca5a5"; 
             }
         } else {
-            // Si no se ha ingresado Disp. Real, mostrar guiones
             pendingEl.innerText = "-";
             projStatusEl.innerText = "-";
             projStatusEl.style.color = "white"; 
@@ -700,7 +760,6 @@
 
             const cell = document.createElement('div');
             
-            // Lógica Día Actual
             const isToday = (isCurrentMonth && d === currentDate.getDate());
             cell.className = 'day-cell' + (isToday ? ' current-day' : '');
             
@@ -710,7 +769,7 @@
                 ${totalsHTML}
             `;
             cell.onclick = (e) => {
-                if (e.target.tagName !== 'INPUT') { // Prevenir abrir modal al hacer clic en inputs si los hubiera
+                if (e.target.tagName !== 'INPUT') { 
                     openExpenseModal(d);
                 }
             };
@@ -758,7 +817,7 @@
     }
 
     function deletePocket(idx) {
-        if(!confirm("¿Eliminar bolsillo? ADVERTENCIA: Se eliminarán TODOS los gastos de este mes asociados a él.")) return;
+        if(!confirm("¿Eliminar bolsillo? ADVERTENCIA: Se eliminarán TODOS los gastos asociados a él.")) return;
         const key = getKey(selectedYear, selectedMonth);
         const pId = db[key].pockets[idx].id;
         db[key].pockets.splice(idx, 1);
@@ -871,7 +930,7 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v25', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('expenseAppDB_v26', JSON.stringify(db)); }
     function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"})); a.download = `gastos_respaldo_${Date.now()}.json`; a.click(); }
     function importData(input) { const r = new FileReader(); r.onload = (e) => { if(confirm("¿Sobrescribir datos?")) { db = JSON.parse(e.target.result); saveDB(); location.reload(); } }; if(input.files[0]) r.readAsText(input.files[0]); }
     
