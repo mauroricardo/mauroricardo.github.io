@@ -333,6 +333,7 @@
         <button class="btn-icon" onclick="exportData()" title="Descargar respaldo">💾 Exportar</button>
         <button class="btn-icon" onclick="document.getElementById('importInput').click()" title="Cargar respaldo">📂 Importar</button>
         <input type="file" id="importInput" hidden accept=".json" onchange="importData(this)">
+		<button id="syncBtn" class="btn-icon" onclick="syncToCloud()" title="Guardar en base de datos" style="color:#0284c7; border-color:#bae6fd;">☁️ Guardar en Nube</button>
     </div>
 
     <div class="financial-summary">
@@ -567,6 +568,9 @@
         yearSel.onchange = (e) => { selectedYear = parseInt(e.target.value); changeMonth(); };
         monthSel.onchange = (e) => { selectedMonth = parseInt(e.target.value); changeMonth(); };
         changeMonth();
+		
+		// Dispara la consulta al backend en Go de forma asíncrona
+        loadFromCloud();
     }
 
     function getKey(y, m) { return `${y}-${m}`; }
@@ -933,6 +937,58 @@
     function saveDB() { localStorage.setItem('expenseAppDB_v26', JSON.stringify(db)); }
     function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"})); a.download = `gastos_respaldo_${Date.now()}.json`; a.click(); }
     function importData(input) { const r = new FileReader(); r.onload = (e) => { if(confirm("¿Sobrescribir datos?")) { db = JSON.parse(e.target.result); saveDB(); location.reload(); } }; if(input.files[0]) r.readAsText(input.files[0]); }
+	
+	// --- LÓGICA DE SINCRONIZACIÓN CON GO ---
+    const API_URL = 'https://mauroricardo-github-io.onrender.com/api/sync';
+
+    async function loadFromCloud() {
+        try {
+            const response = await fetch(API_URL);
+            if (response.ok && response.status !== 204) {
+                const cloudData = await response.json();
+                
+                // Solo sobreescribimos si hay datos reales en la BD
+                if (cloudData && Object.keys(cloudData).length > 0) {
+                    db = cloudData;
+                    saveDB(); // Actualiza el localStorage local
+                    render(); // Refresca la vista
+                    console.log("Carga inicial desde la nube exitosa.");
+                }
+            }
+        } catch (error) {
+            console.warn("Iniciando modo offline. No se pudo contactar al servidor Go.");
+        }
+    }
+
+    async function syncToCloud() {
+        const btn = document.getElementById('syncBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ Guardando...';
+        btn.disabled = true;
+        
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(db) // Enviamos el estado actual
+            });
+            
+            if (response.ok) {
+                btn.innerHTML = '✅ Guardado';
+            } else {
+                throw new Error("Respuesta fallida del servidor");
+            }
+        } catch (error) {
+            alert("Error al intentar guardar en la base de datos. Tus datos siguen seguros localmente.");
+            btn.innerHTML = '❌ Error';
+        } finally {
+            // Restaurar el botón después de 3 segundos
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 3000);
+        }
+    }
     
     init();
 </script>
