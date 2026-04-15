@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Gastos - V29</title>
+    <title>Control de Gastos y Menús - V31</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -14,6 +14,7 @@
             --danger: #ef4444;
             --success: #10b981;
             --primary: #3b82f6;
+            --menu-color: #f59e0b;
         }
 
         * { box-sizing: border-box; }
@@ -44,221 +45,488 @@
             max-height: 40vh;
         }
 
-        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .controls { 
+            display: flex; 
+            gap: 10px; 
+            align-items: center; 
+            flex-wrap: wrap; 
+            width: 100%; 
+        }
         
+        .app-tabs {
+            display: flex; 
+            background: #e2e8f0; 
+            border-radius: 8px; 
+            padding: 4px; 
+            gap: 4px;
+        }
+        
+        .tab-btn {
+            padding: 8px 16px; 
+            border: none; 
+            background: transparent; 
+            border-radius: 6px;
+            font-weight: 700; 
+            color: #64748b; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            font-size: 0.95rem;
+        }
+        
+        .tab-btn.active-expenses { 
+            background: white; 
+            color: var(--primary); 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+        
+        .tab-btn.active-menus { 
+            background: white; 
+            color: var(--menu-color); 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+
         .financial-summary { 
-            display: flex; gap: 12px; align-items: center; 
-            background: #1e293b; color: white; 
-            padding: 8px 15px; border-radius: 8px;
+            display: flex; 
+            gap: 12px; 
+            align-items: center; 
+            background: #1e293b; 
+            color: white; 
+            padding: 8px 15px; 
+            border-radius: 8px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             flex-wrap: wrap;
         }
         
-        .stat-item { display: flex; flex-direction: column; align-items: flex-end; }
-        .stat-label { font-size: 0.65rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 1.05rem; font-weight: 700; }
-        .stat-divider { width: 1px; height: 30px; background: #475569; margin: 0 5px; }
+        .stat-item { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-end; 
+        }
+        
+        .stat-label { 
+            font-size: 0.65rem; 
+            color: #94a3b8; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px; 
+        }
+        
+        .stat-value { 
+            font-size: 1.05rem; 
+            font-weight: 700; 
+        }
+        
+        .stat-divider { 
+            width: 1px; 
+            height: 30px; 
+            background: #475569; 
+            margin: 0 5px; 
+        }
         
         .projection-section {
-            display: flex; gap: 12px; align-items: center; 
-            background: #0f172a; padding: 6px 12px; border-radius: 6px;
+            display: flex; 
+            gap: 12px; 
+            align-items: center; 
+            background: #0f172a; 
+            padding: 6px 12px; 
+            border-radius: 6px;
             border: 1px solid #334155;
         }
 
-        input, select, button {
-            padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; outline: none; font-family: inherit;
+        input, select, button, textarea {
+            padding: 8px 12px; 
+            border: 1px solid var(--border); 
+            border-radius: 6px; 
+            outline: none; 
+            font-family: inherit;
         }
-        button { cursor: pointer; background: white; transition: all 0.2s; font-weight: 500; }
-        button:hover { background: #f1f5f9; border-color: #cbd5e1; }
-        .btn-icon { padding: 6px 10px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 600; gap: 5px; }
+        
+        button { 
+            cursor: pointer; 
+            background: white; 
+            transition: all 0.2s; 
+            font-weight: 500; 
+        }
+        
+        button:hover { 
+            background: #f1f5f9; 
+            border-color: #cbd5e1; 
+        }
+        
+        .btn-icon { 
+            padding: 6px 10px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 0.9rem; 
+            font-weight: 600; 
+            gap: 5px; 
+        }
         
         /* --- BOLSILLOS --- */
         .pockets-panel {
-            padding: 15px 1.5rem;
-            display: flex;
-            gap: 15px;
+            padding: 15px 1.5rem; 
+            display: flex; 
+            gap: 15px; 
             overflow-x: auto;
-            background: #f1f5f9;
+            background: #f1f5f9; 
             border-bottom: 1px solid var(--border);
-            min-height: 120px;
-            align-items: center;
+            min-height: 120px; 
+            align-items: center; 
+            transition: all 0.3s;
         }
+        
         .pockets-panel::-webkit-scrollbar { height: 6px; }
 
         .pocket-card {
-            background: white;
-            border-radius: 12px;
-            padding: 12px;
+            background: white; 
+            border-radius: 12px; 
+            padding: 12px; 
             min-width: 250px;
-            position: relative;
-            flex-shrink: 0;
-            display: flex; flex-direction: column; gap: 6px;
-            transition: transform 0.2s;
-            border: 1px solid transparent;
+            position: relative; 
+            flex-shrink: 0; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px;
+            border: 1px solid transparent; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         
-        .pocket-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 0.95rem; color: #334155; }
-        .pocket-actions { display: flex; gap: 5px; }
-        .action-btn { color: #64748b; border: none; background: none; cursor: pointer; padding: 4px; font-size: 1.1rem; border-radius: 4px; }
-        .action-btn:hover { background: #e2e8f0; color: var(--primary); }
+        .pocket-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            font-weight: 700; 
+            font-size: 0.95rem; 
+            color: #334155; 
+        }
         
-        .pocket-progress-bg { height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden; margin-top: 2px; }
+        .pocket-actions { display: flex; gap: 5px; }
+        
+        .action-btn { 
+            color: #64748b; 
+            border: none; 
+            background: none; 
+            cursor: pointer; 
+            padding: 4px; 
+            font-size: 1.1rem; 
+            border-radius: 4px; 
+        }
+        
+        .action-btn:hover { 
+            background: #e2e8f0; 
+            color: var(--primary); 
+        }
+        
+        .pocket-progress-bg { 
+            height: 6px; 
+            background: rgba(0,0,0,0.05); 
+            border-radius: 3px; 
+            overflow: hidden; 
+            margin-top: 2px; 
+        }
+        
         .pocket-progress-fill { height: 100%; transition: width 0.3s ease; }
         
-        .pocket-ppto-info {
-            display: flex; justify-content: space-between; font-size: 0.75rem; color: #475569; margin-top: 2px;
+        .pocket-ppto-info { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.75rem; 
+            color: #475569; 
+            margin-top: 2px; 
         }
 
         .add-pocket-btn {
-            background: white; border: 2px dashed #cbd5e1; color: #64748b;
-            min-width: 60px; height: 60px; border-radius: 12px;
-            display: flex; justify-content: center; align-items: center;
-            cursor: pointer; font-size: 1.8rem; transition: 0.2s; flex-shrink: 0;
+            background: white; 
+            border: 2px dashed #cbd5e1; 
+            color: #64748b;
+            min-width: 60px; 
+            height: 60px; 
+            border-radius: 12px;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            cursor: pointer; 
+            font-size: 1.8rem; 
+            transition: 0.2s; 
+            flex-shrink: 0;
         }
-        .add-pocket-btn:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
 
         /* --- CALENDARIO --- */
         main {
-            flex: 1;
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
+            flex: 1; 
+            padding: 1.5rem; 
+            display: flex; 
+            flex-direction: column; 
+            overflow-y: auto; 
             background: white;
         }
 
         .calendar-header {
-            display: grid; grid-template-columns: repeat(7, 1fr);
-            text-align: center; font-weight: 700; padding-bottom: 15px; color: #64748b; text-transform: uppercase; font-size: 0.85rem;
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center; 
+            font-weight: 700; 
+            padding-bottom: 15px; 
+            color: #64748b; 
+            text-transform: uppercase; 
+            font-size: 0.85rem;
         }
 
         .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            grid-template-rows: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 10px;
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            grid-template-rows: repeat(auto-fill, minmax(220px, 1fr)); 
+            gap: 10px; 
             flex: 1;
         }
 
         .day-cell {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 10px; padding: 8px;
-            display: flex; flex-direction: column;
-            cursor: pointer; transition: all 0.2s;
-            min-height: 220px; overflow: hidden;
+            background: var(--surface); 
+            border: 1px solid var(--border); 
+            border-radius: 10px; 
+            padding: 8px;
+            display: flex; 
+            flex-direction: column; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            min-height: 220px; 
+            overflow: hidden;
         }
-        .day-cell:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .day-cell.empty { background: transparent; border: none; cursor: default; pointer-events: none; }
-
-        .current-day {
-            border: 2px solid var(--primary);
-            background-color: #f0f9ff;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+        
+        .day-cell:hover { 
+            transform: translateY(-3px); 
+            border-color: var(--primary); 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
         }
-        .current-day .day-number {
-            background-color: var(--primary);
-            color: white;
-            border-radius: 5px;
-            padding: 2px 6px;
+        
+        .day-cell.menu-mode:hover { 
+            border-color: var(--menu-color); 
+        }
+        
+        .day-cell.empty { 
+            background: transparent; 
+            border: none; 
+            cursor: default; 
+            pointer-events: none; 
         }
 
-        .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .day-number { font-weight: 700; color: #334155; font-size: 0.9rem; padding: 2px 4px; }
+        .current-day { 
+            border: 2px solid var(--primary); 
+            background-color: #f0f9ff; 
+        }
+        
+        .current-day.menu-mode { 
+            border: 2px solid var(--menu-color); 
+            background-color: #fffbeb; 
+        }
+        
+        .current-day .day-number { 
+            background-color: var(--primary); 
+            color: white; 
+            border-radius: 5px; 
+            padding: 2px 6px; 
+        }
+        
+        .current-day.menu-mode .day-number { 
+            background-color: var(--menu-color); 
+        }
 
-        /* ESTILO PARA OCULTAR EL DÍA EN PC */
+        .day-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 6px; 
+        }
+        
+        .day-number { 
+            font-weight: 700; 
+            color: #334155; 
+            font-size: 0.9rem; 
+            padding: 2px 4px; 
+        }
+        
         .mobile-day-name { display: none; }
 
         .holiday-badge {
-            background-color: #dc2626; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 6px;
-            font-weight: 600; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2); white-space: nowrap; overflow: hidden;
-            text-overflow: ellipsis; max-width: 65%; display: inline-block;
+            background-color: #dc2626; 
+            color: white; 
+            font-size: 0.7rem; 
+            padding: 2px 6px; 
+            border-radius: 6px;
+            font-weight: 600; 
+            box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2); 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            max-width: 65%; 
+            display: inline-block;
         }
 
-        .day-previews-container { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
-        .expense-preview {
-            font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden;
-            text-overflow: ellipsis; display: flex; justify-content: space-between; color: #1e293b; font-weight: 600;
+        .day-previews-container { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 4px; 
+            overflow: hidden; 
         }
+        
+        .expense-preview { 
+            font-size: 0.75rem; 
+            padding: 4px 8px; 
+            border-radius: 6px; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            display: flex; 
+            justify-content: space-between; 
+            color: #1e293b; 
+            font-weight: 600; 
+        }
+        
         .expense-preview.is-recurring { border-left: 3px solid var(--primary); }
-
-        .day-totals-container {
-            display: flex; flex-direction: column; align-items: flex-end; margin-top: auto;
-            padding-top: 5px; border-top: 1px dashed var(--border);
+        
+        .meal-preview { 
+            font-size: 0.75rem; 
+            padding: 4px 8px; 
+            border-radius: 6px; 
+            color: #1e293b; 
+            font-weight: 600; 
+            background: #fef3c7; 
+            display: flex; 
+            gap: 5px; 
+            line-height: 1.2; 
+            margin-bottom: 2px;
         }
+        .meal-icon { flex-shrink: 0; }
+        .meal-text { 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+        }
+
+        .day-totals-container { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-end; 
+            margin-top: auto; 
+            padding-top: 5px; 
+            border-top: 1px dashed var(--border); 
+        }
+        
         .day-subtotal { font-size: 0.7rem; color: #64748b; font-weight: 600; line-height: 1.2; }
         .day-total { font-weight: 700; font-size: 0.95rem; color: var(--danger); margin-top: 2px; }
 
         /* --- MODALES --- */
         .modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100;
-            backdrop-filter: blur(2px); padding: 10px;
+            background: rgba(0,0,0,0.5); justify-content: center; align-items: center; 
+            z-index: 100; backdrop-filter: blur(2px); padding: 10px;
         }
+        
         .modal-content {
-            background: white; padding: 1.5rem; border-radius: 16px; 
-            width: 900px; 
-            max-width: 100%;
-            max-height: 90vh; overflow-y: auto;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: modalFadeIn 0.2s ease-out;
+            background: white; padding: 1.5rem; border-radius: 16px; width: 900px; max-width: 100%;
+            max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); 
+            animation: modalFadeIn 0.2s ease-out;
         }
-        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        @keyframes modalFadeIn { 
+            from { opacity: 0; transform: scale(0.95); } 
+            to { opacity: 1; transform: scale(1); } 
+        }
 
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
         .modal-title { margin: 0; font-size: 1.4rem; color: #1e293b; font-weight: 700; }
         .close-btn { border: none; background: none; font-size: 1.5rem; color: #94a3b8; padding: 0; cursor: pointer; }
 
-        .modal-form-grid {
-            display: grid;
+        .modal-form-grid { 
+            display: grid; 
             grid-template-columns: 2.5fr 1.5fr 1fr auto auto; 
-            gap: 10px; margin-bottom: 1.5rem; align-items: center;
+            gap: 10px; 
+            margin-bottom: 1.5rem; 
+            align-items: center; 
         }
+        
         .modal-form-grid input, .modal-form-grid select { width: 100%; }
 
         .expense-list { display: flex; flex-direction: column; gap: 8px; }
-        .expense-row { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 10px 0; border-bottom: 1px solid #f1f5f9; gap: 12px;
-        }
-        
+        .expense-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; gap: 12px; }
         .expense-info { display: flex; align-items: center; flex: 1; min-width: 0; gap: 8px; }
-        .editable-input { border: 1px solid transparent; background: transparent; font-family: inherit; font-size: 0.9rem; color: var(--text-main); padding: 4px; border-radius: 4px; transition: all 0.2s; width: 100%; }
+        
+        .editable-input { 
+            border: 1px solid transparent; background: transparent; font-family: inherit; 
+            font-size: 0.9rem; color: var(--text-main); padding: 4px; border-radius: 4px; 
+            transition: all 0.2s; width: 100%; 
+        }
         .editable-input:hover { background: #f8fafc; border-color: #e2e8f0; }
         .editable-input:focus { background: white; border-color: var(--primary); outline: none; }
         
-        .pocket-select-badge { max-width: 140px; border: none; border-radius: 12px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1e293b; font-weight: 600; appearance: none; -webkit-appearance: none; text-align: center; flex-shrink: 0; transition: opacity 0.2s; }
-        .pocket-select-badge:hover { opacity: 0.8; }
+        .pocket-select-badge { 
+            max-width: 140px; border: none; border-radius: 12px; padding: 4px 8px; 
+            font-size: 0.75rem; cursor: pointer; white-space: nowrap; overflow: hidden; 
+            text-overflow: ellipsis; color: #1e293b; font-weight: 600; appearance: none; 
+            -webkit-appearance: none; text-align: center; flex-shrink: 0; transition: opacity 0.2s; 
+        }
         
         .expense-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .delete-btn { color: #ef4444; border: none; background: none; cursor: pointer; padding: 6px; font-size: 1.1rem; border-radius: 4px; }
-        .delete-btn:hover { background: #fef2f2; }
         
         .bulk-update-btn { 
-            color: var(--primary); border: 1px solid var(--primary); padding: 4px 8px; font-size: 0.8rem; font-weight: 600; border-radius: 6px; background: #eff6ff; cursor: pointer; transition: 0.2s;
+            color: var(--primary); border: 1px solid var(--primary); padding: 4px 8px; 
+            font-size: 0.8rem; font-weight: 600; border-radius: 6px; background: #eff6ff; 
+            cursor: pointer; transition: 0.2s; 
         }
-        .bulk-update-btn:hover { background: var(--primary); color: white; }
+        
+        .modal-footer { 
+            text-align: right; font-weight: 700; font-size: 1.2rem; 
+            border-top: 2px solid var(--border); padding-top: 15px; 
+            margin-top: 10px; color: var(--text-main); 
+        }
 
-        .modal-footer { text-align: right; font-weight: 700; font-size: 1.2rem; border-top: 2px solid var(--border); padding-top: 15px; margin-top: 10px; color: var(--text-main); }
+        .menu-input-group { margin-bottom: 15px; }
+        .menu-input-group label { 
+            display: flex; align-items: center; gap: 8px; font-size: 1.1rem; 
+            font-weight: 700; color: #334155; margin-bottom: 8px; 
+        }
+        .menu-input-group textarea { 
+            width: 100%; min-height: 60px; resize: vertical; 
+            background: #f8fafc; font-size: 1rem; border: 1px solid #cbd5e1; 
+            padding: 10px;
+        }
+        .menu-input-group textarea:focus { 
+            background: white; border-color: var(--menu-color); 
+        }
 
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 0.9rem; color: #64748b; margin-bottom: 8px; font-weight: 600; }
         .form-group input, .form-group select { width: 100%; padding: 10px; }
-        .btn-full { width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; margin-top: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; }
+        .btn-full { 
+            width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; 
+            margin-top: 10px; background: var(--primary); color: white; 
+            border: none; border-radius: 6px; 
+        }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
+        .hidden { display: none !important; }
+
         @media (max-width: 768px) {
             header { padding: 10px; flex-direction: column; align-items: stretch; }
             .controls { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
-            .controls h2 { grid-column: span 2; margin: 5px 0 !important; text-align: center; } /* Centra el título en móvil */
+            
+            .app-tabs { grid-column: span 2; display: flex; width: 100%; }
+            .app-tabs button { flex: 1; }
+            
+            .controls h2 { grid-column: span 2; margin: 5px 0 !important; text-align: center; }
             .controls select, .controls button { width: 100%; justify-content: center; font-size: 0.8rem; padding: 10px; }
+            
             .financial-summary { display: grid; grid-template-columns: 1fr 1fr; padding: 12px; gap: 12px; width: 100%; }
-            .stat-item { align-items: flex-start; }
             .stat-divider { display: none; }
-            .projection-section { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; width: 100%; padding: 12px 10px; background: #1e293b; border: 1px dashed #475569; }
-            .projection-section .stat-divider { display: none; }
+            
+            .projection-section { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; width: 100%; padding: 12px 10px; }
+            
             .pockets-panel { padding: 10px; }
             main { padding: 10px; }
             .calendar-header { display: none; }
@@ -268,22 +536,19 @@
             .day-header { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; align-items: center; }
             .day-number { font-size: 1.2rem; }
             
-            /* MOSTRAR EL NOMBRE DEL DÍA SOLO EN CELULARES */
             .mobile-day-name { 
                 display: inline-block; 
                 margin-left: 6px; 
                 font-size: 0.95rem; 
                 color: #64748b; 
                 font-weight: 600; 
-                text-transform: capitalize;
+                text-transform: capitalize; 
             }
-
+            
             .modal-content { padding: 15px; }
-            .modal-form-grid { grid-template-columns: 1fr; gap: 12px; background: #f8fafc; padding: 15px; border-radius: 8px; }
-            .modal-form-grid label { align-self: flex-start; }
-            .expense-row { flex-direction: column; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); padding: 12px; border-radius: 8px; gap: 12px; }
+            .modal-form-grid { grid-template-columns: 1fr; gap: 12px; }
+            .expense-row { flex-direction: column; align-items: flex-start; }
             .expense-info { width: 100%; flex-direction: column; align-items: stretch; }
-            .pocket-select-badge { max-width: 100%; text-align: left; }
             .expense-actions { width: 100%; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 10px; flex-wrap: wrap;}
         }
     </style>
@@ -292,19 +557,24 @@
 
 <header>
     <div class="controls">
+        <div class="app-tabs">
+            <button id="tabExpenses" class="tab-btn active-expenses" onclick="setAppMode('expenses')">💰 Gastos</button>
+            <button id="tabMenus" class="tab-btn" onclick="setAppMode('menus')">🍽️ Menús</button>
+        </div>
+        
         <select id="monthSelect"></select>
         <select id="yearSelect"></select>
-        <button class="btn-icon" onclick="copyPreviousMonth()" title="Reemplazar configuración" style="color:#059669; border-color:#a7f3d0;">📋 Copiar Mes</button>
-        <button class="btn-icon" onclick="clearMonth()" title="Limpiar todos los datos" style="color:#ef4444; border-color:#fecaca;">🗑️ Limpiar</button>
+        <button class="btn-icon" onclick="copyPreviousMonth()" title="Reemplazar configuración del mes pasado" style="color:#059669; border-color:#a7f3d0;">📋 Copiar Mes</button>
+        <button class="btn-icon" onclick="clearMonth()" title="Limpiar datos del mes" style="color:#ef4444; border-color:#fecaca;">🗑️ Limpiar</button>
         <button id="syncBtn" class="btn-icon" onclick="syncToCloud()" title="Guardar en base de datos" style="color:#0284c7; border-color:#bae6fd;">☁️ Guardar en Nube</button>
-        <button class="btn-icon" onclick="exportData()" title="Descargar respaldo">💾 Exportar</button>
-        <button class="btn-icon" onclick="document.getElementById('importInput').click()" title="Cargar respaldo">📂 Importar</button>
+        <button class="btn-icon" onclick="exportData()" title="Descargar respaldo local">💾 Exportar</button>
+        <button class="btn-icon" onclick="document.getElementById('importInput').click()" title="Cargar respaldo local">📂 Importar</button>
         <input type="file" id="importInput" hidden accept=".json" onchange="importData(this)">
         
         <h2 id="monthTitle" style="margin: 0 0 0 15px; font-size: 1.8rem; color: var(--text-main); text-transform: capitalize;"></h2>
     </div>
 
-    <div class="financial-summary">
+    <div id="financialSection" class="financial-summary">
         <div class="stat-item">
             <span class="stat-label">Ingresos (Ppto)</span>
             <span class="stat-value" id="incomeDisplay" style="color: white;">$ 0</span>
@@ -360,10 +630,10 @@
 <div id="expenseModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title" id="modalTitle">Detalle del Día</h3>
+            <h3 class="modal-title" id="modalTitle">Detalle de Gastos</h3>
             <button class="close-btn" onclick="closeModal('expenseModal')">✕</button>
         </div>
-
+        
         <div class="modal-form-grid">
             <input type="text" id="descInput" placeholder="Concepto (ej. Almuerzo)">
             <select id="pocketSelect"></select>
@@ -371,13 +641,43 @@
             <label style="cursor:pointer; font-size:1rem; display:flex; align-items:center; gap: 8px;">
                 <input type="checkbox" id="recurInput" style="width:auto; transform: scale(1.3);"> 🔄 Recurrente
             </label>
-            <button class="btn-full" style="margin-top:0; background:var(--primary); color:white; border:none;" onclick="addExpense()">Agregar Gasto</button>
+            <button class="btn-full" style="margin-top:0; background:var(--primary); color:white; border:none;" onclick="addExpense()">Agregar</button>
         </div>
-
+        
         <div id="modalExpenseList" class="expense-list"></div>
-
+        
         <div class="modal-footer">
             Total Día: <span id="modalTotal">$ 0</span>
+        </div>
+    </div>
+</div>
+
+<div id="menuModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="menuModalTitle">Menú del Día</h3>
+            <button class="close-btn" onclick="closeModal('menuModal')">✕</button>
+        </div>
+        
+        <div class="menu-input-group">
+            <label>🍳 Desayuno</label>
+            <textarea id="menuB" placeholder="Ej. Huevos revueltos, arepa, café..."></textarea>
+        </div>
+        <div class="menu-input-group">
+            <label>🍲 Almuerzo</label>
+            <textarea id="menuL" placeholder="Ej. Sopa de verduras, pollo asado, arroz..."></textarea>
+        </div>
+        <div class="menu-input-group">
+            <label>🥗 Cena</label>
+            <textarea id="menuD" placeholder="Ej. Sándwich, aromática..."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:20px; align-items:center; flex-wrap: wrap; gap: 10px;">
+            <div style="display:flex; gap: 10px;">
+                <button class="action-btn" style="background:#f1f5f9; border: 1px solid var(--border);" onclick="replicateMenuWeek()" title="Copiar este menú al resto de ESTA semana">➡️ Esta semana</button>
+                <button class="action-btn" style="background:#f1f5f9; border: 1px solid var(--border);" onclick="replicateMenu()" title="Copiar este menú a los mismos días de FUTURAS semanas">🔁 Futuras semanas</button>
+            </div>
+            <button class="btn-full" style="width: auto; padding: 10px 30px; background: var(--menu-color); margin:0;" onclick="saveMenu()">Guardar Menú</button>
         </div>
     </div>
 </div>
@@ -390,24 +690,21 @@
         </div>
         
         <div class="form-group">
-            <label for="newPocketName">Nombre</label>
-            <input type="text" id="newPocketName" placeholder="Ej. Mercado, Arriendo...">
+            <label>Nombre</label>
+            <input type="text" id="newPocketName">
         </div>
-        
         <div class="form-group">
-            <label for="newPocketType">Tipo de Bolsillo</label>
+            <label>Tipo</label>
             <select id="newPocketType">
                 <option value="cash">💵 Efectivo / Débito</option>
-                <option value="credit">💳 Tarjeta de Crédito</option>
+                <option value="credit">💳 Tarjeta Crédito</option>
             </select>
         </div>
-        
         <div class="form-group">
-            <label for="newPocketLimit">Presupuesto Mensual</label>
-            <input type="number" id="newPocketLimit" placeholder="$ 0" min="0">
+            <label>Presupuesto</label>
+            <input type="number" id="newPocketLimit" min="0">
         </div>
-
-        <button class="btn-full" id="savePocketBtn" onclick="savePocket()">Guardar Bolsillo</button>
+        <button class="btn-full" id="savePocketBtn" onclick="savePocket()">Guardar</button>
     </div>
 </div>
 
@@ -420,34 +717,72 @@
     let selectedMonth = currentDate.getMonth();
     let activeDay = null;
     let editingPocketIndex = null;
+    let appMode = 'expenses'; 
     
-    // DB V29
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v29')) || {}; 
+    // DB V31
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v31')) || {}; 
 
     if (Object.keys(db).length === 0) {
-        const history = ['v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
+        const history = ['v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
-            if (old) {
-                db = JSON.parse(old);
-                saveDB();
-                break;
+            if (old) { 
+                db = JSON.parse(old); 
+                break; 
             }
         }
     }
-
-    const moneyFormatter = new Intl.NumberFormat('es-CO', {
-        style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0
+    
+    Object.keys(db).forEach(k => {
+        if (!db[k].menus) {
+            db[k].menus = {}; 
+        }
     });
-    function formatMoney(amount) { return moneyFormatter.format(amount); }
+    saveDB();
 
-    function generateInternalId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    const moneyFormatter = new Intl.NumberFormat('es-CO', { 
+        style: 'currency', 
+        currency: 'COP', 
+        minimumFractionDigits: 0 
+    });
+
+    function formatMoney(amount) { 
+        return moneyFormatter.format(amount); 
     }
 
-    // URL DE PRODUCCIÓN
-    const API_URL = 'https://mauroricardo-github-io.onrender.com/api/sync';
+    function generateInternalId() { 
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); 
+    }
 
+    function getKey(y, m) { 
+        return `${y}-${m}`; 
+    }
+
+    // --- TOGGLE MODO ---
+    function setAppMode(mode) {
+        appMode = mode;
+        const btnExp = document.getElementById('tabExpenses');
+        const btnMenu = document.getElementById('tabMenus');
+        const finSec = document.getElementById('financialSection');
+        const pocSec = document.getElementById('pocketsContainer');
+
+        if (mode === 'expenses') {
+            btnExp.classList.add('active-expenses');
+            btnMenu.classList.remove('active-menus');
+            finSec.classList.remove('hidden');
+            pocSec.classList.remove('hidden');
+        } else {
+            btnExp.classList.remove('active-expenses');
+            btnMenu.classList.add('active-menus');
+            finSec.classList.add('hidden');
+            pocSec.classList.add('hidden');
+        }
+        render();
+    }
+
+    // --- GO API ---
+    const API_URL = 'https://mauroricardo-github-io.onrender.com/api/sync';
+    
     async function loadFromCloud() {
         try {
             const response = await fetch(API_URL);
@@ -455,247 +790,261 @@
                 const cloudData = await response.json();
                 if (cloudData && Object.keys(cloudData).length > 0) {
                     db = cloudData;
+                    Object.keys(db).forEach(k => { 
+                        if (!db[k].menus) db[k].menus = {}; 
+                    });
                     saveDB(); 
-                    render(); 
-                    console.log("Carga inicial desde la nube exitosa.");
+                    render();
                 }
             }
-        } catch (error) {
-            console.warn("Iniciando modo offline. No se pudo contactar al servidor Go.");
+        } catch (e) { 
+            console.warn("Iniciando en modo offline."); 
         }
     }
 
     async function syncToCloud() {
         const btn = document.getElementById('syncBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '⏳ Guardando...';
+        const originalText = btn.innerHTML; 
+        
+        btn.innerHTML = '⏳ Guardando...'; 
         btn.disabled = true;
         
         try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const response = await fetch(API_URL, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify(db) 
             });
             
             if (response.ok) {
-                btn.innerHTML = '✅ Guardado';
+                btn.innerHTML = '✅ Guardado'; 
             } else {
-                throw new Error("Respuesta fallida del servidor");
+                throw new Error("Respuesta fallida");
             }
-        } catch (error) {
-            alert("Error al intentar guardar en la base de datos. Tus datos siguen seguros localmente.");
-            btn.innerHTML = '❌ Error';
-        } finally {
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }, 3000);
+        } catch (e) { 
+            btn.innerHTML = '❌ Error'; 
+        } finally { 
+            setTimeout(() => { 
+                btn.innerHTML = originalText; 
+                btn.disabled = false; 
+            }, 3000); 
+        }
+    }
+
+    function init() {
+        const ys = document.getElementById('yearSelect');
+        const ms = document.getElementById('monthSelect');
+        
+        for(let y = selectedYear - 3; y <= selectedYear + 3; y++) {
+            ys.add(new Option(y, y, false, y === selectedYear));
+        }
+        
+        months.forEach((m, i) => {
+            ms.add(new Option(m, i, false, i === selectedMonth));
+        });
+        
+        ys.onchange = e => { 
+            selectedYear = parseInt(e.target.value); 
+            changeMonth(); 
+        };
+        
+        ms.onchange = e => { 
+            selectedMonth = parseInt(e.target.value); 
+            changeMonth(); 
+        };
+        
+        changeMonth(); 
+        loadFromCloud();
+    }
+
+    function changeMonth() {
+        const key = getKey(selectedYear, selectedMonth);
+        if (!db[key]) {
+            db[key] = { pockets: [], expenses: {}, menus: {} };
+        }
+        if (!db[key].menus) {
+            db[key].menus = {};
+        }
+        saveDB(); 
+        render();
+    }
+
+    function clearMonth() {
+        const txt = appMode === 'expenses' ? 'los GASTOS' : 'los MENÚS';
+        
+        if(confirm(`¿Estás seguro de eliminar TODOS ${txt} de este mes?`)) {
+            const key = getKey(selectedYear, selectedMonth);
+            
+            if(appMode === 'expenses') { 
+                db[key].expenses = {}; 
+                db[key].pockets = []; 
+            } else { 
+                db[key].menus = {}; 
+            }
+            saveDB(); 
+            render();
         }
     }
 
     function copyPreviousMonth() {
-        if(!confirm("¿Reemplazar datos actuales con configuración del mes pasado (Y copiar gastos recurrentes 🔄)?\n\nADVERTENCIA: Esto borrará la configuración del mes actual.")) return;
+        const txt = appMode === 'expenses' ? 'configuración y gastos recurrentes' : 'los menús';
         
-        const currentKey = getKey(selectedYear, selectedMonth);
-        let prevMonth = selectedMonth - 1, prevYear = selectedYear;
-        if(prevMonth < 0) { prevMonth = 11; prevYear--; }
+        if(!confirm(`¿Reemplazar ${txt} de este mes con los del mes pasado?`)) return;
+        
+        const curKey = getKey(selectedYear, selectedMonth);
+        let prevMonth = selectedMonth - 1;
+        let prevYear = selectedYear;
+        
+        if(prevMonth < 0) { 
+            prevMonth = 11; 
+            prevYear--; 
+        }
         
         const prevKey = getKey(prevYear, prevMonth);
         
         if(db[prevKey]) {
-            if(!db[currentKey]) db[currentKey] = { pockets: [], expenses: {} };
+            if(!db[curKey]) {
+                db[curKey] = { pockets: [], expenses: {}, menus: {} };
+            }
             
-            db[currentKey].pockets = JSON.parse(JSON.stringify(db[prevKey].pockets));
-            db[currentKey].pockets.forEach(p => p.realAvailable = 0);
-            db[currentKey].expenses = {};
-            
-            const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-            
-            Object.keys(db[prevKey].expenses).forEach(sourceDayStr => {
-                const sourceDay = parseInt(sourceDayStr);
-                const sourceDate = new Date(prevYear, prevMonth, sourceDay);
-                const dayOfWeek = sourceDate.getDay(); 
+            if (appMode === 'expenses') {
+                db[curKey].pockets = JSON.parse(JSON.stringify(db[prevKey].pockets || []));
+                db[curKey].pockets.forEach(p => p.realAvailable = 0);
+                db[curKey].expenses = {};
                 
-                const occurrence = Math.ceil(sourceDay / 7);
-                const recurringExpenses = db[prevKey].expenses[sourceDayStr].filter(e => e.isRecurring);
+                const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
                 
-                if (recurringExpenses.length > 0) {
-                    let currentOccurrence = 0; let targetDay = null;
-                    for (let d = 1; d <= daysInCurrentMonth; d++) {
-                        const loopDate = new Date(selectedYear, selectedMonth, d);
-                        if (loopDate.getDay() === dayOfWeek) {
-                            currentOccurrence++;
-                            if (currentOccurrence === occurrence) { targetDay = d; break; }
+                Object.keys(db[prevKey].expenses || {}).forEach(dayStr => {
+                    const sourceDay = parseInt(dayStr);
+                    const sourceDate = new Date(prevYear, prevMonth, sourceDay);
+                    const dayOfWeek = sourceDate.getDay(); 
+                    
+                    const occurrence = Math.ceil(sourceDay / 7);
+                    const recurringExpenses = db[prevKey].expenses[dayStr].filter(e => e.isRecurring);
+                    
+                    if (recurringExpenses.length > 0) {
+                        let currentOccurrence = 0; 
+                        let targetDay = null;
+                        
+                        for (let d = 1; d <= daysInCurrentMonth; d++) {
+                            if (new Date(selectedYear, selectedMonth, d).getDay() === dayOfWeek) {
+                                currentOccurrence++; 
+                                if (currentOccurrence === occurrence) { 
+                                    targetDay = d; 
+                                    break; 
+                                }
+                            }
+                        }
+                        
+                        if (targetDay !== null) {
+                            if (!db[curKey].expenses[targetDay]) {
+                                db[curKey].expenses[targetDay] = [];
+                            }
+                            recurringExpenses.forEach(exp => { 
+                                let newExp = JSON.parse(JSON.stringify(exp)); 
+                                newExp.internalId = generateInternalId(); 
+                                db[curKey].expenses[targetDay].push(newExp); 
+                            });
                         }
                     }
-                    if (targetDay !== null) {
-                        if (!db[currentKey].expenses[targetDay]) db[currentKey].expenses[targetDay] = [];
-                        recurringExpenses.forEach(exp => {
-                            let newExp = JSON.parse(JSON.stringify(exp));
-                            newExp.internalId = generateInternalId();
-                            db[currentKey].expenses[targetDay].push(newExp);
-                        });
-                    }
-                }
-            });
-            saveDB(); render();
-            alert("Configuración y gastos recurrentes copiados con éxito.");
+                });
+            } else {
+                db[curKey].menus = JSON.parse(JSON.stringify(db[prevKey].menus || {}));
+            }
+            saveDB(); 
+            render(); 
+            alert(`${txt} copiados con éxito.`);
         } else {
             alert("No hay información registrada en el mes anterior para copiar.");
         }
     }
 
-    function clearMonth() {
-        if(confirm("¿Estás seguro de eliminar TODOS los datos de este mes?")) {
-            const key = getKey(selectedYear, selectedMonth);
-            if(db[key]) {
-                db[key].expenses = {}; db[key].pockets = []; 
-                saveDB(); render();
-            }
-        }
-    }
-
-    function getColombianHolidays(year) {
-        const holidays = {};
-        const d2s = (date) => `${date.getMonth()}-${date.getDate()}`;
-        const fixed = [[0, 1, "Año Nuevo"], [4, 1, "Día del Trabajo"], [6, 20, "Independencia"], [7, 7, "Batalla de Boyacá"], [11, 8, "Inm. Concepción"], [11, 25, "Navidad"]];
-        fixed.forEach(([m, d, name]) => holidays[`${m}-${d}`] = name);
-        const emiliani = [[0, 6, "Reyes Magos"], [2, 19, "San José"], [5, 29, "San Pedro y San Pablo"], [7, 15, "Asunción"], [9, 12, "Día de la Raza"], [10, 1, "Todos los Santos"], [10, 11, "Indep. Cartagena"]];
-        emiliani.forEach(([m, d, name]) => {
-            let date = new Date(year, m, d);
-            if (date.getDay() !== 1) date.setDate(date.getDate() + (8 - date.getDay()) % 7);
-            holidays[d2s(date)] = name;
-        });
-        const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
-        const monthEaster = Math.floor((h + l - 7 * m + 114) / 31) - 1, dayEaster = ((h + l - 7 * m + 114) % 31) + 1;
-        const easterDate = new Date(year, monthEaster, dayEaster);
-        const thursday = new Date(easterDate); thursday.setDate(easterDate.getDate() - 3);
-        const friday = new Date(easterDate); friday.setDate(easterDate.getDate() - 2);
-        holidays[d2s(thursday)] = "Jueves Santo"; holidays[d2s(friday)] = "Viernes Santo";
-        const addDays = (days) => {
-            let d = new Date(easterDate); d.setDate(d.getDate() + days);
-            if (d.getDay() !== 1) d.setDate(d.getDate() + (8 - d.getDay()) % 7);
-            return d;
-        };
-        holidays[d2s(addDays(40))] = "Ascensión"; holidays[d2s(addDays(61))] = "Corpus Christi"; holidays[d2s(addDays(68))] = "Sagrado Corazón";
-        return holidays;
-    }
-
-    function init() {
-        const yearSel = document.getElementById('yearSelect');
-        const monthSel = document.getElementById('monthSelect');
-        for(let y = selectedYear - 3; y <= selectedYear + 3; y++) yearSel.add(new Option(y, y, false, y === selectedYear));
-        months.forEach((m, i) => monthSel.add(new Option(m, i, false, i === selectedMonth)));
-        yearSel.onchange = (e) => { selectedYear = parseInt(e.target.value); changeMonth(); };
-        monthSel.onchange = (e) => { selectedMonth = parseInt(e.target.value); changeMonth(); };
-        
-        changeMonth();
-        loadFromCloud();
-    }
-
-    function getKey(y, m) { return `${y}-${m}`; }
-
-    function changeMonth() {
-        const key = getKey(selectedYear, selectedMonth);
-        if (!db[key]) {
-            db[key] = { pockets: [], expenses: {} };
-        }
-        saveDB(); render();
-    }
-
-    function updateRealAv(pocketIndex, val) {
-        const rawVal = val.replace(/\D/g, ''); 
-        const num = parseFloat(rawVal) || 0;
-        const key = getKey(selectedYear, selectedMonth);
-        db[key].pockets[pocketIndex].realAvailable = num;
-        saveDB();
-        render();
-    }
-
     function render() {
         document.getElementById('monthTitle').innerText = `${months[selectedMonth]} ${selectedYear}`;
-
-        const key = getKey(selectedYear, selectedMonth), data = db[key];
-        const autoIncome = data.pockets.reduce((sum, p) => sum + p.limit, 0);
-        document.getElementById('incomeDisplay').innerText = formatMoney(autoIncome);
         
-        let totalSpent = 0;
-        let totalCredit = 0;
-        let totalCash = 0;
-        let pocketSpending = {};
+        const key = getKey(selectedYear, selectedMonth);
+        const data = db[key];
         
-        data.pockets.forEach(p => pocketSpending[p.id] = 0);
-        
-        let totalRealAv = data.pockets.reduce((sum, p) => sum + (p.realAvailable || 0), 0);
-        let hasRealAvailable = totalRealAv > 0; 
-        
-        let pendingExpenses = 0;
-        
-        const isCurrentMonth = (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth());
-        const isFutureMonth = (selectedYear > currentDate.getFullYear() || (selectedYear === currentDate.getFullYear() && selectedMonth > currentDate.getMonth()));
-
-        Object.keys(data.expenses).forEach(dayStr => {
-            const dayNum = parseInt(dayStr);
-            data.expenses[dayStr].forEach(exp => {
-                totalSpent += exp.amount;
-                
-                const pocket = data.pockets.find(p => p.id === exp.pocketId);
-                const pType = pocket ? (pocket.type || 'cash') : 'cash';
-                
-                if (pType === 'credit') totalCredit += exp.amount;
-                else totalCash += exp.amount;
-
-                if(exp.pocketId && pocketSpending[exp.pocketId] !== undefined) {
-                    pocketSpending[exp.pocketId] += exp.amount;
-                }
-                
-                if (isFutureMonth) {
-                    pendingExpenses += exp.amount;
-                } else if (isCurrentMonth && dayNum >= currentDate.getDate()) {
-                    pendingExpenses += exp.amount;
-                }
+        if (appMode === 'expenses') {
+            const autoIncome = data.pockets.reduce((sum, p) => sum + p.limit, 0);
+            document.getElementById('incomeDisplay').innerText = formatMoney(autoIncome);
+            
+            let totalSpent = 0;
+            let totalCredit = 0;
+            let totalCash = 0;
+            let pocketSpending = {};
+            
+            data.pockets.forEach(p => {
+                pocketSpending[p.id] = 0;
             });
-        });
-        
-        document.getElementById('totalExpenses').innerText = formatMoney(totalSpent);
-        document.getElementById('totalCredit').innerText = formatMoney(totalCredit);
-        document.getElementById('totalCash').innerText = formatMoney(totalCash);
-        
-        const balance = autoIncome - totalSpent;
-        document.getElementById('balance').innerText = formatMoney(balance);
-        document.getElementById('balance').style.color = balance >= 0 ? '#86efac' : '#fca5a5';
-        
-        document.getElementById('totalRealAv').innerText = formatMoney(totalRealAv);
-        
-        const projStatusEl = document.getElementById('projectionStatus');
-        const pendingEl = document.getElementById('pendingExpenses');
-        
-        if (hasRealAvailable) {
-            pendingEl.innerText = formatMoney(pendingExpenses);
-            const projectionBalance = totalRealAv - pendingExpenses;
-            projStatusEl.innerText = formatMoney(projectionBalance);
-            if (projectionBalance >= 0) {
-                projStatusEl.style.color = "#86efac"; 
-            } else {
-                projStatusEl.style.color = "#fca5a5"; 
+            
+            let totalRealAv = data.pockets.reduce((sum, p) => sum + (p.realAvailable || 0), 0);
+            let pending = 0;
+            
+            const isCur = (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth());
+            const isFut = (selectedYear > currentDate.getFullYear() || (selectedYear === currentDate.getFullYear() && selectedMonth > currentDate.getMonth()));
+
+            Object.keys(data.expenses).forEach(dayStr => {
+                const dayNum = parseInt(dayStr);
+                data.expenses[dayStr].forEach(exp => {
+                    totalSpent += exp.amount;
+                    
+                    const p = data.pockets.find(pk => pk.id === exp.pocketId);
+                    
+                    if (p && p.type === 'credit') {
+                        totalCredit += exp.amount; 
+                    } else {
+                        totalCash += exp.amount;
+                    }
+                    
+                    if(exp.pocketId && pocketSpending[exp.pocketId] !== undefined) {
+                        pocketSpending[exp.pocketId] += exp.amount;
+                    }
+                    
+                    if (isFut || (isCur && dayNum >= currentDate.getDate())) {
+                        pending += exp.amount;
+                    }
+                });
+            });
+            
+            document.getElementById('totalExpenses').innerText = formatMoney(totalSpent);
+            document.getElementById('totalCredit').innerText = formatMoney(totalCredit);
+            document.getElementById('totalCash').innerText = formatMoney(totalCash);
+            
+            const balance = autoIncome - totalSpent;
+            document.getElementById('balance').innerText = formatMoney(balance);
+            document.getElementById('balance').style.color = balance >= 0 ? '#86efac' : '#fca5a5';
+            
+            document.getElementById('totalRealAv').innerText = formatMoney(totalRealAv);
+            
+            const projStatusEl = document.getElementById('projectionStatus');
+            const pendingEl = document.getElementById('pendingExpenses');
+            
+            if (totalRealAv > 0) {
+                pendingEl.innerText = formatMoney(pending);
+                const projectionBalance = totalRealAv - pending; 
+                projStatusEl.innerText = formatMoney(projectionBalance);
+                projStatusEl.style.color = projectionBalance >= 0 ? "#86efac" : "#fca5a5"; 
+            } else { 
+                pendingEl.innerText = "-"; 
+                projStatusEl.innerText = "-"; 
+                projStatusEl.style.color = "white"; 
             }
-        } else {
-            pendingEl.innerText = "-";
-            projStatusEl.innerText = "-";
-            projStatusEl.style.color = "white"; 
+            
+            renderPockets(data, pocketSpending); 
         }
         
-        renderPockets(data, pocketSpending); 
         renderCalendar(data);
     }
 
     function renderPockets(data, spendingMap) {
-        const container = document.getElementById('pocketsContainer');
+        const container = document.getElementById('pocketsContainer'); 
         container.innerHTML = '';
-        const addBtn = document.createElement('div');
-        addBtn.className = 'add-pocket-btn'; addBtn.innerText = '+';
-        addBtn.onclick = () => openPocketModal();
+        
+        const addBtn = document.createElement('div'); 
+        addBtn.className = 'add-pocket-btn'; 
+        addBtn.innerText = '+'; 
+        addBtn.onclick = () => openPocketModal(); 
         container.appendChild(addBtn);
         
         data.pockets.forEach((p, idx) => {
@@ -704,218 +1053,353 @@
             const baseColor = p.color || '#94a3b8';
             const progressColor = spent > p.limit ? '#ef4444' : '#10b981';
             
-            const pIcon = (p.type === 'credit') ? '💳' : '💵';
-            const realAv = p.realAvailable || 0;
-            
-            const div = document.createElement('div');
+            const div = document.createElement('div'); 
             div.className = 'pocket-card'; 
             div.style.backgroundColor = baseColor + '33'; 
             div.style.border = `1px solid ${baseColor}66`;
             
             div.innerHTML = `
                 <div class="pocket-header">
-                    <span>${pIcon} ${p.name}</span>
+                    <span>${p.type === 'credit' ? '💳' : '💵'} ${p.name}</span>
                     <div class="pocket-actions">
                         <button class="action-btn" onclick="editPocket(${idx})">✎</button>
-                        <button class="action-btn" style="color:#ef4444" onclick="deletePocket(${idx})">✕</button>
+                        <button class="action-btn" style="color:red" onclick="deletePocket(${idx})">✕</button>
                     </div>
                 </div>
-                
                 <div class="pocket-ppto-info">
                     <span>Ppto: <b>${formatMoney(p.limit)}</b></span>
                     <span style="color:var(--danger);">Gasto: <b>${formatMoney(spent)}</b></span>
                 </div>
-                
-                <div class="pocket-progress-bg"><div class="pocket-progress-fill" style="width:${percent}%; background:${progressColor};"></div></div>
-                
+                <div class="pocket-progress-bg">
+                    <div class="pocket-progress-fill" style="width:${percent}%; background:${progressColor};"></div>
+                </div>
                 <div class="pocket-ppto-info" style="font-weight:bold; margin-top:4px;">
                     <span>Disp. Ppto: <b style="color:${p.limit - spent >= 0 ? '#10b981' : '#ef4444'}">${formatMoney(p.limit - spent)}</b></span>
                 </div>
-                
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; border-top: 1px dashed #cbd5e1; padding-top: 6px;">
                     <span style="font-size:0.75rem; color:#475569; font-weight:700;">Disp. Real:</span>
                     <div style="display:flex; align-items:center; gap:2px;">
                         <span style="color:#64748b; font-size:0.8rem;">$</span>
                         <input type="text" class="editable-input" 
-                               style="width:80px; text-align:right; font-weight:bold; font-size:0.85rem; padding:2px 4px; background:white; border: 1px solid #cbd5e1; border-radius:4px;" 
-                               value="${realAv === 0 ? '' : realAv}" placeholder="0" 
-                               onblur="updateRealAv(${idx}, this.value)" 
-                               onkeypress="if(event.key==='Enter') this.blur()">
+                               style="width:80px; text-align:right; font-weight:bold; font-size:0.85rem; padding:2px; background:white; border: 1px solid #cbd5e1;" 
+                               value="${p.realAvailable === 0 ? '' : p.realAvailable}" placeholder="0" 
+                               onblur="updateRealAv(${idx}, this.value)">
                     </div>
-                </div>
-            `;
+                </div>`;
             container.appendChild(div);
         });
     }
 
-    function renderCalendar(data) {
-        const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
-        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-        let firstDayIndex = new Date(selectedYear, selectedMonth, 1).getDay();
-        firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-        const holidays = getColombianHolidays(selectedYear);
+    function updateRealAv(idx, val) { 
+        db[getKey(selectedYear, selectedMonth)].pockets[idx].realAvailable = parseFloat(val.replace(/\D/g, '')) || 0; 
+        saveDB(); 
+        render(); 
+    }
+
+    function getColombianHolidays(year) {
+        const holidays = {}; 
+        const dateToStr = (date) => `${date.getMonth()}-${date.getDate()}`;
         
+        const fixedHolidays = [
+            [0, 1, "Año Nuevo"], [4, 1, "Día del Trabajo"], [6, 20, "Independencia"], 
+            [7, 7, "Batalla de Boyacá"], [11, 8, "Inm. Concepción"], [11, 25, "Navidad"]
+        ];
+        fixedHolidays.forEach(([m, d, name]) => holidays[`${m}-${d}`] = name);
+        
+        const emilianiHolidays = [
+            [0, 6, "Reyes Magos"], [2, 19, "San José"], [5, 29, "San Pedro y San Pablo"], 
+            [7, 15, "Asunción"], [9, 12, "Día de la Raza"], [10, 1, "Todos los Santos"], [10, 11, "Indep. Cartagena"]
+        ];
+        
+        emilianiHolidays.forEach(([m, d, name]) => { 
+            let date = new Date(year, m, d); 
+            if (date.getDay() !== 1) {
+                date.setDate(date.getDate() + (8 - date.getDay()) % 7); 
+            }
+            holidays[dateToStr(date)] = name; 
+        });
+        
+        const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4;
+        const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        
+        const monthEaster = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+        const dayEaster = ((h + l - 7 * m + 114) % 31) + 1;
+        
+        const easterDate = new Date(year, monthEaster, dayEaster);
+        const thursday = new Date(easterDate); thursday.setDate(easterDate.getDate() - 3); 
+        const friday = new Date(easterDate); friday.setDate(easterDate.getDate() - 2);
+        
+        holidays[dateToStr(thursday)] = "Jueves Santo"; 
+        holidays[dateToStr(friday)] = "Viernes Santo";
+        
+        const addDays = (days) => { 
+            let dateObj = new Date(easterDate); 
+            dateObj.setDate(dateObj.getDate() + days); 
+            if (dateObj.getDay() !== 1) {
+                dateObj.setDate(dateObj.getDate() + (8 - dateObj.getDay()) % 7); 
+            }
+            return dateObj; 
+        };
+        
+        holidays[dateToStr(addDays(40))] = "Ascensión"; 
+        holidays[dateToStr(addDays(61))] = "Corpus Christi"; 
+        holidays[dateToStr(addDays(68))] = "Sagrado Corazón";
+        
+        return holidays;
+    }
+
+    function renderCalendar(data) {
+        const grid = document.getElementById('calendarGrid'); 
+        grid.innerHTML = '';
+        
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        
+        let firstDayIndex = new Date(selectedYear, selectedMonth, 1).getDay(); 
+        firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+        
+        const holidays = getColombianHolidays(selectedYear);
         const dayNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         
-        for(let i=0; i<firstDayIndex; i++) {
-            const emptyCell = document.createElement('div');
-            emptyCell.className = 'day-cell empty';
-            grid.appendChild(emptyCell);
+        for(let i = 0; i < firstDayIndex; i++) { 
+            const emptyCell = document.createElement('div'); 
+            emptyCell.className = 'day-cell empty'; 
+            grid.appendChild(emptyCell); 
         }
         
         const isCurrentMonth = (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth());
         
-        for(let d=1; d<=daysInMonth; d++) {
-            const dayExpenses = data.expenses[d] || [];
-            let dayTotal = 0, dayCash = 0, dayCredit = 0, previewsHTML = '';
+        for(let d = 1; d <= daysInMonth; d++) {
+            const cell = document.createElement('div');
             
-            dayExpenses.forEach((exp, index) => {
-                dayTotal += exp.amount;
-                const pocket = data.pockets.find(p => p.id === exp.pocketId);
-                const pType = pocket ? (pocket.type || 'cash') : 'cash';
-                const methodIcon = pType === 'credit' ? '💳' : '💵';
-                
-                if (pType === 'credit') dayCredit += exp.amount; else dayCash += exp.amount;
-
-                if (index < 6) {
-                    const recurClass = exp.isRecurring ? 'is-recurring' : '';
-                    previewsHTML += `<div class="expense-preview ${recurClass}" style="background-color: ${(pocket?pocket.color:'#94a3b8')+'66'};"><span style="overflow:hidden; text-overflow:ellipsis;" title="${exp.desc}">${methodIcon} ${exp.desc}</span><span>${formatMoney(exp.amount)}</span></div>`;
-                }
-            });
+            const isToday = (isCurrentMonth && d === currentDate.getDate());
+            cell.className = `day-cell ${isToday ? 'current-day' : ''} ${appMode === 'menus' ? 'menu-mode' : ''}`;
             
-            if (dayExpenses.length > 6) previewsHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExpenses.length - 6} más</div>`;
+            const loopDate = new Date(selectedYear, selectedMonth, d);
+            const dayNameStr = dayNamesShort[loopDate.getDay()];
             
             const hName = holidays[`${selectedMonth}-${d}`];
             const hBadge = hName ? `<span class="holiday-badge" title="${hName}">${hName}</span>` : '';
             
-            let totalsHTML = '';
-            if (dayTotal > 0) {
-                totalsHTML = `<div class="day-totals-container">`;
-                if (dayCash > 0) totalsHTML += `<span class="day-subtotal">💵 ${formatMoney(dayCash)}</span>`;
-                if (dayCredit > 0) totalsHTML += `<span class="day-subtotal">💳 ${formatMoney(dayCredit)}</span>`;
-                totalsHTML += `<span class="day-total">${formatMoney(dayTotal)}</span></div>`;
+            let contentHTML = ''; 
+            let bottomHTML = '';
+
+            if (appMode === 'expenses') {
+                const dayExps = data.expenses[d] || [];
+                let dayTotal = 0, dayCash = 0, dayCredit = 0;
+                
+                dayExps.forEach((exp, i) => {
+                    dayTotal += exp.amount;
+                    
+                    const pocket = data.pockets.find(p => p.id === exp.pocketId);
+                    const pType = pocket ? pocket.type : 'cash';
+                    
+                    if (pType === 'credit') {
+                        dayCredit += exp.amount; 
+                    } else {
+                        dayCash += exp.amount;
+                    }
+                    
+                    if (i < 6) {
+                        contentHTML += `
+                            <div class="expense-preview ${exp.isRecurring ? 'is-recurring' : ''}" style="background:${(pocket ? pocket.color : '#94a3b8') + '66'}">
+                                <span class="meal-text">${pType === 'credit' ? '💳' : '💵'} ${exp.desc}</span>
+                                <span>${formatMoney(exp.amount)}</span>
+                            </div>`;
+                    }
+                });
+                
+                if (dayExps.length > 6) {
+                    contentHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExps.length - 6} más</div>`;
+                }
+                
+                if (dayTotal > 0) { 
+                    bottomHTML = `
+                        <div class="day-totals-container">
+                            ${dayCash > 0 ? `<span class="day-subtotal">💵 ${formatMoney(dayCash)}</span>` : ''}
+                            ${dayCredit > 0 ? `<span class="day-subtotal">💳 ${formatMoney(dayCredit)}</span>` : ''}
+                            <span class="day-total">${formatMoney(dayTotal)}</span>
+                        </div>`; 
+                }
+            } else {
+                const menuDay = data.menus[d] || {};
+                
+                if (menuDay.b) {
+                    contentHTML += `<div class="meal-preview" title="${menuDay.b}"><span class="meal-icon">🍳</span><span class="meal-text">${menuDay.b}</span></div>`;
+                }
+                if (menuDay.l) {
+                    contentHTML += `<div class="meal-preview" title="${menuDay.l}"><span class="meal-icon">🍲</span><span class="meal-text">${menuDay.l}</span></div>`;
+                }
+                if (menuDay.d) {
+                    contentHTML += `<div class="meal-preview" title="${menuDay.d}"><span class="meal-icon">🥗</span><span class="meal-text">${menuDay.d}</span></div>`;
+                }
             }
 
-            const cell = document.createElement('div');
-            
-            const isToday = (isCurrentMonth && d === currentDate.getDate());
-            cell.className = 'day-cell' + (isToday ? ' current-day' : '');
-            
-            // CÁLCULO DEL DÍA PARA LA VISTA MÓVIL
-            const loopDate = new Date(selectedYear, selectedMonth, d);
-            const dayNameStr = dayNamesShort[loopDate.getDay()];
-            
             cell.innerHTML = `
                 <div class="day-header">
-                    <div style="display: flex; align-items: center;">
+                    <div style="display:flex; align-items:center;">
                         <span class="day-number">${d}</span>
                         <span class="mobile-day-name">${dayNameStr}</span>
                     </div>
                     ${hBadge}
                 </div>
-                <div class="day-previews-container">${previewsHTML}</div>
-                ${totalsHTML}
+                <div class="day-previews-container">${contentHTML}</div>
+                ${bottomHTML}
             `;
-            cell.onclick = (e) => {
+            
+            cell.onclick = (e) => { 
                 if (e.target.tagName !== 'INPUT') { 
-                    openExpenseModal(d);
-                }
+                    openDayModal(d); 
+                } 
             };
+            
             grid.appendChild(cell);
         }
     }
 
-    function closeModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
-        if(modalId === 'pocketModal') { editingPocketIndex = null; }
-        if(modalId === 'expenseModal') { document.getElementById('recurInput').checked = false; }
-        render();
-    }
-
-    function openPocketModal(index = null) {
-        editingPocketIndex = index;
-        const nameInput = document.getElementById('newPocketName'), limitInput = document.getElementById('newPocketLimit'), typeInput = document.getElementById('newPocketType');
-        if (index !== null) {
-            const p = db[getKey(selectedYear, selectedMonth)].pockets[index];
-            nameInput.value = p.name; limitInput.value = p.limit; typeInput.value = p.type || 'cash'; 
-            document.getElementById('pocketModalTitle').innerText = "Editar Bolsillo";
-        } else {
-            nameInput.value = ''; limitInput.value = ''; typeInput.value = 'cash';
-            document.getElementById('pocketModalTitle').innerText = "Nuevo Bolsillo";
-        }
-        document.getElementById('pocketModal').style.display = 'flex';
-        nameInput.focus();
-    }
-
-    function editPocket(index) { openPocketModal(index); }
-
-    function savePocket() {
-        const nameInput = document.getElementById('newPocketName'), limitInput = document.getElementById('newPocketLimit'), typeInput = document.getElementById('newPocketType');
-        const name = nameInput.value.trim(), limit = parseFloat(limitInput.value), type = typeInput.value;
-              
-        if(!name || isNaN(limit) || limit < 0) return;
-        const key = getKey(selectedYear, selectedMonth);
-        if (editingPocketIndex !== null) {
-            const p = db[key].pockets[editingPocketIndex];
-            p.name = name; p.limit = limit; p.type = type;
-        } else {
-            db[key].pockets.push({ id: Date.now().toString(), name, limit, type, realAvailable: 0, color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length] });
-        }
-        saveDB(); closeModal('pocketModal');
-    }
-
-    function deletePocket(idx) {
-        if(!confirm("¿Eliminar bolsillo? ADVERTENCIA: Se eliminarán TODOS los gastos asociados a él.")) return;
-        const key = getKey(selectedYear, selectedMonth);
-        const pId = db[key].pockets[idx].id;
-        db[key].pockets.splice(idx, 1);
-        Object.keys(db[key].expenses).forEach(day => {
-            db[key].expenses[day] = db[key].expenses[day].filter(exp => exp.pocketId !== pId);
-        });
-        saveDB(); render();
-    }
-
-    function openExpenseModal(day) {
-        activeDay = day; document.getElementById('expenseModal').style.display = 'flex';
-        const holidays = getColombianHolidays(selectedYear), hName = holidays[`${selectedMonth}-${day}`];
-        document.getElementById('modalTitle').innerText = `${day} de ${months[selectedMonth]}${hName ? ' ('+hName+')' : ''}`;
+    function openDayModal(day) {
+        activeDay = day;
         
-        const sel = document.getElementById('pocketSelect'); sel.innerHTML = '';
-        const pockets = db[getKey(selectedYear, selectedMonth)].pockets;
-        document.getElementById('recurInput').checked = false;
+        const hName = getColombianHolidays(selectedYear)[`${selectedMonth}-${day}`];
+        const titleStr = `${day} de ${months[selectedMonth]}${hName ? ' ('+hName+')' : ''}`;
         
-        if (pockets.length === 0) {
-            const opt = new Option("¡Crea un bolsillo!", ""); opt.disabled = true; sel.add(opt);
-            document.getElementById('amountInput').disabled = true;
+        if (appMode === 'expenses') {
+            document.getElementById('modalTitle').innerText = "Gastos: " + titleStr;
+            const sel = document.getElementById('pocketSelect'); 
+            sel.innerHTML = '';
+            
+            const pockets = db[getKey(selectedYear, selectedMonth)].pockets;
+            
+            if (pockets.length === 0) { 
+                sel.add(new Option("¡Crea un bolsillo!", "")); 
+                document.getElementById('amountInput').disabled = true; 
+            } else { 
+                document.getElementById('amountInput').disabled = false; 
+                pockets.forEach(p => {
+                    sel.add(new Option(`${p.type === 'credit' ? '💳' : '💵'} ${p.name}`, p.id));
+                }); 
+            }
+            
+            document.getElementById('expenseModal').style.display = 'flex';
+            renderModalList(); 
+            document.getElementById('descInput').focus();
         } else {
-            document.getElementById('amountInput').disabled = false;
-            pockets.forEach(p => {
-                const pIcon = p.type === 'credit' ? '💳' : '💵';
-                sel.add(new Option(`${pIcon} ${p.name}`, p.id));
-            });
+            document.getElementById('menuModalTitle').innerText = "Menú: " + titleStr;
+            
+            const menuData = db[getKey(selectedYear, selectedMonth)].menus[day] || { b:'', l:'', d:'' };
+            
+            document.getElementById('menuB').value = menuData.b || '';
+            document.getElementById('menuL').value = menuData.l || '';
+            document.getElementById('menuD').value = menuData.d || '';
+            
+            document.getElementById('menuModal').style.display = 'flex';
         }
-        renderModalList();
-        document.getElementById('descInput').focus();
-        document.getElementById('amountInput').onkeypress = (e) => { if(e.key==='Enter') addExpense(); }
     }
 
+    // --- LOGICA DE MENUS ---
+    function saveMenu() {
+        const key = getKey(selectedYear, selectedMonth);
+        const breakfast = document.getElementById('menuB').value.trim();
+        const lunch = document.getElementById('menuL').value.trim();
+        const dinner = document.getElementById('menuD').value.trim();
+        
+        db[key].menus[activeDay] = { 
+            b: breakfast, 
+            l: lunch, 
+            d: dinner 
+        };
+        
+        saveDB(); 
+        closeModal('menuModal');
+    }
+
+    function replicateMenu() {
+        if(!confirm("¿Copiar este menú a todos los mismos días de las próximas semanas del mes?")) return;
+        
+        const key = getKey(selectedYear, selectedMonth);
+        const menuToCopy = db[key].menus[activeDay] || {b:'', l:'', d:''};
+        
+        const currentDayOfWeek = new Date(selectedYear, selectedMonth, activeDay).getDay();
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        
+        let count = 0;
+        for (let d = activeDay + 1; d <= daysInMonth; d++) {
+            if (new Date(selectedYear, selectedMonth, d).getDay() === currentDayOfWeek) {
+                db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy));
+                count++;
+            }
+        }
+        
+        saveDB(); 
+        render(); 
+        alert(`Menú copiado a ${count} día(s).`);
+    }
+
+    // NUEVO: REPLICAR MENÚ EN LA MISMA SEMANA
+    function replicateMenuWeek() {
+        if(!confirm("¿Copiar este menú a los días restantes de ESTA semana (hasta el Domingo)?")) return;
+        
+        const key = getKey(selectedYear, selectedMonth);
+        const menuToCopy = db[key].menus[activeDay] || {b:'', l:'', d:''};
+        
+        const date = new Date(selectedYear, selectedMonth, activeDay);
+        let dayOfWeek = date.getDay(); // 0 = Dom, 1 = Lun...
+        let jsDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 0=Lun, 6=Dom
+        let daysLeft = 6 - jsDay;
+        
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        
+        let count = 0;
+        for (let i = 1; i <= daysLeft; i++) {
+            let d = activeDay + i;
+            if (d <= daysInMonth) {
+                db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy));
+                count++;
+            }
+        }
+        
+        if(count > 0) {
+            saveDB(); 
+            render(); 
+            alert(`Menú copiado a ${count} día(s) de ESTA semana.`);
+        } else {
+            alert("No hay más días en esta semana para copiar (o es domingo).");
+        }
+    }
+
+    // --- LOGICA DE GASTOS EXISTENTE ---
     function addExpense() {
-        const dIn = document.getElementById('descInput'), aIn = document.getElementById('amountInput'), pSel = document.getElementById('pocketSelect'), rIn = document.getElementById('recurInput');
-        const amount = parseFloat(aIn.value);
-        if(!pSel.value || isNaN(amount) || amount <= 0) return;
+        const descInput = document.getElementById('descInput');
+        const amountInput = document.getElementById('amountInput');
+        const pocketSelect = document.getElementById('pocketSelect');
+        const recurInput = document.getElementById('recurInput');
         
-        const key = getKey(selectedYear, selectedMonth);
-        if(!db[key].expenses[activeDay]) db[key].expenses[activeDay] = [];
+        const amount = parseFloat(amountInput.value); 
+        
+        if(!pocketSelect.value || isNaN(amount) || amount <= 0) return;
+        
+        const key = getKey(selectedYear, selectedMonth); 
+        
+        if(!db[key].expenses[activeDay]) {
+            db[key].expenses[activeDay] = [];
+        }
+        
         db[key].expenses[activeDay].push({ 
-            desc: dIn.value.trim() || 'Varios', 
+            desc: descInput.value.trim() || 'Varios', 
             amount: amount, 
-            pocketId: pSel.value, 
-            isRecurring: rIn.checked,
-            internalId: generateInternalId()
+            pocketId: pocketSelect.value, 
+            isRecurring: recurInput.checked, 
+            internalId: generateInternalId() 
         });
         
-        dIn.value = ''; aIn.value = ''; dIn.focus(); rIn.checked = false; 
-        saveDB(); renderModalList();
+        descInput.value = ''; 
+        amountInput.value = ''; 
+        descInput.focus(); 
+        recurInput.checked = false; 
+        
+        saveDB(); 
+        renderModalList();
     }
 
     function deleteExpense(idx) { 
@@ -924,66 +1408,21 @@
         renderModalList(); 
     }
 
-    function replicateExpense(idx) {
-        const key = getKey(selectedYear, selectedMonth);
-        const expenseToCopy = db[key].expenses[activeDay][idx];
-        
-        if (!expenseToCopy.internalId) {
-            expenseToCopy.internalId = generateInternalId();
-        }
-
-        const currentDayOfWeek = new Date(selectedYear, selectedMonth, activeDay).getDay();
-        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-        let replicatedCount = 0;
-        
-        for (let d = activeDay + 1; d <= daysInMonth; d++) {
-            const loopDate = new Date(selectedYear, selectedMonth, d);
-            if (loopDate.getDay() === currentDayOfWeek) {
-                if (!db[key].expenses[d]) db[key].expenses[d] = [];
-                db[key].expenses[d].push(JSON.parse(JSON.stringify(expenseToCopy)));
-                replicatedCount++;
-            }
-        }
-        if (replicatedCount > 0) { saveDB(); render(); alert(`Gasto replicado en ${replicatedCount} día(s).`); } 
-        else { alert("No quedan más días equivalentes en este mes."); }
-    }
-
-    function updateAllMatchingExpenses(idx) {
-        const key = getKey(selectedYear, selectedMonth);
-        const currentExpense = db[key].expenses[activeDay][idx];
-        
-        if (!currentExpense.internalId) { 
-            alert("Este es un gasto antiguo que no tiene ID vinculado. No se puede hacer actualización masiva. (Los nuevos gastos sí soportan esta función)."); 
-            return; 
-        }
-        
-        let updateCount = 0;
-        Object.keys(db[key].expenses).forEach(dayStr => {
-            db[key].expenses[dayStr].forEach(exp => {
-                if (exp.internalId === currentExpense.internalId) {
-                    exp.desc = currentExpense.desc;
-                    exp.amount = currentExpense.amount;
-                    exp.pocketId = currentExpense.pocketId;
-                    exp.isRecurring = currentExpense.isRecurring;
-                    updateCount++;
-                }
-            });
-        });
-        
-        saveDB(); 
-        render(); 
-        alert(`¡Éxito! Se actualizaron ${updateCount} gastos vinculados en este mes.`);
-    }
-
     function updateExpense(idx, field, val) {
-        const key = getKey(selectedYear, selectedMonth), exps = db[key].expenses[activeDay];
-        if(field === 'amount') {
-            const num = parseFloat(val); if(isNaN(num) || num <= 0) return; exps[idx].amount = num;
-        } else if (field === 'desc') { exps[idx].desc = val;
-        } else if (field === 'pocketId') { exps[idx].pocketId = val; saveDB(); renderModalList(); return; 
-        } else if (field === 'isRecurring') { exps[idx].isRecurring = val; saveDB(); return; }
+        const key = getKey(selectedYear, selectedMonth);
+        const exps = db[key].expenses[activeDay];
+        
+        if(field === 'amount') { 
+            const n = parseFloat(val); 
+            if(!isNaN(n) && n > 0) {
+                exps[idx].amount = n; 
+            }
+        } else { 
+            exps[idx][field] = val; 
+        }
+        
         saveDB(); 
-        document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
+        document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b) => a + b.amount, 0)); 
         render(); 
     }
 
@@ -991,67 +1430,273 @@
         const key = getKey(selectedYear, selectedMonth);
         const exps = db[key].expenses[activeDay];
         
-        if (direction === 'up' && idx > 0) {
+        if (direction === 'up' && idx > 0) { 
             const temp = exps[idx];
             exps[idx] = exps[idx - 1];
             exps[idx - 1] = temp;
-        } else if (direction === 'down' && idx < exps.length - 1) {
+        } else if (direction === 'down' && idx < exps.length - 1) { 
             const temp = exps[idx];
             exps[idx] = exps[idx + 1];
             exps[idx + 1] = temp;
         } else {
             return;
         }
-        
-        saveDB();
-        renderModalList();
+        saveDB(); 
+        renderModalList(); 
         render(); 
     }
 
-    function renderModalList() {
-        const list = document.getElementById('modalExpenseList'); list.innerHTML = '';
-        const key = getKey(selectedYear, selectedMonth), exps = db[key].expenses[activeDay] || [], pks = db[key].pockets;
+    function replicateExpense(idx) {
+        const key = getKey(selectedYear, selectedMonth);
+        const originalExpense = db[key].expenses[activeDay][idx];
         
-        exps.forEach((e, i) => {
-            const p = pks.find(pk => pk.id === e.pocketId), color = p ? p.color : '#94a3b8';
-            let opts = ''; pks.forEach(pk => {
-                const pIcon = pk.type === 'credit' ? '💳' : '💵';
-                opts += `<option value="${pk.id}" ${pk.id===e.pocketId?'selected':''}>${pIcon} ${pk.name}</option>`;
-            });
-            const isRecur = e.isRecurring ? 'checked' : '';
-            
-            const row = document.createElement('div'); 
-            row.className = 'expense-row';
-            row.innerHTML = `
-                <div style="display:flex; flex-direction:column; justify-content:center; gap:2px; margin-right: 5px;">
-                    <button class="action-btn" style="padding:0px 4px; font-size:0.75rem;" onclick="moveExpense(${i}, 'up')" ${i === 0 ? 'disabled style="opacity:0.3; cursor:default;"' : 'title="Subir"'}>▲</button>
-                    <button class="action-btn" style="padding:0px 4px; font-size:0.75rem;" onclick="moveExpense(${i}, 'down')" ${i === exps.length - 1 ? 'disabled style="opacity:0.3; cursor:default;"' : 'title="Bajar"'}>▼</button>
-                </div>
-                <div class="expense-info">
-                    <input type="text" class="editable-input" value="${e.desc}" onchange="updateExpense(${i}, 'desc', this.value)">
-                    <select class="pocket-select-badge" style="background-color: ${color}4D; border: 1px solid ${color}66;" onchange="updateExpense(${i}, 'pocketId', this.value)">${opts}</select>
-                </div>
-                <div class="expense-actions">
-                    <div style="font-weight:bold; display:flex; align-items:center;">
-                        <span style="font-size:0.8rem; color:#64748b;">$</span>
-                        <input type="number" class="editable-input" style="width:90px; text-align:right;" value="${e.amount}" onchange="updateExpense(${i}, 'amount', this.value)">
-                    </div>
-                    <label title="Recurrente (Copiar al mes siguiente)" style="cursor:pointer; display:flex; align-items:center; margin: 0 5px;">
-                        <input type="checkbox" ${isRecur} onchange="updateExpense(${i}, 'isRecurring', this.checked)"> 🔄
-                    </label>
-                    <button class="bulk-update-btn" onclick="updateAllMatchingExpenses(${i})" title="Aplicar cambios a todos los gastos copiados">🔗 Actualizar todos</button>
-                    <button class="action-btn" onclick="replicateExpense(${i})" title="Replicar a futuros días" style="padding: 6px;">🔁</button>
-                    <button class="delete-btn" onclick="deleteExpense(${i})" title="Eliminar gasto">✕</button>
-                </div>`;
-            list.appendChild(row);
-        });
-        document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
+        if (!originalExpense.internalId) {
+            originalExpense.internalId = generateInternalId();
+        }
+        
+        const dayOfWeek = new Date(selectedYear, selectedMonth, activeDay).getDay();
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        let count = 0;
+        
+        for (let d = activeDay + 1; d <= daysInMonth; d++) {
+            if (new Date(selectedYear, selectedMonth, d).getDay() === dayOfWeek) {
+                if (!db[key].expenses[d]) {
+                    db[key].expenses[d] = []; 
+                }
+                db[key].expenses[d].push(JSON.parse(JSON.stringify(originalExpense))); 
+                count++;
+            }
+        }
+        
+        if (count > 0) { 
+            saveDB(); 
+            render(); 
+            alert(`Gasto replicado en ${count} día(s).`); 
+        }
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v29', JSON.stringify(db)); }
-    function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"})); a.download = `gastos_respaldo_${Date.now()}.json`; a.click(); }
-    function importData(input) { const r = new FileReader(); r.onload = (e) => { if(confirm("¿Sobrescribir datos?")) { db = JSON.parse(e.target.result); saveDB(); location.reload(); } }; if(input.files[0]) r.readAsText(input.files[0]); }
+    // NUEVO: REPLICAR GASTO EN LA MISMA SEMANA
+    function replicateExpenseWeek(idx) {
+        const key = getKey(selectedYear, selectedMonth);
+        const originalExpense = db[key].expenses[activeDay][idx];
+        
+        if (!originalExpense.internalId) {
+            originalExpense.internalId = generateInternalId();
+        }
+        
+        const date = new Date(selectedYear, selectedMonth, activeDay);
+        let dayOfWeek = date.getDay(); // 0 = Dom, 1 = Lun...
+        let jsDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 0=Lun, 6=Dom
+        let daysLeft = 6 - jsDay;
+        
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        let count = 0;
+        
+        for (let i = 1; i <= daysLeft; i++) {
+            let d = activeDay + i;
+            if (d <= daysInMonth) {
+                if (!db[key].expenses[d]) {
+                    db[key].expenses[d] = []; 
+                }
+                db[key].expenses[d].push(JSON.parse(JSON.stringify(originalExpense))); 
+                count++;
+            }
+        }
+        
+        if (count > 0) { 
+            saveDB(); 
+            render(); 
+            alert(`Gasto replicado en los ${count} días restantes de ESTA semana.`); 
+        } else {
+            alert("No hay más días en esta semana para replicar (o es domingo).");
+        }
+    }
+
+    function updateAllMatchingExpenses(idx) {
+        const key = getKey(selectedYear, selectedMonth);
+        const currentExpense = db[key].expenses[activeDay][idx];
+        
+        if (!currentExpense.internalId) {
+            return alert("Gasto antiguo sin ID vinculado. No se puede realizar la actualización masiva.");
+        }
+        
+        let count = 0;
+        
+        Object.keys(db[key].expenses).forEach(dayStr => {
+            db[key].expenses[dayStr].forEach(exp => {
+                if (exp.internalId === currentExpense.internalId) { 
+                    Object.assign(exp, {
+                        desc: currentExpense.desc, 
+                        amount: currentExpense.amount, 
+                        pocketId: currentExpense.pocketId, 
+                        isRecurring: currentExpense.isRecurring
+                    }); 
+                    count++; 
+                }
+            });
+        });
+        
+        saveDB(); 
+        render(); 
+        alert(`Se actualizaron ${count} gastos vinculados en este mes.`);
+    }
+
+    function renderModalList() {
+        const list = document.getElementById('modalExpenseList'); 
+        list.innerHTML = '';
+        
+        const key = getKey(selectedYear, selectedMonth);
+        const exps = db[key].expenses[activeDay] || [];
+        const pockets = db[key].pockets;
+        
+        exps.forEach((exp, i) => {
+            const pk = pockets.find(p => p.id === exp.pocketId);
+            const color = pk ? pk.color : '#94a3b8';
+            
+            let optionsHTML = ''; 
+            pockets.forEach(p => {
+                optionsHTML += `<option value="${p.id}" ${p.id === exp.pocketId ? 'selected' : ''}>${p.type === 'credit' ? '💳' : '💵'} ${p.name}</option>`;
+            });
+            
+            const div = document.createElement('div'); 
+            div.className = 'expense-row';
+            
+            div.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:2px; margin-right:5px;">
+                    <button class="action-btn" style="padding:0 4px; font-size:0.75rem;" onclick="moveExpense(${i}, 'up')">▲</button>
+                    <button class="action-btn" style="padding:0 4px; font-size:0.75rem;" onclick="moveExpense(${i}, 'down')">▼</button>
+                </div>
+                
+                <div class="expense-info">
+                    <input type="text" class="editable-input" value="${exp.desc}" onchange="updateExpense(${i}, 'desc', this.value)">
+                    <select class="pocket-select-badge" style="background:${color}4D; border:1px solid ${color}66" onchange="updateExpense(${i}, 'pocketId', this.value)">
+                        ${optionsHTML}
+                    </select>
+                </div>
+                
+                <div class="expense-actions">
+                    <input type="number" class="editable-input" style="width:90px; text-align:right;" value="${exp.amount}" onchange="updateExpense(${i}, 'amount', this.value)">
+                    
+                    <label title="Recurrente" style="cursor:pointer; display:flex; align-items:center;">
+                        <input type="checkbox" ${exp.isRecurring ? 'checked' : ''} onchange="updateExpense(${i}, 'isRecurring', this.checked)"> 🔄
+                    </label>
+                    
+                    <button class="bulk-update-btn" onclick="updateAllMatchingExpenses(${i})" title="Aplicar cambios a los demás">🔗</button>
+                    <button class="action-btn" onclick="replicateExpenseWeek(${i})" title="Copiar al resto de ESTA semana">➡️</button>
+                    <button class="action-btn" onclick="replicateExpense(${i})" title="Copiar en FUTURAS semanas">🔁</button>
+                    <button class="delete-btn" onclick="deleteExpense(${i})">✕</button>
+                </div>`;
+                
+            list.appendChild(div);
+        });
+        
+        document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a, b) => a + b.amount, 0));
+    }
+
+    // Utilidades
+    function closeModal(id) { 
+        document.getElementById(id).style.display = 'none'; 
+        render(); 
+    }
     
+    function openPocketModal(idx = null) {
+        editingPocketIndex = idx;
+        const nameInput = document.getElementById('newPocketName');
+        const limitInput = document.getElementById('newPocketLimit');
+        const typeInput = document.getElementById('newPocketType');
+        
+        if(idx !== null) { 
+            const pocket = db[getKey(selectedYear, selectedMonth)].pockets[idx]; 
+            nameInput.value = pocket.name; 
+            limitInput.value = pocket.limit; 
+            typeInput.value = pocket.type || 'cash'; 
+            document.getElementById('pocketModalTitle').innerText = "Editar Bolsillo"; 
+        } else { 
+            nameInput.value = ''; 
+            limitInput.value = ''; 
+            typeInput.value = 'cash'; 
+            document.getElementById('pocketModalTitle').innerText = "Nuevo Bolsillo"; 
+        }
+        
+        document.getElementById('pocketModal').style.display = 'flex'; 
+        nameInput.focus();
+    }
+    
+    function editPocket(idx) { 
+        openPocketModal(idx); 
+    }
+    
+    function savePocket() {
+        const nameInput = document.getElementById('newPocketName').value.trim();
+        const limitInput = parseFloat(document.getElementById('newPocketLimit').value);
+        const typeInput = document.getElementById('newPocketType').value;
+        
+        if(!nameInput || isNaN(limitInput) || limitInput < 0) return;
+        
+        const key = getKey(selectedYear, selectedMonth);
+        
+        if(editingPocketIndex !== null) { 
+            Object.assign(db[key].pockets[editingPocketIndex], {
+                name: nameInput, 
+                limit: limitInput, 
+                type: typeInput
+            }); 
+        } else { 
+            db[key].pockets.push({
+                id: Date.now().toString(), 
+                name: nameInput, 
+                limit: limitInput, 
+                type: typeInput, 
+                realAvailable: 0, 
+                color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length]
+            }); 
+        }
+        
+        saveDB(); 
+        closeModal('pocketModal');
+    }
+    
+    function deletePocket(idx) {
+        if(!confirm("¿Eliminar bolsillo y todos sus gastos asociados?")) return;
+        
+        const key = getKey(selectedYear, selectedMonth);
+        const pocketId = db[key].pockets[idx].id;
+        
+        db[key].pockets.splice(idx, 1); 
+        
+        Object.keys(db[key].expenses).forEach(day => {
+            db[key].expenses[day] = db[key].expenses[day].filter(e => e.pocketId !== pocketId);
+        });
+        
+        saveDB(); 
+        render();
+    }
+    
+    function saveDB() { 
+        localStorage.setItem('expenseAppDB_v31', JSON.stringify(db)); 
+    }
+    
+    function exportData() { 
+        const a = document.createElement('a'); 
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(db)])); 
+        a.download = `respaldo_gastos_menus_${Date.now()}.json`; 
+        a.click(); 
+    }
+    
+    function importData(input) { 
+        const reader = new FileReader(); 
+        reader.onload = e => { 
+            if(confirm("¿Estás seguro de que quieres sobrescribir los datos actuales?")) {
+                db = JSON.parse(e.target.result); 
+                saveDB(); 
+                location.reload();
+            } 
+        }; 
+        if(input.files[0]) {
+            reader.readAsText(input.files[0]); 
+        }
+    }
+
     init();
 </script>
 </body>
