@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Gastos y Menús - V31</title>
+    <title>Control de Gastos y Menús - V33 Expandida</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -17,7 +17,9 @@
             --menu-color: #f59e0b;
         }
 
-        * { box-sizing: border-box; }
+        * { 
+            box-sizing: border-box; 
+        }
 
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -92,8 +94,8 @@
             background: #1e293b; 
             color: white; 
             padding: 8px 15px; 
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
             flex-wrap: wrap;
         }
         
@@ -129,7 +131,7 @@
             align-items: center; 
             background: #0f172a; 
             padding: 6px 12px; 
-            border-radius: 6px;
+            border-radius: 6px; 
             border: 1px solid #334155;
         }
 
@@ -168,15 +170,17 @@
             padding: 15px 1.5rem; 
             display: flex; 
             gap: 15px; 
-            overflow-x: auto;
+            overflow-x: auto; 
             background: #f1f5f9; 
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border); 
             min-height: 120px; 
-            align-items: center; 
+            align-items: flex-start; 
             transition: all 0.3s;
         }
         
-        .pockets-panel::-webkit-scrollbar { height: 6px; }
+        .pockets-panel::-webkit-scrollbar { 
+            height: 6px; 
+        }
 
         .pocket-card {
             background: white; 
@@ -201,7 +205,10 @@
             color: #334155; 
         }
         
-        .pocket-actions { display: flex; gap: 5px; }
+        .pocket-actions { 
+            display: flex; 
+            gap: 5px; 
+        }
         
         .action-btn { 
             color: #64748b; 
@@ -226,7 +233,10 @@
             margin-top: 2px; 
         }
         
-        .pocket-progress-fill { height: 100%; transition: width 0.3s ease; }
+        .pocket-progress-fill { 
+            height: 100%; 
+            transition: width 0.3s ease; 
+        }
         
         .pocket-ppto-info { 
             display: flex; 
@@ -239,10 +249,10 @@
         .add-pocket-btn {
             background: white; 
             border: 2px dashed #cbd5e1; 
-            color: #64748b;
+            color: #64748b; 
             min-width: 60px; 
             height: 60px; 
-            border-radius: 12px;
+            border-radius: 12px; 
             display: flex; 
             justify-content: center; 
             align-items: center;
@@ -264,7 +274,7 @@
 
         .calendar-header {
             display: grid; 
-            grid-template-columns: repeat(7, 1fr);
+            grid-template-columns: repeat(7, 1fr); 
             text-align: center; 
             font-weight: 700; 
             padding-bottom: 15px; 
@@ -346,7 +356,9 @@
             padding: 2px 4px; 
         }
         
-        .mobile-day-name { display: none; }
+        .mobile-day-name { 
+            display: none; 
+        }
 
         .holiday-badge {
             background-color: #dc2626; 
@@ -384,7 +396,9 @@
             font-weight: 600; 
         }
         
-        .expense-preview.is-recurring { border-left: 3px solid var(--primary); }
+        .expense-preview.is-recurring { 
+            border-left: 3px solid var(--primary); 
+        }
         
         .meal-preview { 
             font-size: 0.75rem; 
@@ -394,15 +408,33 @@
             font-weight: 600; 
             background: #fef3c7; 
             display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
             gap: 5px; 
             line-height: 1.2; 
             margin-bottom: 2px;
         }
-        .meal-icon { flex-shrink: 0; }
+        
+        .meal-icon { 
+            flex-shrink: 0; 
+        }
+        
         .meal-text { 
             white-space: nowrap; 
             overflow: hidden; 
             text-overflow: ellipsis; 
+            flex: 1; 
+        }
+        
+        .meal-cost-badge {
+            background: #fca5a5; 
+            color: #7f1d1d; 
+            font-size: 0.65rem; 
+            padding: 1px 4px; 
+            border-radius: 4px;
+            font-weight: 800; 
+            flex-shrink: 0; 
+            white-space: nowrap;
         }
 
         .day-totals-container { 
@@ -414,19 +446,45 @@
             border-top: 1px dashed var(--border); 
         }
         
-        .day-subtotal { font-size: 0.7rem; color: #64748b; font-weight: 600; line-height: 1.2; }
-        .day-total { font-weight: 700; font-size: 0.95rem; color: var(--danger); margin-top: 2px; }
+        .day-subtotal { 
+            font-size: 0.7rem; 
+            color: #64748b; 
+            font-weight: 600; 
+            line-height: 1.2; 
+        }
+        
+        .day-total { 
+            font-weight: 700; 
+            font-size: 0.95rem; 
+            color: var(--danger); 
+            margin-top: 2px; 
+        }
 
         /* --- MODALES --- */
         .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); justify-content: center; align-items: center; 
-            z-index: 100; backdrop-filter: blur(2px); padding: 10px;
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(0,0,0,0.5); 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 100; 
+            backdrop-filter: blur(2px); 
+            padding: 10px;
         }
         
         .modal-content {
-            background: white; padding: 1.5rem; border-radius: 16px; width: 900px; max-width: 100%;
-            max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); 
+            background: white; 
+            padding: 1.5rem; 
+            border-radius: 16px; 
+            width: 900px; 
+            max-width: 100%;
+            max-height: 90vh; 
+            overflow-y: auto; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); 
             animation: modalFadeIn 0.2s ease-out;
         }
         
@@ -435,9 +493,28 @@
             to { opacity: 1; transform: scale(1); } 
         }
 
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .modal-title { margin: 0; font-size: 1.4rem; color: #1e293b; font-weight: 700; }
-        .close-btn { border: none; background: none; font-size: 1.5rem; color: #94a3b8; padding: 0; cursor: pointer; }
+        .modal-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 1.5rem; 
+        }
+        
+        .modal-title { 
+            margin: 0; 
+            font-size: 1.4rem; 
+            color: #1e293b; 
+            font-weight: 700; 
+        }
+        
+        .close-btn { 
+            border: none; 
+            background: none; 
+            font-size: 1.5rem; 
+            color: #94a3b8; 
+            padding: 0; 
+            cursor: pointer; 
+        }
 
         .modal-form-grid { 
             display: grid; 
@@ -447,94 +524,323 @@
             align-items: center; 
         }
         
-        .modal-form-grid input, .modal-form-grid select { width: 100%; }
+        .modal-form-grid input, 
+        .modal-form-grid select { 
+            width: 100%; 
+        }
 
-        .expense-list { display: flex; flex-direction: column; gap: 8px; }
-        .expense-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f5f9; gap: 12px; }
-        .expense-info { display: flex; align-items: center; flex: 1; min-width: 0; gap: 8px; }
+        .expense-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+        }
+        
+        .expense-row { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 10px 0; 
+            border-bottom: 1px solid #f1f5f9; 
+            gap: 12px; 
+            flex-wrap: wrap; 
+        }
+        
+        .expense-info { 
+            display: flex; 
+            align-items: center; 
+            flex: 1; 
+            min-width: 250px; 
+            gap: 8px; 
+        }
         
         .editable-input { 
-            border: 1px solid transparent; background: transparent; font-family: inherit; 
-            font-size: 0.9rem; color: var(--text-main); padding: 4px; border-radius: 4px; 
-            transition: all 0.2s; width: 100%; 
+            border: 1px solid transparent; 
+            background: transparent; 
+            font-family: inherit; 
+            font-size: 0.9rem; 
+            color: var(--text-main); 
+            padding: 4px; 
+            border-radius: 4px; 
+            transition: all 0.2s; 
+            width: 100%; 
         }
-        .editable-input:hover { background: #f8fafc; border-color: #e2e8f0; }
-        .editable-input:focus { background: white; border-color: var(--primary); outline: none; }
+        
+        .editable-input:hover { 
+            background: #f8fafc; 
+            border-color: #e2e8f0; 
+        }
+        
+        .editable-input:focus { 
+            background: white; 
+            border-color: var(--primary); 
+            outline: none; 
+        }
         
         .pocket-select-badge { 
-            max-width: 140px; border: none; border-radius: 12px; padding: 4px 8px; 
-            font-size: 0.75rem; cursor: pointer; white-space: nowrap; overflow: hidden; 
-            text-overflow: ellipsis; color: #1e293b; font-weight: 600; appearance: none; 
-            -webkit-appearance: none; text-align: center; flex-shrink: 0; transition: opacity 0.2s; 
+            max-width: 140px; 
+            border: none; 
+            border-radius: 12px; 
+            padding: 4px 8px; 
+            font-size: 0.75rem; 
+            cursor: pointer; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            color: #1e293b; 
+            font-weight: 600; 
+            appearance: none; 
+            -webkit-appearance: none; 
+            text-align: center; 
+            flex-shrink: 0; 
+            transition: opacity 0.2s; 
         }
         
-        .expense-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .delete-btn { color: #ef4444; border: none; background: none; cursor: pointer; padding: 6px; font-size: 1.1rem; border-radius: 4px; }
+        .menu-link-select {
+            border: 1px dashed #cbd5e1; 
+            background: #f8fafc; 
+            color: #64748b; 
+            font-size: 0.75rem; 
+            padding: 4px 8px;
+            border-radius: 6px; 
+            cursor: pointer; 
+            flex-shrink: 0; 
+            max-width: 180px;
+        }
+        
+        .menu-link-select:hover { 
+            border-color: var(--menu-color); 
+            color: var(--menu-color); 
+        }
+        
+        .menu-link-select.linked { 
+            border: 1px solid var(--menu-color); 
+            background: #fffbeb; 
+            color: #92400e; 
+            font-weight: bold; 
+        }
+        
+        .expense-actions { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            flex-shrink: 0; 
+        }
+        
+        .delete-btn { 
+            color: #ef4444; 
+            border: none; 
+            background: none; 
+            cursor: pointer; 
+            padding: 6px; 
+            font-size: 1.1rem; 
+            border-radius: 4px; 
+        }
         
         .bulk-update-btn { 
-            color: var(--primary); border: 1px solid var(--primary); padding: 4px 8px; 
-            font-size: 0.8rem; font-weight: 600; border-radius: 6px; background: #eff6ff; 
-            cursor: pointer; transition: 0.2s; 
+            color: var(--primary); 
+            border: 1px solid var(--primary); 
+            padding: 4px 8px; 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            border-radius: 6px; 
+            background: #eff6ff; 
+            cursor: pointer; 
+            transition: 0.2s; 
         }
         
         .modal-footer { 
-            text-align: right; font-weight: 700; font-size: 1.2rem; 
-            border-top: 2px solid var(--border); padding-top: 15px; 
-            margin-top: 10px; color: var(--text-main); 
+            text-align: right; 
+            font-weight: 700; 
+            font-size: 1.2rem; 
+            border-top: 2px solid var(--border); 
+            padding-top: 15px; 
+            margin-top: 10px; 
+            color: var(--text-main); 
+            width: 100%; 
         }
 
-        .menu-input-group { margin-bottom: 15px; }
+        .menu-input-group { 
+            margin-bottom: 15px; 
+        }
+        
         .menu-input-group label { 
-            display: flex; align-items: center; gap: 8px; font-size: 1.1rem; 
-            font-weight: 700; color: #334155; margin-bottom: 8px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 1.1rem; 
+            font-weight: 700; 
+            color: #334155; 
+            margin-bottom: 8px; 
         }
+        
+        .menu-linked-info { 
+            font-size: 0.85rem; 
+            color: #ef4444; 
+            font-weight: 600; 
+            background: #fef2f2; 
+            padding: 2px 8px; 
+            border-radius: 6px; 
+            display: inline-block; 
+        }
+        
         .menu-input-group textarea { 
-            width: 100%; min-height: 60px; resize: vertical; 
-            background: #f8fafc; font-size: 1rem; border: 1px solid #cbd5e1; 
-            padding: 10px;
+            width: 100%; 
+            min-height: 60px; 
+            resize: vertical; 
+            background: #f8fafc; 
+            font-size: 1rem; 
+            border: 1px solid #cbd5e1; 
+            padding: 10px; 
         }
+        
         .menu-input-group textarea:focus { 
-            background: white; border-color: var(--menu-color); 
+            background: white; 
+            border-color: var(--menu-color); 
         }
 
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 0.9rem; color: #64748b; margin-bottom: 8px; font-weight: 600; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; }
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        
+        .form-group label { 
+            display: block; 
+            font-size: 0.9rem; 
+            color: #64748b; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+        }
+        
+        .form-group input, 
+        .form-group select { 
+            width: 100%; 
+            padding: 10px; 
+        }
+        
         .btn-full { 
-            width: 100%; padding: 12px; font-size: 1rem; font-weight: 700; 
-            margin-top: 10px; background: var(--primary); color: white; 
-            border: none; border-radius: 6px; 
+            width: 100%; 
+            padding: 12px; 
+            font-size: 1rem; 
+            font-weight: 700; 
+            margin-top: 10px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
         }
 
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-
-        .hidden { display: none !important; }
+        ::-webkit-scrollbar { 
+            width: 6px; 
+            height: 6px; 
+        }
+        
+        ::-webkit-scrollbar-track { 
+            background: #f1f5f9; 
+        }
+        
+        ::-webkit-scrollbar-thumb { 
+            background: #cbd5e1; 
+            border-radius: 4px; 
+        }
+        
+        .hidden { 
+            display: none !important; 
+        }
 
         @media (max-width: 768px) {
-            header { padding: 10px; flex-direction: column; align-items: stretch; }
-            .controls { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
+            header { 
+                padding: 10px; 
+                flex-direction: column; 
+                align-items: stretch; 
+            }
             
-            .app-tabs { grid-column: span 2; display: flex; width: 100%; }
-            .app-tabs button { flex: 1; }
+            .controls { 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                width: 100%; 
+                gap: 8px; 
+            }
             
-            .controls h2 { grid-column: span 2; margin: 5px 0 !important; text-align: center; }
-            .controls select, .controls button { width: 100%; justify-content: center; font-size: 0.8rem; padding: 10px; }
+            .app-tabs { 
+                grid-column: span 2; 
+                display: flex; 
+                width: 100%; 
+            }
             
-            .financial-summary { display: grid; grid-template-columns: 1fr 1fr; padding: 12px; gap: 12px; width: 100%; }
-            .stat-divider { display: none; }
+            .app-tabs button { 
+                flex: 1; 
+            }
             
-            .projection-section { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; width: 100%; padding: 12px 10px; }
+            .controls h2 { 
+                grid-column: span 2; 
+                margin: 5px 0 !important; 
+                text-align: center; 
+            }
             
-            .pockets-panel { padding: 10px; }
-            main { padding: 10px; }
-            .calendar-header { display: none; }
-            .calendar-grid { display: flex; flex-direction: column; gap: 10px; }
-            .day-cell { min-height: auto; padding: 15px; }
-            .day-cell.empty { display: none; }
-            .day-header { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; align-items: center; }
-            .day-number { font-size: 1.2rem; }
+            .controls select, 
+            .controls button { 
+                width: 100%; 
+                justify-content: center; 
+                font-size: 0.8rem; 
+                padding: 10px; 
+            }
+            
+            .financial-summary { 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                padding: 12px; 
+                gap: 12px; 
+                width: 100%; 
+            }
+            
+            .stat-divider { 
+                display: none; 
+            }
+            
+            .projection-section { 
+                grid-column: span 2; 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                width: 100%; 
+                padding: 12px 10px; 
+            }
+            
+            .pockets-panel { 
+                padding: 10px; 
+            }
+            
+            main { 
+                padding: 10px; 
+            }
+            
+            .calendar-header { 
+                display: none; 
+            }
+            
+            .calendar-grid { 
+                display: flex; 
+                flex-direction: column; 
+                gap: 10px; 
+            }
+            
+            .day-cell { 
+                min-height: auto; 
+                padding: 15px; 
+            }
+            
+            .day-cell.empty { 
+                display: none; 
+            }
+            
+            .day-header { 
+                border-bottom: 1px solid var(--border); 
+                padding-bottom: 8px; 
+                margin-bottom: 8px; 
+                align-items: center; 
+            }
+            
+            .day-number { 
+                font-size: 1.2rem; 
+            }
             
             .mobile-day-name { 
                 display: inline-block; 
@@ -545,11 +851,38 @@
                 text-transform: capitalize; 
             }
             
-            .modal-content { padding: 15px; }
-            .modal-form-grid { grid-template-columns: 1fr; gap: 12px; }
-            .expense-row { flex-direction: column; align-items: flex-start; }
-            .expense-info { width: 100%; flex-direction: column; align-items: stretch; }
-            .expense-actions { width: 100%; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 10px; flex-wrap: wrap;}
+            .modal-content { 
+                padding: 15px; 
+            }
+            
+            .modal-form-grid { 
+                grid-template-columns: 1fr; 
+                gap: 12px; 
+            }
+            
+            .expense-row { 
+                flex-direction: column; 
+                align-items: flex-start; 
+            }
+            
+            .expense-info { 
+                width: 100%; 
+                flex-direction: column; 
+                align-items: stretch; 
+            }
+            
+            .menu-link-select { 
+                max-width: 100%; 
+                width: 100%; 
+            }
+            
+            .expense-actions { 
+                width: 100%; 
+                justify-content: space-between; 
+                border-top: 1px dashed var(--border); 
+                padding-top: 10px; 
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
@@ -622,7 +955,13 @@
 
 <main>
     <div class="calendar-header">
-        <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+        <div>Lun</div>
+        <div>Mar</div>
+        <div>Mié</div>
+        <div>Jue</div>
+        <div>Vie</div>
+        <div>Sáb</div>
+        <div>Dom</div>
     </div>
     <div id="calendarGrid" class="calendar-grid"></div>
 </main>
@@ -633,7 +972,6 @@
             <h3 class="modal-title" id="modalTitle">Detalle de Gastos</h3>
             <button class="close-btn" onclick="closeModal('expenseModal')">✕</button>
         </div>
-        
         <div class="modal-form-grid">
             <input type="text" id="descInput" placeholder="Concepto (ej. Almuerzo)">
             <select id="pocketSelect"></select>
@@ -643,9 +981,7 @@
             </label>
             <button class="btn-full" style="margin-top:0; background:var(--primary); color:white; border:none;" onclick="addExpense()">Agregar</button>
         </div>
-        
         <div id="modalExpenseList" class="expense-list"></div>
-        
         <div class="modal-footer">
             Total Día: <span id="modalTotal">$ 0</span>
         </div>
@@ -660,22 +996,33 @@
         </div>
         
         <div class="menu-input-group">
-            <label>🍳 Desayuno</label>
-            <textarea id="menuB" placeholder="Ej. Huevos revueltos, arepa, café..."></textarea>
+            <label>
+                🍳 Desayuno 
+                <span id="lblCostB" class="menu-linked-info hidden"></span>
+            </label>
+            <textarea id="menuB" placeholder="Ej. Huevos revueltos, arepa..."></textarea>
         </div>
+        
         <div class="menu-input-group">
-            <label>🍲 Almuerzo</label>
-            <textarea id="menuL" placeholder="Ej. Sopa de verduras, pollo asado, arroz..."></textarea>
+            <label>
+                🍲 Almuerzo 
+                <span id="lblCostL" class="menu-linked-info hidden"></span>
+            </label>
+            <textarea id="menuL" placeholder="Ej. Sopa de verduras..."></textarea>
         </div>
+        
         <div class="menu-input-group">
-            <label>🥗 Cena</label>
-            <textarea id="menuD" placeholder="Ej. Sándwich, aromática..."></textarea>
+            <label>
+                🥗 Cena 
+                <span id="lblCostD" class="menu-linked-info hidden"></span>
+            </label>
+            <textarea id="menuD" placeholder="Ej. Sándwich..."></textarea>
         </div>
-
+        
         <div style="display:flex; justify-content:space-between; margin-top:20px; align-items:center; flex-wrap: wrap; gap: 10px;">
             <div style="display:flex; gap: 10px;">
-                <button class="action-btn" style="background:#f1f5f9; border: 1px solid var(--border);" onclick="replicateMenuWeek()" title="Copiar este menú al resto de ESTA semana">➡️ Esta semana</button>
-                <button class="action-btn" style="background:#f1f5f9; border: 1px solid var(--border);" onclick="replicateMenu()" title="Copiar este menú a los mismos días de FUTURAS semanas">🔁 Futuras semanas</button>
+                <button class="action-btn" style="background:#f1f5f9; border: 1px solid var(--border);" onclick="replicateMenuWeek()" title="Copiar al resto de ESTA semana">➡️ Esta semana</button>
+                <button class="action-btn" style="background:#f1f5f9; border: 1px solid var(--border);" onclick="replicateMenu()" title="Copiar a los mismos días de FUTURAS semanas">🔁 Futuras semanas</button>
             </div>
             <button class="btn-full" style="width: auto; padding: 10px 30px; background: var(--menu-color); margin:0;" onclick="saveMenu()">Guardar Menú</button>
         </div>
@@ -688,7 +1035,6 @@
             <h3 class="modal-title" id="pocketModalTitle">Nuevo Bolsillo</h3>
             <button class="close-btn" onclick="closeModal('pocketModal')">✕</button>
         </div>
-        
         <div class="form-group">
             <label>Nombre</label>
             <input type="text" id="newPocketName">
@@ -701,7 +1047,7 @@
             </select>
         </div>
         <div class="form-group">
-            <label>Presupuesto</label>
+            <label>Presupuesto Total</label>
             <input type="number" id="newPocketLimit" min="0">
         </div>
         <button class="btn-full" id="savePocketBtn" onclick="savePocket()">Guardar</button>
@@ -719,11 +1065,11 @@
     let editingPocketIndex = null;
     let appMode = 'expenses'; 
     
-    // DB V31
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v31')) || {}; 
+    // DB V33
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v33')) || {}; 
 
     if (Object.keys(db).length === 0) {
-        const history = ['v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
+        const history = ['v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) { 
@@ -736,6 +1082,13 @@
     Object.keys(db).forEach(k => {
         if (!db[k].menus) {
             db[k].menus = {}; 
+        }
+        if (db[k].pockets) {
+            db[k].pockets.forEach(p => { 
+                if(!p.appMode) {
+                    p.appMode = 'expenses'; 
+                }
+            });
         }
     });
     saveDB();
@@ -764,18 +1117,15 @@
         const btnExp = document.getElementById('tabExpenses');
         const btnMenu = document.getElementById('tabMenus');
         const finSec = document.getElementById('financialSection');
-        const pocSec = document.getElementById('pocketsContainer');
-
+        
         if (mode === 'expenses') {
-            btnExp.classList.add('active-expenses');
-            btnMenu.classList.remove('active-menus');
+            btnExp.classList.add('active-expenses'); 
+            btnMenu.classList.remove('active-menus'); 
             finSec.classList.remove('hidden');
-            pocSec.classList.remove('hidden');
         } else {
-            btnExp.classList.remove('active-expenses');
-            btnMenu.classList.add('active-menus');
+            btnExp.classList.remove('active-expenses'); 
+            btnMenu.classList.add('active-menus'); 
             finSec.classList.add('hidden');
-            pocSec.classList.add('hidden');
         }
         render();
     }
@@ -791,7 +1141,16 @@
                 if (cloudData && Object.keys(cloudData).length > 0) {
                     db = cloudData;
                     Object.keys(db).forEach(k => { 
-                        if (!db[k].menus) db[k].menus = {}; 
+                        if (!db[k].menus) {
+                            db[k].menus = {}; 
+                        }
+                        if (db[k].pockets) {
+                            db[k].pockets.forEach(p => { 
+                                if(!p.appMode) {
+                                    p.appMode = 'expenses'; 
+                                }
+                            });
+                        }
                     });
                     saveDB(); 
                     render();
@@ -803,7 +1162,7 @@
     }
 
     async function syncToCloud() {
-        const btn = document.getElementById('syncBtn');
+        const btn = document.getElementById('syncBtn'); 
         const originalText = btn.innerHTML; 
         
         btn.innerHTML = '⏳ Guardando...'; 
@@ -816,10 +1175,10 @@
                 body: JSON.stringify(db) 
             });
             
-            if (response.ok) {
+            if (response.ok) { 
                 btn.innerHTML = '✅ Guardado'; 
-            } else {
-                throw new Error("Respuesta fallida");
+            } else { 
+                throw new Error("Respuesta fallida"); 
             }
         } catch (e) { 
             btn.innerHTML = '❌ Error'; 
@@ -877,9 +1236,18 @@
             
             if(appMode === 'expenses') { 
                 db[key].expenses = {}; 
-                db[key].pockets = []; 
+                db[key].pockets = db[key].pockets.filter(p => p.appMode === 'menus'); 
             } else { 
                 db[key].menus = {}; 
+                db[key].pockets = db[key].pockets.filter(p => p.appMode === 'expenses');
+                
+                Object.keys(db[key].expenses).forEach(day => { 
+                    db[key].expenses[day].forEach(e => { 
+                        if (e.linkedMenu) {
+                            e.linkedMenu = ""; 
+                        }
+                    }); 
+                });
             }
             saveDB(); 
             render();
@@ -908,47 +1276,60 @@
             }
             
             if (appMode === 'expenses') {
-                db[curKey].pockets = JSON.parse(JSON.stringify(db[prevKey].pockets || []));
-                db[curKey].pockets.forEach(p => p.realAvailable = 0);
-                db[curKey].expenses = {};
+                const prevExpPockets = db[prevKey].pockets.filter(p => (!p.appMode || p.appMode === 'expenses'));
+                const curMenuPockets = db[curKey].pockets.filter(p => p.appMode === 'menus');
                 
+                db[curKey].pockets = [...curMenuPockets, ...JSON.parse(JSON.stringify(prevExpPockets))];
+                
+                db[curKey].pockets.forEach(p => { 
+                    if(p.appMode === 'expenses') {
+                        p.realAvailable = 0; 
+                    }
+                });
+                
+                db[curKey].expenses = {};
                 const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
                 
                 Object.keys(db[prevKey].expenses || {}).forEach(dayStr => {
-                    const sourceDay = parseInt(dayStr);
-                    const sourceDate = new Date(prevYear, prevMonth, sourceDay);
-                    const dayOfWeek = sourceDate.getDay(); 
+                    const sd = parseInt(dayStr);
+                    const sDate = new Date(prevYear, prevMonth, sd);
+                    const dw = sDate.getDay();
+                    const occ = Math.ceil(sd / 7);
+                    const recExps = db[prevKey].expenses[dayStr].filter(e => e.isRecurring);
                     
-                    const occurrence = Math.ceil(sourceDay / 7);
-                    const recurringExpenses = db[prevKey].expenses[dayStr].filter(e => e.isRecurring);
-                    
-                    if (recurringExpenses.length > 0) {
-                        let currentOccurrence = 0; 
-                        let targetDay = null;
+                    if (recExps.length > 0) {
+                        let cOcc = 0;
+                        let tDay = null;
                         
                         for (let d = 1; d <= daysInCurrentMonth; d++) {
-                            if (new Date(selectedYear, selectedMonth, d).getDay() === dayOfWeek) {
-                                currentOccurrence++; 
-                                if (currentOccurrence === occurrence) { 
-                                    targetDay = d; 
+                            if (new Date(selectedYear, selectedMonth, d).getDay() === dw) { 
+                                cOcc++; 
+                                if (cOcc === occ) { 
+                                    tDay = d; 
                                     break; 
-                                }
+                                } 
                             }
                         }
                         
-                        if (targetDay !== null) {
-                            if (!db[curKey].expenses[targetDay]) {
-                                db[curKey].expenses[targetDay] = [];
+                        if (tDay !== null) {
+                            if (!db[curKey].expenses[tDay]) {
+                                db[curKey].expenses[tDay] = [];
                             }
-                            recurringExpenses.forEach(exp => { 
-                                let newExp = JSON.parse(JSON.stringify(exp)); 
-                                newExp.internalId = generateInternalId(); 
-                                db[curKey].expenses[targetDay].push(newExp); 
+                            
+                            recExps.forEach(exp => { 
+                                let nExp = JSON.parse(JSON.stringify(exp)); 
+                                nExp.internalId = generateInternalId(); 
+                                nExp.linkedMenu = "";
+                                db[curKey].expenses[tDay].push(nExp); 
                             });
                         }
                     }
                 });
             } else {
+                const prevMenuPockets = db[prevKey].pockets.filter(p => p.appMode === 'menus');
+                const curExpPockets = db[curKey].pockets.filter(p => p.appMode === 'expenses');
+                
+                db[curKey].pockets = [...curExpPockets, ...JSON.parse(JSON.stringify(prevMenuPockets))];
                 db[curKey].menus = JSON.parse(JSON.stringify(db[prevKey].menus || {}));
             }
             saveDB(); 
@@ -959,26 +1340,43 @@
         }
     }
 
+    function getLinkedTotalsMap(key) {
+        let linkedTotals = {}; 
+        const data = db[key];
+        
+        if (data && data.expenses) {
+            Object.keys(data.expenses).forEach(dayStr => {
+                data.expenses[dayStr].forEach(exp => {
+                    if (exp.linkedMenu) { 
+                        linkedTotals[exp.linkedMenu] = (linkedTotals[exp.linkedMenu] || 0) + exp.amount; 
+                    }
+                });
+            });
+        }
+        return linkedTotals;
+    }
+
     function render() {
         document.getElementById('monthTitle').innerText = `${months[selectedMonth]} ${selectedYear}`;
         
         const key = getKey(selectedYear, selectedMonth);
         const data = db[key];
         
+        let pocketSpending = {};
+        data.pockets.forEach(p => { 
+            pocketSpending[p.id] = 0; 
+        });
+        
         if (appMode === 'expenses') {
-            const autoIncome = data.pockets.reduce((sum, p) => sum + p.limit, 0);
+            const expPockets = data.pockets.filter(p => p.appMode === 'expenses');
+            const autoIncome = expPockets.reduce((sum, p) => sum + p.limit, 0);
+            
             document.getElementById('incomeDisplay').innerText = formatMoney(autoIncome);
             
             let totalSpent = 0;
             let totalCredit = 0;
             let totalCash = 0;
-            let pocketSpending = {};
-            
-            data.pockets.forEach(p => {
-                pocketSpending[p.id] = 0;
-            });
-            
-            let totalRealAv = data.pockets.reduce((sum, p) => sum + (p.realAvailable || 0), 0);
+            let totalRealAv = expPockets.reduce((s, p) => s + (p.realAvailable || 0), 0);
             let pending = 0;
             
             const isCur = (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth());
@@ -993,8 +1391,8 @@
                     
                     if (p && p.type === 'credit') {
                         totalCredit += exp.amount; 
-                    } else {
-                        totalCash += exp.amount;
+                    } else { 
+                        totalCash += exp.amount; 
                     }
                     
                     if(exp.pocketId && pocketSpending[exp.pocketId] !== undefined) {
@@ -1011,30 +1409,59 @@
             document.getElementById('totalCredit').innerText = formatMoney(totalCredit);
             document.getElementById('totalCash').innerText = formatMoney(totalCash);
             
-            const balance = autoIncome - totalSpent;
+            const balance = autoIncome - totalSpent; 
             document.getElementById('balance').innerText = formatMoney(balance);
             document.getElementById('balance').style.color = balance >= 0 ? '#86efac' : '#fca5a5';
             
             document.getElementById('totalRealAv').innerText = formatMoney(totalRealAv);
             
-            const projStatusEl = document.getElementById('projectionStatus');
-            const pendingEl = document.getElementById('pendingExpenses');
+            const psEl = document.getElementById('projectionStatus');
+            const peEl = document.getElementById('pendingExpenses');
             
             if (totalRealAv > 0) {
-                pendingEl.innerText = formatMoney(pending);
-                const projectionBalance = totalRealAv - pending; 
-                projStatusEl.innerText = formatMoney(projectionBalance);
-                projStatusEl.style.color = projectionBalance >= 0 ? "#86efac" : "#fca5a5"; 
+                peEl.innerText = formatMoney(pending);
+                const pb = totalRealAv - pending; 
+                psEl.innerText = formatMoney(pb);
+                psEl.style.color = pb >= 0 ? "#86efac" : "#fca5a5"; 
             } else { 
-                pendingEl.innerText = "-"; 
-                projStatusEl.innerText = "-"; 
-                projStatusEl.style.color = "white"; 
+                peEl.innerText = "-"; 
+                psEl.innerText = "-"; 
+                psEl.style.color = "white"; 
             }
-            
-            renderPockets(data, pocketSpending); 
         }
         
+        renderPockets(data, pocketSpending); 
         renderCalendar(data);
+    }
+
+    function updateMenuPocketExpense(idx, field, val) {
+        const num = parseFloat(val.replace(/\D/g, '')) || 0;
+        const key = getKey(selectedYear, selectedMonth);
+        const p = db[key].pockets[idx];
+        
+        if (!p.menuExpenses) {
+            p.menuExpenses = {};
+        }
+        
+        p.menuExpenses[field] = num;
+        saveDB(); 
+        render();
+    }
+
+    function generatePocketInput(idx, field, label, val) {
+        val = val || 0;
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:4px; border-radius:4px; border: 1px solid #e2e8f0;">
+                <span style="font-size:0.7rem; color:#64748b; font-weight:700;">${label}:</span>
+                <div style="display:flex; align-items:center;">
+                    <span style="color:#64748b; font-size:0.7rem; margin-right: 2px;">$</span>
+                    <input type="text" 
+                           style="width:65px; text-align:right; font-size:0.75rem; padding:2px 4px; background:white; border: 1px solid #cbd5e1; border-radius:4px; outline:none;"
+                           value="${val === 0 ? '' : val}" 
+                           placeholder="0" 
+                           onblur="updateMenuPocketExpense(${idx}, '${field}', this.value)">
+                </div>
+            </div>`;
     }
 
     function renderPockets(data, spendingMap) {
@@ -1047,12 +1474,58 @@
         addBtn.onclick = () => openPocketModal(); 
         container.appendChild(addBtn);
         
+        let fDi = new Date(selectedYear, selectedMonth, 1).getDay(); 
+        fDi = fDi === 0 ? 6 : fDi - 1;
+        
+        const dInM = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        const numWeeks = Math.ceil((fDi + dInM) / 7);
+        
         data.pockets.forEach((p, idx) => {
-            const spent = spendingMap[p.id] || 0;
+            const isMenuPocket = p.appMode === 'menus';
+            
+            if (appMode === 'expenses' && isMenuPocket) return;
+            if (appMode === 'menus' && !isMenuPocket) return;
+
+            let spent = 0;
+            
+            if (isMenuPocket) {
+                const me = p.menuExpenses || {};
+                spent = (me.q1 || 0) + (me.q2 || 0);
+                for(let i = 1; i <= numWeeks; i++) {
+                    spent += (me[`w${i}`] || 0);
+                }
+            } else {
+                spent = spendingMap[p.id] || 0;
+            }
+
             const percent = Math.min(100, (spent / p.limit) * 100) || 0;
             const baseColor = p.color || '#94a3b8';
             const progressColor = spent > p.limit ? '#ef4444' : '#10b981';
             
+            let extraHTML = '';
+            
+            if (isMenuPocket) {
+                const me = p.menuExpenses || {};
+                
+                let qHtml = `
+                    <div style="font-size:0.75rem; color:#475569; font-weight:700; margin-bottom:5px;">Gastos Fijos:</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                        ${generatePocketInput(idx, 'q1', 'Quincena 1', me.q1)}
+                        ${generatePocketInput(idx, 'q2', 'Quincena 2', me.q2)}
+                    </div>`;
+                             
+                let wHtml = `
+                    <div style="font-size:0.75rem; color:#475569; font-weight:700; margin:10px 0 5px;">Gastos x Semana:</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
+                             
+                for(let i = 1; i <= numWeeks; i++) { 
+                    wHtml += generatePocketInput(idx, `w${i}`, `Semana ${i}`, me[`w${i}`]); 
+                }
+                
+                wHtml += `</div>`;
+                extraHTML = `<div style="margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">${qHtml}${wHtml}</div>`;
+            }
+
             const div = document.createElement('div'); 
             div.className = 'pocket-card'; 
             div.style.backgroundColor = baseColor + '33'; 
@@ -1085,7 +1558,9 @@
                                value="${p.realAvailable === 0 ? '' : p.realAvailable}" placeholder="0" 
                                onblur="updateRealAv(${idx}, this.value)">
                     </div>
-                </div>`;
+                </div>
+                ${extraHTML}
+            `;
             container.appendChild(div);
         });
     }
@@ -1101,35 +1576,55 @@
         const dateToStr = (date) => `${date.getMonth()}-${date.getDate()}`;
         
         const fixedHolidays = [
-            [0, 1, "Año Nuevo"], [4, 1, "Día del Trabajo"], [6, 20, "Independencia"], 
-            [7, 7, "Batalla de Boyacá"], [11, 8, "Inm. Concepción"], [11, 25, "Navidad"]
+            [0, 1, "Año Nuevo"], 
+            [4, 1, "Día del Trabajo"], 
+            [6, 20, "Independencia"], 
+            [7, 7, "Batalla de Boyacá"], 
+            [11, 8, "Inm. Concepción"], 
+            [11, 25, "Navidad"]
         ];
+        
         fixedHolidays.forEach(([m, d, name]) => holidays[`${m}-${d}`] = name);
         
         const emilianiHolidays = [
-            [0, 6, "Reyes Magos"], [2, 19, "San José"], [5, 29, "San Pedro y San Pablo"], 
-            [7, 15, "Asunción"], [9, 12, "Día de la Raza"], [10, 1, "Todos los Santos"], [10, 11, "Indep. Cartagena"]
+            [0, 6, "Reyes Magos"], 
+            [2, 19, "San José"], 
+            [5, 29, "San Pedro y San Pablo"], 
+            [7, 15, "Asunción"], 
+            [9, 12, "Día de la Raza"], 
+            [10, 1, "Todos los Santos"], 
+            [10, 11, "Indep. Cartagena"]
         ];
         
         emilianiHolidays.forEach(([m, d, name]) => { 
             let date = new Date(year, m, d); 
-            if (date.getDay() !== 1) {
+            if (date.getDay() !== 1) { 
                 date.setDate(date.getDate() + (8 - date.getDay()) % 7); 
-            }
+            } 
             holidays[dateToStr(date)] = name; 
         });
         
-        const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4;
-        const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
-        const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
         const m = Math.floor((a + 11 * h + 22 * l) / 451);
         
         const monthEaster = Math.floor((h + l - 7 * m + 114) / 31) - 1;
         const dayEaster = ((h + l - 7 * m + 114) % 31) + 1;
         
-        const easterDate = new Date(year, monthEaster, dayEaster);
-        const thursday = new Date(easterDate); thursday.setDate(easterDate.getDate() - 3); 
-        const friday = new Date(easterDate); friday.setDate(easterDate.getDate() - 2);
+        const easterDate = new Date(year, monthEaster, dayEaster); 
+        const thursday = new Date(easterDate); 
+        thursday.setDate(easterDate.getDate() - 3); 
+        const friday = new Date(easterDate); 
+        friday.setDate(easterDate.getDate() - 2);
         
         holidays[dateToStr(thursday)] = "Jueves Santo"; 
         holidays[dateToStr(friday)] = "Viernes Santo";
@@ -1137,9 +1632,9 @@
         const addDays = (days) => { 
             let dateObj = new Date(easterDate); 
             dateObj.setDate(dateObj.getDate() + days); 
-            if (dateObj.getDay() !== 1) {
+            if (dateObj.getDay() !== 1) { 
                 dateObj.setDate(dateObj.getDate() + (8 - dateObj.getDay()) % 7); 
-            }
+            } 
             return dateObj; 
         };
         
@@ -1153,6 +1648,9 @@
     function renderCalendar(data) {
         const grid = document.getElementById('calendarGrid'); 
         grid.innerHTML = '';
+        
+        const key = getKey(selectedYear, selectedMonth);
+        const linkedTotals = getLinkedTotalsMap(key); 
         
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
         
@@ -1172,7 +1670,6 @@
         
         for(let d = 1; d <= daysInMonth; d++) {
             const cell = document.createElement('div');
-            
             const isToday = (isCurrentMonth && d === currentDate.getDate());
             cell.className = `day-cell ${isToday ? 'current-day' : ''} ${appMode === 'menus' ? 'menu-mode' : ''}`;
             
@@ -1182,36 +1679,38 @@
             const hName = holidays[`${selectedMonth}-${d}`];
             const hBadge = hName ? `<span class="holiday-badge" title="${hName}">${hName}</span>` : '';
             
-            let contentHTML = ''; 
+            let contentHTML = '';
             let bottomHTML = '';
 
             if (appMode === 'expenses') {
                 const dayExps = data.expenses[d] || [];
-                let dayTotal = 0, dayCash = 0, dayCredit = 0;
+                let dayTotal = 0;
+                let dayCash = 0;
+                let dayCredit = 0;
                 
                 dayExps.forEach((exp, i) => {
                     dayTotal += exp.amount;
-                    
                     const pocket = data.pockets.find(p => p.id === exp.pocketId);
                     const pType = pocket ? pocket.type : 'cash';
+                    const isLinked = exp.linkedMenu ? '🍽️ ' : '';
                     
-                    if (pType === 'credit') {
+                    if (pType === 'credit') { 
                         dayCredit += exp.amount; 
-                    } else {
-                        dayCash += exp.amount;
+                    } else { 
+                        dayCash += exp.amount; 
                     }
                     
-                    if (i < 6) {
+                    if (i < 6) { 
                         contentHTML += `
                             <div class="expense-preview ${exp.isRecurring ? 'is-recurring' : ''}" style="background:${(pocket ? pocket.color : '#94a3b8') + '66'}">
-                                <span class="meal-text">${pType === 'credit' ? '💳' : '💵'} ${exp.desc}</span>
+                                <span class="meal-text">${isLinked}${pType === 'credit' ? '💳' : '💵'} ${exp.desc}</span>
                                 <span>${formatMoney(exp.amount)}</span>
-                            </div>`;
+                            </div>`; 
                     }
                 });
                 
-                if (dayExps.length > 6) {
-                    contentHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExps.length - 6} más</div>`;
+                if (dayExps.length > 6) { 
+                    contentHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExps.length - 6} más</div>`; 
                 }
                 
                 if (dayTotal > 0) { 
@@ -1224,15 +1723,33 @@
                 }
             } else {
                 const menuDay = data.menus[d] || {};
+                const tB = linkedTotals[`${d}-b`];
+                const tL = linkedTotals[`${d}-l`];
+                const tD = linkedTotals[`${d}-d`];
                 
-                if (menuDay.b) {
-                    contentHTML += `<div class="meal-preview" title="${menuDay.b}"><span class="meal-icon">🍳</span><span class="meal-text">${menuDay.b}</span></div>`;
+                if (menuDay.b || tB) { 
+                    contentHTML += `
+                        <div class="meal-preview" title="${menuDay.b || 'Comida vinculada'}">
+                            <span class="meal-icon">🍳</span>
+                            <span class="meal-text">${menuDay.b || '---'}</span>
+                            ${tB ? `<span class="meal-cost-badge">${formatMoney(tB)}</span>` : ''}
+                        </div>`; 
                 }
-                if (menuDay.l) {
-                    contentHTML += `<div class="meal-preview" title="${menuDay.l}"><span class="meal-icon">🍲</span><span class="meal-text">${menuDay.l}</span></div>`;
+                if (menuDay.l || tL) { 
+                    contentHTML += `
+                        <div class="meal-preview" title="${menuDay.l || 'Comida vinculada'}">
+                            <span class="meal-icon">🍲</span>
+                            <span class="meal-text">${menuDay.l || '---'}</span>
+                            ${tL ? `<span class="meal-cost-badge">${formatMoney(tL)}</span>` : ''}
+                        </div>`; 
                 }
-                if (menuDay.d) {
-                    contentHTML += `<div class="meal-preview" title="${menuDay.d}"><span class="meal-icon">🥗</span><span class="meal-text">${menuDay.d}</span></div>`;
+                if (menuDay.d || tD) { 
+                    contentHTML += `
+                        <div class="meal-preview" title="${menuDay.d || 'Comida vinculada'}">
+                            <span class="meal-icon">🥗</span>
+                            <span class="meal-text">${menuDay.d || '---'}</span>
+                            ${tD ? `<span class="meal-cost-badge">${formatMoney(tD)}</span>` : ''}
+                        </div>`; 
                 }
             }
 
@@ -1260,38 +1777,67 @@
 
     function openDayModal(day) {
         activeDay = day;
-        
         const hName = getColombianHolidays(selectedYear)[`${selectedMonth}-${day}`];
         const titleStr = `${day} de ${months[selectedMonth]}${hName ? ' ('+hName+')' : ''}`;
+        const key = getKey(selectedYear, selectedMonth);
         
         if (appMode === 'expenses') {
             document.getElementById('modalTitle').innerText = "Gastos: " + titleStr;
             const sel = document.getElementById('pocketSelect'); 
             sel.innerHTML = '';
             
-            const pockets = db[getKey(selectedYear, selectedMonth)].pockets;
+            const pockets = db[key].pockets.filter(p => p.appMode === 'expenses');
             
             if (pockets.length === 0) { 
                 sel.add(new Option("¡Crea un bolsillo!", "")); 
                 document.getElementById('amountInput').disabled = true; 
             } else { 
                 document.getElementById('amountInput').disabled = false; 
-                pockets.forEach(p => {
-                    sel.add(new Option(`${p.type === 'credit' ? '💳' : '💵'} ${p.name}`, p.id));
+                pockets.forEach(p => { 
+                    sel.add(new Option(`${p.type === 'credit' ? '💳' : '💵'} ${p.name}`, p.id)); 
                 }); 
             }
             
-            document.getElementById('expenseModal').style.display = 'flex';
+            document.getElementById('expenseModal').style.display = 'flex'; 
             renderModalList(); 
             document.getElementById('descInput').focus();
         } else {
             document.getElementById('menuModalTitle').innerText = "Menú: " + titleStr;
+            const menuData = db[key].menus[day] || { b:'', l:'', d:'' };
+            const linkedTotals = getLinkedTotalsMap(key);
             
-            const menuData = db[getKey(selectedYear, selectedMonth)].menus[day] || { b:'', l:'', d:'' };
-            
-            document.getElementById('menuB').value = menuData.b || '';
-            document.getElementById('menuL').value = menuData.l || '';
+            document.getElementById('menuB').value = menuData.b || ''; 
+            document.getElementById('menuL').value = menuData.l || ''; 
             document.getElementById('menuD').value = menuData.d || '';
+            
+            const lblB = document.getElementById('lblCostB');
+            const lblL = document.getElementById('lblCostL');
+            const lblD = document.getElementById('lblCostD');
+            
+            const tB = linkedTotals[`${day}-b`];
+            const tL = linkedTotals[`${day}-l`];
+            const tD = linkedTotals[`${day}-d`];
+            
+            if (tB) { 
+                lblB.innerText = `($ ${formatMoney(tB)})`; 
+                lblB.classList.remove('hidden'); 
+            } else { 
+                lblB.classList.add('hidden'); 
+            }
+            
+            if (tL) { 
+                lblL.innerText = `($ ${formatMoney(tL)})`; 
+                lblL.classList.remove('hidden'); 
+            } else { 
+                lblL.classList.add('hidden'); 
+            }
+            
+            if (tD) { 
+                lblD.innerText = `($ ${formatMoney(tD)})`; 
+                lblD.classList.remove('hidden'); 
+            } else { 
+                lblD.classList.add('hidden'); 
+            }
             
             document.getElementById('menuModal').style.display = 'flex';
         }
@@ -1300,14 +1846,10 @@
     // --- LOGICA DE MENUS ---
     function saveMenu() {
         const key = getKey(selectedYear, selectedMonth);
-        const breakfast = document.getElementById('menuB').value.trim();
-        const lunch = document.getElementById('menuL').value.trim();
-        const dinner = document.getElementById('menuD').value.trim();
-        
         db[key].menus[activeDay] = { 
-            b: breakfast, 
-            l: lunch, 
-            d: dinner 
+            b: document.getElementById('menuB').value.trim(), 
+            l: document.getElementById('menuL').value.trim(), 
+            d: document.getElementById('menuD').value.trim() 
         };
         
         saveDB(); 
@@ -1319,52 +1861,51 @@
         
         const key = getKey(selectedYear, selectedMonth);
         const menuToCopy = db[key].menus[activeDay] || {b:'', l:'', d:''};
-        
         const currentDayOfWeek = new Date(selectedYear, selectedMonth, activeDay).getDay();
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
         
         let count = 0;
-        for (let d = activeDay + 1; d <= daysInMonth; d++) {
-            if (new Date(selectedYear, selectedMonth, d).getDay() === currentDayOfWeek) {
-                db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy));
-                count++;
-            }
+        
+        for (let d = activeDay + 1; d <= daysInMonth; d++) { 
+            if (new Date(selectedYear, selectedMonth, d).getDay() === currentDayOfWeek) { 
+                db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy)); 
+                count++; 
+            } 
         }
         
         saveDB(); 
         render(); 
-        alert(`Menú copiado a ${count} día(s).`);
+        alert(`Menú copiado a ${count} día(s) futuros.`);
     }
 
-    // NUEVO: REPLICAR MENÚ EN LA MISMA SEMANA
     function replicateMenuWeek() {
         if(!confirm("¿Copiar este menú a los días restantes de ESTA semana (hasta el Domingo)?")) return;
         
         const key = getKey(selectedYear, selectedMonth);
         const menuToCopy = db[key].menus[activeDay] || {b:'', l:'', d:''};
+        const date = new Date(selectedYear, selectedMonth, activeDay); 
         
-        const date = new Date(selectedYear, selectedMonth, activeDay);
-        let dayOfWeek = date.getDay(); // 0 = Dom, 1 = Lun...
-        let jsDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 0=Lun, 6=Dom
+        let dayOfWeek = date.getDay(); 
+        let jsDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         let daysLeft = 6 - jsDay;
         
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-        
         let count = 0;
-        for (let i = 1; i <= daysLeft; i++) {
-            let d = activeDay + i;
-            if (d <= daysInMonth) {
-                db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy));
-                count++;
-            }
+        
+        for (let i = 1; i <= daysLeft; i++) { 
+            let d = activeDay + i; 
+            if (d <= daysInMonth) { 
+                db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy)); 
+                count++; 
+            } 
         }
         
-        if(count > 0) {
+        if(count > 0) { 
             saveDB(); 
             render(); 
-            alert(`Menú copiado a ${count} día(s) de ESTA semana.`);
-        } else {
-            alert("No hay más días en esta semana para copiar (o es domingo).");
+            alert(`Menú copiado a ${count} día(s) de ESTA semana.`); 
+        } else { 
+            alert("No hay más días en esta semana para copiar."); 
         }
     }
 
@@ -1381,8 +1922,8 @@
         
         const key = getKey(selectedYear, selectedMonth); 
         
-        if(!db[key].expenses[activeDay]) {
-            db[key].expenses[activeDay] = [];
+        if(!db[key].expenses[activeDay]) { 
+            db[key].expenses[activeDay] = []; 
         }
         
         db[key].expenses[activeDay].push({ 
@@ -1390,7 +1931,8 @@
             amount: amount, 
             pocketId: pocketSelect.value, 
             isRecurring: recurInput.checked, 
-            internalId: generateInternalId() 
+            internalId: generateInternalId(), 
+            linkedMenu: "" 
         });
         
         descInput.value = ''; 
@@ -1414,9 +1956,9 @@
         
         if(field === 'amount') { 
             const n = parseFloat(val); 
-            if(!isNaN(n) && n > 0) {
+            if(!isNaN(n) && n > 0) { 
                 exps[idx].amount = n; 
-            }
+            } 
         } else { 
             exps[idx][field] = val; 
         }
@@ -1431,16 +1973,17 @@
         const exps = db[key].expenses[activeDay];
         
         if (direction === 'up' && idx > 0) { 
-            const temp = exps[idx];
-            exps[idx] = exps[idx - 1];
-            exps[idx - 1] = temp;
+            const temp = exps[idx]; 
+            exps[idx] = exps[idx - 1]; 
+            exps[idx - 1] = temp; 
         } else if (direction === 'down' && idx < exps.length - 1) { 
-            const temp = exps[idx];
-            exps[idx] = exps[idx + 1];
-            exps[idx + 1] = temp;
-        } else {
-            return;
+            const temp = exps[idx]; 
+            exps[idx] = exps[idx + 1]; 
+            exps[idx + 1] = temp; 
+        } else { 
+            return; 
         }
+        
         saveDB(); 
         renderModalList(); 
         render(); 
@@ -1450,8 +1993,8 @@
         const key = getKey(selectedYear, selectedMonth);
         const originalExpense = db[key].expenses[activeDay][idx];
         
-        if (!originalExpense.internalId) {
-            originalExpense.internalId = generateInternalId();
+        if (!originalExpense.internalId) { 
+            originalExpense.internalId = generateInternalId(); 
         }
         
         const dayOfWeek = new Date(selectedYear, selectedMonth, activeDay).getDay();
@@ -1460,10 +2003,13 @@
         
         for (let d = activeDay + 1; d <= daysInMonth; d++) {
             if (new Date(selectedYear, selectedMonth, d).getDay() === dayOfWeek) {
-                if (!db[key].expenses[d]) {
+                if (!db[key].expenses[d]) { 
                     db[key].expenses[d] = []; 
                 }
-                db[key].expenses[d].push(JSON.parse(JSON.stringify(originalExpense))); 
+                
+                let newExp = JSON.parse(JSON.stringify(originalExpense)); 
+                newExp.linkedMenu = ""; 
+                db[key].expenses[d].push(newExp); 
                 count++;
             }
         }
@@ -1475,49 +2021,12 @@
         }
     }
 
-    // NUEVO: REPLICAR GASTO EN LA MISMA SEMANA
-    function replicateExpenseWeek(idx) {
-        const key = getKey(selectedYear, selectedMonth);
-        const originalExpense = db[key].expenses[activeDay][idx];
-        
-        if (!originalExpense.internalId) {
-            originalExpense.internalId = generateInternalId();
-        }
-        
-        const date = new Date(selectedYear, selectedMonth, activeDay);
-        let dayOfWeek = date.getDay(); // 0 = Dom, 1 = Lun...
-        let jsDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 0=Lun, 6=Dom
-        let daysLeft = 6 - jsDay;
-        
-        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-        let count = 0;
-        
-        for (let i = 1; i <= daysLeft; i++) {
-            let d = activeDay + i;
-            if (d <= daysInMonth) {
-                if (!db[key].expenses[d]) {
-                    db[key].expenses[d] = []; 
-                }
-                db[key].expenses[d].push(JSON.parse(JSON.stringify(originalExpense))); 
-                count++;
-            }
-        }
-        
-        if (count > 0) { 
-            saveDB(); 
-            render(); 
-            alert(`Gasto replicado en los ${count} días restantes de ESTA semana.`); 
-        } else {
-            alert("No hay más días en esta semana para replicar (o es domingo).");
-        }
-    }
-
     function updateAllMatchingExpenses(idx) {
         const key = getKey(selectedYear, selectedMonth);
         const currentExpense = db[key].expenses[activeDay][idx];
         
-        if (!currentExpense.internalId) {
-            return alert("Gasto antiguo sin ID vinculado. No se puede realizar la actualización masiva.");
+        if (!currentExpense.internalId) { 
+            return alert("Gasto antiguo sin ID vinculado. No se puede realizar la actualización masiva."); 
         }
         
         let count = 0;
@@ -1525,11 +2034,11 @@
         Object.keys(db[key].expenses).forEach(dayStr => {
             db[key].expenses[dayStr].forEach(exp => {
                 if (exp.internalId === currentExpense.internalId) { 
-                    Object.assign(exp, {
+                    Object.assign(exp, { 
                         desc: currentExpense.desc, 
                         amount: currentExpense.amount, 
                         pocketId: currentExpense.pocketId, 
-                        isRecurring: currentExpense.isRecurring
+                        isRecurring: currentExpense.isRecurring 
                     }); 
                     count++; 
                 }
@@ -1541,21 +2050,41 @@
         alert(`Se actualizaron ${count} gastos vinculados en este mes.`);
     }
 
+    function generateMenuOptionsHTML(currentLinkedValue) {
+        const key = getKey(selectedYear, selectedMonth);
+        const allMenus = db[key].menus;
+        let html = '<option value="">🔗 Asociar a un menú...</option>';
+        
+        Object.keys(allMenus).forEach(day => {
+            const m = allMenus[day];
+            if (m.b) {
+                html += `<option value="${day}-b" ${currentLinkedValue === `${day}-b` ? 'selected' : ''}>Día ${day} Des.: ${m.b.substring(0,18)}...</option>`;
+            }
+            if (m.l) {
+                html += `<option value="${day}-l" ${currentLinkedValue === `${day}-l` ? 'selected' : ''}>Día ${day} Alm.: ${m.l.substring(0,18)}...</option>`;
+            }
+            if (m.d) {
+                html += `<option value="${day}-d" ${currentLinkedValue === `${day}-d` ? 'selected' : ''}>Día ${day} Cena: ${m.d.substring(0,18)}...</option>`;
+            }
+        });
+        return html;
+    }
+
     function renderModalList() {
         const list = document.getElementById('modalExpenseList'); 
         list.innerHTML = '';
         
         const key = getKey(selectedYear, selectedMonth);
         const exps = db[key].expenses[activeDay] || [];
-        const pockets = db[key].pockets;
+        const pockets = db[key].pockets.filter(p => p.appMode === 'expenses');
         
         exps.forEach((exp, i) => {
             const pk = pockets.find(p => p.id === exp.pocketId);
             const color = pk ? pk.color : '#94a3b8';
             
             let optionsHTML = ''; 
-            pockets.forEach(p => {
-                optionsHTML += `<option value="${p.id}" ${p.id === exp.pocketId ? 'selected' : ''}>${p.type === 'credit' ? '💳' : '💵'} ${p.name}</option>`;
+            pockets.forEach(p => { 
+                optionsHTML += `<option value="${p.id}" ${p.id === exp.pocketId ? 'selected' : ''}>${p.type === 'credit' ? '💳' : '💵'} ${p.name}</option>`; 
             });
             
             const div = document.createElement('div'); 
@@ -1569,8 +2098,13 @@
                 
                 <div class="expense-info">
                     <input type="text" class="editable-input" value="${exp.desc}" onchange="updateExpense(${i}, 'desc', this.value)">
+                    
                     <select class="pocket-select-badge" style="background:${color}4D; border:1px solid ${color}66" onchange="updateExpense(${i}, 'pocketId', this.value)">
                         ${optionsHTML}
+                    </select>
+                    
+                    <select class="menu-link-select ${exp.linkedMenu ? 'linked' : ''}" onchange="updateExpense(${i}, 'linkedMenu', this.value)">
+                        ${generateMenuOptionsHTML(exp.linkedMenu)}
                     </select>
                 </div>
                 
@@ -1582,7 +2116,6 @@
                     </label>
                     
                     <button class="bulk-update-btn" onclick="updateAllMatchingExpenses(${i})" title="Aplicar cambios a los demás">🔗</button>
-                    <button class="action-btn" onclick="replicateExpenseWeek(${i})" title="Copiar al resto de ESTA semana">➡️</button>
                     <button class="action-btn" onclick="replicateExpense(${i})" title="Copiar en FUTURAS semanas">🔁</button>
                     <button class="delete-btn" onclick="deleteExpense(${i})">✕</button>
                 </div>`;
@@ -1593,7 +2126,6 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a, b) => a + b.amount, 0));
     }
 
-    // Utilidades
     function closeModal(id) { 
         document.getElementById(id).style.display = 'none'; 
         render(); 
@@ -1636,19 +2168,21 @@
         const key = getKey(selectedYear, selectedMonth);
         
         if(editingPocketIndex !== null) { 
-            Object.assign(db[key].pockets[editingPocketIndex], {
+            Object.assign(db[key].pockets[editingPocketIndex], { 
                 name: nameInput, 
                 limit: limitInput, 
-                type: typeInput
+                type: typeInput 
             }); 
         } else { 
-            db[key].pockets.push({
+            db[key].pockets.push({ 
                 id: Date.now().toString(), 
                 name: nameInput, 
                 limit: limitInput, 
                 type: typeInput, 
                 realAvailable: 0, 
-                color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length]
+                color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length], 
+                appMode: appMode, 
+                menuExpenses: {} 
             }); 
         }
         
@@ -1657,15 +2191,15 @@
     }
     
     function deletePocket(idx) {
-        if(!confirm("¿Eliminar bolsillo y todos sus gastos asociados?")) return;
+        if(!confirm("¿Eliminar bolsillo y todos sus datos asociados?")) return;
         
         const key = getKey(selectedYear, selectedMonth);
         const pocketId = db[key].pockets[idx].id;
         
         db[key].pockets.splice(idx, 1); 
         
-        Object.keys(db[key].expenses).forEach(day => {
-            db[key].expenses[day] = db[key].expenses[day].filter(e => e.pocketId !== pocketId);
+        Object.keys(db[key].expenses).forEach(day => { 
+            db[key].expenses[day] = db[key].expenses[day].filter(e => e.pocketId !== pocketId); 
         });
         
         saveDB(); 
@@ -1673,7 +2207,7 @@
     }
     
     function saveDB() { 
-        localStorage.setItem('expenseAppDB_v31', JSON.stringify(db)); 
+        localStorage.setItem('expenseAppDB_v33', JSON.stringify(db)); 
     }
     
     function exportData() { 
@@ -1686,15 +2220,16 @@
     function importData(input) { 
         const reader = new FileReader(); 
         reader.onload = e => { 
-            if(confirm("¿Estás seguro de que quieres sobrescribir los datos actuales?")) {
+            if(confirm("¿Sobrescribir los datos actuales?")) { 
                 db = JSON.parse(e.target.result); 
                 saveDB(); 
-                location.reload();
+                location.reload(); 
             } 
         }; 
-        if(input.files[0]) {
+        
+        if(input.files[0]) { 
             reader.readAsText(input.files[0]); 
-        }
+        } 
     }
 
     init();
