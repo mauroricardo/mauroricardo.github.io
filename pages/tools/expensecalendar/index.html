@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Gastos - V28 Orden y Título</title>
+    <title>Control de Gastos - V29</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -166,6 +166,9 @@
         .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         .day-number { font-weight: 700; color: #334155; font-size: 0.9rem; padding: 2px 4px; }
 
+        /* ESTILO PARA OCULTAR EL DÍA EN PC */
+        .mobile-day-name { display: none; }
+
         .holiday-badge {
             background-color: #dc2626; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 6px;
             font-weight: 600; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2); white-space: nowrap; overflow: hidden;
@@ -249,6 +252,7 @@
         @media (max-width: 768px) {
             header { padding: 10px; flex-direction: column; align-items: stretch; }
             .controls { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 8px; }
+            .controls h2 { grid-column: span 2; margin: 5px 0 !important; text-align: center; } /* Centra el título en móvil */
             .controls select, .controls button { width: 100%; justify-content: center; font-size: 0.8rem; padding: 10px; }
             .financial-summary { display: grid; grid-template-columns: 1fr 1fr; padding: 12px; gap: 12px; width: 100%; }
             .stat-item { align-items: flex-start; }
@@ -261,8 +265,19 @@
             .calendar-grid { display: flex; flex-direction: column; gap: 10px; }
             .day-cell { min-height: auto; padding: 15px; }
             .day-cell.empty { display: none; }
-            .day-header { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; }
+            .day-header { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; align-items: center; }
             .day-number { font-size: 1.2rem; }
+            
+            /* MOSTRAR EL NOMBRE DEL DÍA SOLO EN CELULARES */
+            .mobile-day-name { 
+                display: inline-block; 
+                margin-left: 6px; 
+                font-size: 0.95rem; 
+                color: #64748b; 
+                font-weight: 600; 
+                text-transform: capitalize;
+            }
+
             .modal-content { padding: 15px; }
             .modal-form-grid { grid-template-columns: 1fr; gap: 12px; background: #f8fafc; padding: 15px; border-radius: 8px; }
             .modal-form-grid label { align-self: flex-start; }
@@ -406,11 +421,11 @@
     let activeDay = null;
     let editingPocketIndex = null;
     
-    // DB V28
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v28')) || {}; 
+    // DB V29
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v29')) || {}; 
 
     if (Object.keys(db).length === 0) {
-        const history = ['v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20', 'v19'];
+        const history = ['v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) {
@@ -430,6 +445,7 @@
         return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
     }
 
+    // URL DE PRODUCCIÓN
     const API_URL = 'https://mauroricardo-github-io.onrender.com/api/sync';
 
     async function loadFromCloud() {
@@ -598,7 +614,6 @@
     }
 
     function render() {
-        // ACTUALIZAR LABEL DE MES GRANDE
         document.getElementById('monthTitle').innerText = `${months[selectedMonth]} ${selectedYear}`;
 
         const key = getKey(selectedYear, selectedMonth), data = db[key];
@@ -740,6 +755,8 @@
         firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
         const holidays = getColombianHolidays(selectedYear);
         
+        const dayNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        
         for(let i=0; i<firstDayIndex; i++) {
             const emptyCell = document.createElement('div');
             emptyCell.className = 'day-cell empty';
@@ -784,8 +801,18 @@
             const isToday = (isCurrentMonth && d === currentDate.getDate());
             cell.className = 'day-cell' + (isToday ? ' current-day' : '');
             
+            // CÁLCULO DEL DÍA PARA LA VISTA MÓVIL
+            const loopDate = new Date(selectedYear, selectedMonth, d);
+            const dayNameStr = dayNamesShort[loopDate.getDay()];
+            
             cell.innerHTML = `
-                <div class="day-header"><span class="day-number">${d}</span>${hBadge}</div>
+                <div class="day-header">
+                    <div style="display: flex; align-items: center;">
+                        <span class="day-number">${d}</span>
+                        <span class="mobile-day-name">${dayNameStr}</span>
+                    </div>
+                    ${hBadge}
+                </div>
                 <div class="day-previews-container">${previewsHTML}</div>
                 ${totalsHTML}
             `;
@@ -960,7 +987,6 @@
         render(); 
     }
 
-    // NUEVO: FUNCIÓN PARA CAMBIAR EL ORDEN
     function moveExpense(idx, direction) {
         const key = getKey(selectedYear, selectedMonth);
         const exps = db[key].expenses[activeDay];
@@ -974,12 +1000,12 @@
             exps[idx] = exps[idx + 1];
             exps[idx + 1] = temp;
         } else {
-            return; // No se puede mover más
+            return;
         }
         
         saveDB();
         renderModalList();
-        render(); // Se ejecuta para que el calendario también refleje el nuevo orden en los previews
+        render(); 
     }
 
     function renderModalList() {
@@ -1022,7 +1048,7 @@
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a,b)=>a+b.amount, 0));
     }
 
-    function saveDB() { localStorage.setItem('expenseAppDB_v28', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('expenseAppDB_v29', JSON.stringify(db)); }
     function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)], {type: "application/json"})); a.download = `gastos_respaldo_${Date.now()}.json`; a.click(); }
     function importData(input) { const r = new FileReader(); r.onload = (e) => { if(confirm("¿Sobrescribir datos?")) { db = JSON.parse(e.target.result); saveDB(); location.reload(); } }; if(input.files[0]) r.readAsText(input.files[0]); }
     
