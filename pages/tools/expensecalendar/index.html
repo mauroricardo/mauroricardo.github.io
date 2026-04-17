@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Gastos y Menús - V33 Expandida</title>
+    <title>Control de Gastos y Menús - V36 Expandida</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -398,6 +398,11 @@
         
         .expense-preview.is-recurring { 
             border-left: 3px solid var(--primary); 
+        }
+        
+        .expense-completed .meal-text {
+            text-decoration: line-through;
+            opacity: 0.6;
         }
         
         .meal-preview { 
@@ -975,7 +980,7 @@
         <div class="modal-form-grid">
             <input type="text" id="descInput" placeholder="Concepto (ej. Almuerzo)">
             <select id="pocketSelect"></select>
-            <input type="number" id="amountInput" placeholder="Monto ($)" min="0">
+            <input type="text" inputmode="numeric" id="amountInput" placeholder="Monto ($)" onfocus="unformatMoneyInput(this)" onblur="formatMoneyInput(this)">
             <label style="cursor:pointer; font-size:1rem; display:flex; align-items:center; gap: 8px;">
                 <input type="checkbox" id="recurInput" style="width:auto; transform: scale(1.3);"> 🔄 Recurrente
             </label>
@@ -1048,7 +1053,7 @@
         </div>
         <div class="form-group">
             <label>Presupuesto Total</label>
-            <input type="number" id="newPocketLimit" min="0">
+            <input type="text" inputmode="numeric" id="newPocketLimit" placeholder="Ej: 150000" onfocus="unformatMoneyInput(this)" onblur="formatMoneyInput(this)">
         </div>
         <button class="btn-full" id="savePocketBtn" onclick="savePocket()">Guardar</button>
     </div>
@@ -1065,11 +1070,11 @@
     let editingPocketIndex = null;
     let appMode = 'expenses'; 
     
-    // DB V33
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v33')) || {}; 
+    // DB V36
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v36')) || {}; 
 
     if (Object.keys(db).length === 0) {
-        const history = ['v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
+        const history = ['v35', 'v34', 'v33', 'v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) { 
@@ -1090,6 +1095,15 @@
                 }
             });
         }
+        if (db[k].expenses) {
+            Object.keys(db[k].expenses).forEach(day => {
+                db[k].expenses[day].forEach(e => {
+                    if (e.isCompleted === undefined) {
+                        e.isCompleted = false;
+                    }
+                });
+            });
+        }
     });
     saveDB();
 
@@ -1101,6 +1115,16 @@
 
     function formatMoney(amount) { 
         return moneyFormatter.format(amount); 
+    }
+
+    // NUEVAS FUNCIONES PARA ENMASCARAR INPUTS
+    function formatMoneyInput(el) {
+        let raw = el.value.replace(/\D/g, '');
+        el.value = raw ? formatMoney(parseFloat(raw)) : '';
+    }
+
+    function unformatMoneyInput(el) {
+        el.value = el.value.replace(/\D/g, '');
     }
 
     function generateInternalId() { 
@@ -1149,6 +1173,15 @@
                                 if(!p.appMode) {
                                     p.appMode = 'expenses'; 
                                 }
+                            });
+                        }
+                        if (db[k].expenses) {
+                            Object.keys(db[k].expenses).forEach(day => {
+                                db[k].expenses[day].forEach(e => {
+                                    if (e.isCompleted === undefined) {
+                                        e.isCompleted = false;
+                                    }
+                                });
                             });
                         }
                     });
@@ -1320,6 +1353,7 @@
                                 let nExp = JSON.parse(JSON.stringify(exp)); 
                                 nExp.internalId = generateInternalId(); 
                                 nExp.linkedMenu = "";
+                                nExp.isCompleted = false; 
                                 db[curKey].expenses[tDay].push(nExp); 
                             });
                         }
@@ -1363,8 +1397,11 @@
         const data = db[key];
         
         let pocketSpending = {};
+        let pocketPending = {}; 
+        
         data.pockets.forEach(p => { 
             pocketSpending[p.id] = 0; 
+            pocketPending[p.id] = 0;
         });
         
         if (appMode === 'expenses') {
@@ -1399,8 +1436,13 @@
                         pocketSpending[exp.pocketId] += exp.amount;
                     }
                     
-                    if (isFut || (isCur && dayNum >= currentDate.getDate())) {
-                        pending += exp.amount;
+                    if (!exp.isCompleted) {
+                        if (isFut || (isCur && dayNum >= currentDate.getDate())) {
+                            pending += exp.amount;
+                            if(exp.pocketId && pocketPending[exp.pocketId] !== undefined) {
+                                pocketPending[exp.pocketId] += exp.amount;
+                            }
+                        }
                     }
                 });
             });
@@ -1430,7 +1472,7 @@
             }
         }
         
-        renderPockets(data, pocketSpending); 
+        renderPockets(data, pocketSpending, pocketPending); 
         renderCalendar(data);
     }
 
@@ -1450,21 +1492,22 @@
 
     function generatePocketInput(idx, field, label, val) {
         val = val || 0;
+        // Se quitó el <span> del signo $ para delegarlo al input
         return `
             <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:4px; border-radius:4px; border: 1px solid #e2e8f0;">
                 <span style="font-size:0.7rem; color:#64748b; font-weight:700;">${label}:</span>
                 <div style="display:flex; align-items:center;">
-                    <span style="color:#64748b; font-size:0.7rem; margin-right: 2px;">$</span>
-                    <input type="text" 
-                           style="width:65px; text-align:right; font-size:0.75rem; padding:2px 4px; background:white; border: 1px solid #cbd5e1; border-radius:4px; outline:none;"
-                           value="${val === 0 ? '' : val}" 
-                           placeholder="0" 
-                           onblur="updateMenuPocketExpense(${idx}, '${field}', this.value)">
+                    <input type="text" inputmode="numeric" 
+                           style="width:85px; text-align:right; font-size:0.75rem; padding:2px 4px; background:white; border: 1px solid #cbd5e1; border-radius:4px; outline:none;"
+                           value="${val === 0 ? '' : formatMoney(val)}" 
+                           placeholder="$ 0" 
+                           onfocus="unformatMoneyInput(this)" 
+                           onblur="formatMoneyInput(this); updateMenuPocketExpense(${idx}, '${field}', this.value)">
                 </div>
             </div>`;
     }
 
-    function renderPockets(data, spendingMap) {
+    function renderPockets(data, spendingMap, pendingMap) {
         const container = document.getElementById('pocketsContainer'); 
         container.innerHTML = '';
         
@@ -1502,6 +1545,9 @@
             const baseColor = p.color || '#94a3b8';
             const progressColor = spent > p.limit ? '#ef4444' : '#10b981';
             
+            const pending = pendingMap ? (pendingMap[p.id] || 0) : 0;
+            const saldoReal = (p.realAvailable || 0) - pending;
+            
             let extraHTML = '';
             
             if (isMenuPocket) {
@@ -1531,6 +1577,7 @@
             div.style.backgroundColor = baseColor + '33'; 
             div.style.border = `1px solid ${baseColor}66`;
             
+            // Se quitó el <span> del signo $ para delegarlo al input de Disponible Real
             div.innerHTML = `
                 <div class="pocket-header">
                     <span>${p.type === 'credit' ? '💳' : '💵'} ${p.name}</span>
@@ -1549,14 +1596,25 @@
                 <div class="pocket-ppto-info" style="font-weight:bold; margin-top:4px;">
                     <span>Disp. Ppto: <b style="color:${p.limit - spent >= 0 ? '#10b981' : '#ef4444'}">${formatMoney(p.limit - spent)}</b></span>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px; border-top: 1px dashed #cbd5e1; padding-top: 6px;">
-                    <span style="font-size:0.75rem; color:#475569; font-weight:700;">Disp. Real:</span>
-                    <div style="display:flex; align-items:center; gap:2px;">
-                        <span style="color:#64748b; font-size:0.8rem;">$</span>
-                        <input type="text" class="editable-input" 
-                               style="width:80px; text-align:right; font-weight:bold; font-size:0.85rem; padding:2px; background:white; border: 1px solid #cbd5e1;" 
-                               value="${p.realAvailable === 0 ? '' : p.realAvailable}" placeholder="0" 
-                               onblur="updateRealAv(${idx}, this.value)">
+                
+                <div style="margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <span style="font-size:0.75rem; color:#475569; font-weight:700;">Disp. Real:</span>
+                        <div style="display:flex; align-items:center;">
+                            <input type="text" inputmode="numeric" class="editable-input" 
+                                   style="width:95px; text-align:right; font-weight:bold; font-size:0.85rem; padding:2px; background:white; border: 1px solid #cbd5e1; border-radius:4px;" 
+                                   value="${p.realAvailable === 0 ? '' : formatMoney(p.realAvailable)}" placeholder="$ 0" 
+                                   onfocus="unformatMoneyInput(this)" 
+                                   onblur="formatMoneyInput(this); updateRealAv(${idx}, this.value)">
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#64748b; margin-bottom: 2px;">
+                        <span>Pendientes:</span> 
+                        <span style="color:#ef4444; font-weight:600;">- ${formatMoney(pending)}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700;">
+                        <span>Saldo Real:</span> 
+                        <span style="color:${saldoReal >= 0 ? '#10b981' : '#ef4444'};">${formatMoney(saldoReal)}</span>
                     </div>
                 </div>
                 ${extraHTML}
@@ -1701,8 +1759,9 @@
                     }
                     
                     if (i < 6) { 
+                        const completedClass = exp.isCompleted ? 'expense-completed' : '';
                         contentHTML += `
-                            <div class="expense-preview ${exp.isRecurring ? 'is-recurring' : ''}" style="background:${(pocket ? pocket.color : '#94a3b8') + '66'}">
+                            <div class="expense-preview ${exp.isRecurring ? 'is-recurring' : ''} ${completedClass}" style="background:${(pocket ? pocket.color : '#94a3b8') + '66'}">
                                 <span class="meal-text">${isLinked}${pType === 'credit' ? '💳' : '💵'} ${exp.desc}</span>
                                 <span>${formatMoney(exp.amount)}</span>
                             </div>`; 
@@ -1916,7 +1975,8 @@
         const pocketSelect = document.getElementById('pocketSelect');
         const recurInput = document.getElementById('recurInput');
         
-        const amount = parseFloat(amountInput.value); 
+        // Se limpia cualquier caracter que no sea número antes de convertir
+        const amount = parseFloat(amountInput.value.replace(/\D/g, '')); 
         
         if(!pocketSelect.value || isNaN(amount) || amount <= 0) return;
         
@@ -1932,7 +1992,8 @@
             pocketId: pocketSelect.value, 
             isRecurring: recurInput.checked, 
             internalId: generateInternalId(), 
-            linkedMenu: "" 
+            linkedMenu: "",
+            isCompleted: false 
         });
         
         descInput.value = ''; 
@@ -1955,7 +2016,7 @@
         const exps = db[key].expenses[activeDay];
         
         if(field === 'amount') { 
-            const n = parseFloat(val); 
+            const n = parseFloat(val.toString().replace(/\D/g, '')); 
             if(!isNaN(n) && n > 0) { 
                 exps[idx].amount = n; 
             } 
@@ -2009,6 +2070,7 @@
                 
                 let newExp = JSON.parse(JSON.stringify(originalExpense)); 
                 newExp.linkedMenu = ""; 
+                newExp.isCompleted = false; // Al replicar, nace sin completar
                 db[key].expenses[d].push(newExp); 
                 count++;
             }
@@ -2039,6 +2101,7 @@
                         amount: currentExpense.amount, 
                         pocketId: currentExpense.pocketId, 
                         isRecurring: currentExpense.isRecurring 
+                        // isCompleted no se actualiza masivamente para no desmarcar pagos ya hechos
                     }); 
                     count++; 
                 }
@@ -2109,7 +2172,14 @@
                 </div>
                 
                 <div class="expense-actions">
-                    <input type="number" class="editable-input" style="width:90px; text-align:right;" value="${exp.amount}" onchange="updateExpense(${i}, 'amount', this.value)">
+                    <input type="text" inputmode="numeric" class="editable-input" style="width:105px; text-align:right;" 
+                           value="${formatMoney(exp.amount)}" 
+                           onfocus="unformatMoneyInput(this)" 
+                           onblur="formatMoneyInput(this); updateExpense(${i}, 'amount', this.value)">
+                    
+                    <label title="Completado" style="cursor:pointer; display:flex; align-items:center; margin-right: 5px;">
+                        <input type="checkbox" ${exp.isCompleted ? 'checked' : ''} onchange="updateExpense(${i}, 'isCompleted', this.checked)"> ✅
+                    </label>
                     
                     <label title="Recurrente" style="cursor:pointer; display:flex; align-items:center;">
                         <input type="checkbox" ${exp.isRecurring ? 'checked' : ''} onchange="updateExpense(${i}, 'isRecurring', this.checked)"> 🔄
@@ -2140,7 +2210,7 @@
         if(idx !== null) { 
             const pocket = db[getKey(selectedYear, selectedMonth)].pockets[idx]; 
             nameInput.value = pocket.name; 
-            limitInput.value = pocket.limit; 
+            limitInput.value = pocket.limit ? formatMoney(pocket.limit) : ''; 
             typeInput.value = pocket.type || 'cash'; 
             document.getElementById('pocketModalTitle').innerText = "Editar Bolsillo"; 
         } else { 
@@ -2160,7 +2230,7 @@
     
     function savePocket() {
         const nameInput = document.getElementById('newPocketName').value.trim();
-        const limitInput = parseFloat(document.getElementById('newPocketLimit').value);
+        const limitInput = parseFloat(document.getElementById('newPocketLimit').value.replace(/\D/g, ''));
         const typeInput = document.getElementById('newPocketType').value;
         
         if(!nameInput || isNaN(limitInput) || limitInput < 0) return;
@@ -2207,7 +2277,7 @@
     }
     
     function saveDB() { 
-        localStorage.setItem('expenseAppDB_v33', JSON.stringify(db)); 
+        localStorage.setItem('expenseAppDB_v36', JSON.stringify(db)); 
     }
     
     function exportData() { 
