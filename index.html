@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Portal Personal</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --card-bg: #ffffff;
+            --accent-util: #0284c7; /* Azul para utilidades */
+            --accent-game: #16a34a; /* Verde para juegos */
+            --hover-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            margin-top: 60px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            letter-spacing: -0.025em;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-top: 10px;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 90%;
+            margin: 0 auto 60px auto;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 50px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            text-decoration: none;
+            color: inherit;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .card-util:hover {
+            border-color: var(--accent-util);
+        }
+
+        .card-game:hover {
+            border-color: var(--accent-game);
+        }
+
+        .icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.25rem;
+        }
+
+        .card-util h3 { color: var(--accent-util); }
+        .card-game h3 { color: var(--accent-game); }
+
+        .card p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Mi Workspace</h1>
+        <p>Directorio central de aplicaciones y proyectos</p>
+    </header>
+
+    <div class="container">
+        
+        <h2 class="section-title">🛠️ Utilidades</h2>
+        <div class="grid">
+            <a href="pages/tools/expensecalendar/index.html" class="card card-util">
+                <div class="icon">📅</div>
+                <h3>Calendario de Gastos</h3>
+                <p>Gestión de finanzas, menús y control de ahorros integrados en tu vista mensual.</p>
+            </a>
+
+            <a href="pages/tools/tcstrategy/index.html" class="card card-util">
+                <div class="icon">💳</div>
+                <h3>Estrategia TC</h3>
+                <p>Simulador y optimización de pagos para el manejo inteligente de tarjetas de crédito.</p>
+            </a>
+            
+            </div>
+
+        <h2 class="section-title">🎮 Juegos</h2>
+        <div class="grid">
+            <a href="pages/games/sokoban/index.html" class="card card-game">
+                <div class="icon">📦</div>
+                <h3>Sokoban</h3>
+                <p>El clásico rompecabezas de lógica y movimiento de cajas.</p>
+            </a>
+        </div>
+
+    </div>
+
+</body>
+</html>
