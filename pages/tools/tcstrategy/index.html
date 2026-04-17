@@ -42,6 +42,9 @@
             justify-content: space-between;
             flex-wrap: wrap;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 10px;
+            z-index: 1000;
         }
 
         .config-inputs {
@@ -127,6 +130,11 @@
         }
         .btn-reset:hover { background-color: #c0392b; }
 
+        .flex-row-gap {
+            display: flex;
+            gap: 5px;
+        }
+
         /* CONTENEDOR MESES */
         .month-container {
             background: #fff;
@@ -135,7 +143,7 @@
             margin-bottom: 30px;
             overflow: hidden;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            scroll-margin-top: 20px;
+            scroll-margin-top: 100px;
         }
 
         .month-header {
@@ -401,24 +409,43 @@
     <div class="config-panel">
         <div class="config-inputs">
             <div class="config-item">
+                <label>Año</label>
+                <div class="flex-row-gap">
+                    <select id="selectYear" class="config-select" style="width: 80px;" onchange="switchContext()"></select>
+                    <button class="btn-action" style="padding: 0 10px;" onclick="addNewYear()">+ Año</button>
+                </div>
+            </div>
+            <div class="config-item">
+                <label>Versión</label>
+                <div class="flex-row-gap">
+                    <select id="selectVersion" class="config-select" style="width: 120px;" onchange="switchContext()"></select>
+                    <button class="btn-action" style="padding: 0 10px;" onclick="addNewVersion()">+ Versión</button>
+                </div>
+            </div>
+            
+            <div class="panel-divider"></div>
+
+            <div class="config-item">
                 <label>Cupo Tarjeta</label>
-                <input type="text" inputmode="numeric" id="globalQuota" value="5.000.000">
+                <input type="text" inputmode="numeric" id="globalQuota" value="5.000.000" oninput="globalConfigInput(event)" onfocus="this.select()">
             </div>
             <div class="config-item">
                 <label>Factura (Mes 1)</label>
-                <input type="text" inputmode="numeric" id="initialBill" value="0" style="color:var(--purple)">
+                <input type="text" inputmode="numeric" id="initialBill" value="0" style="color:var(--purple)" oninput="globalConfigInput(event)" onfocus="this.select()">
             </div>
+            
             <div class="panel-divider"></div>
+
             <div class="config-item">
                 <label>Gasto Libre</label>
-                <input type="text" inputmode="numeric" id="globalExpFree" value="0">
+                <input type="text" inputmode="numeric" id="globalExpFree" value="0" oninput="formatMoneyRealTime(event)" onfocus="this.select()">
             </div>
             <div class="config-item">
                 <label>Mes Inicio</label>
                 <select id="globalExpFreeStart" class="config-select">
-                    <option value="1">Mes 1</option><option value="2">Mes 2</option><option value="3">Mes 3</option><option value="4">Mes 4</option>
-                    <option value="5">Mes 5</option><option value="6">Mes 6</option><option value="7">Mes 7</option><option value="8">Mes 8</option>
-                    <option value="9">Mes 9</option><option value="10">Mes 10</option><option value="11">Mes 11</option><option value="12">Mes 12</option>
+                    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option>
+                    <option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option>
+                    <option value="9">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
                 </select>
             </div>
             <div class="config-item">
@@ -432,10 +459,10 @@
         </div>
 
         <div class="btn-wrap">
-            <button class="btn-action" onclick="exportData()">Exportar</button>
+            <button class="btn-action" onclick="exportData()">Exportar Backup</button>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-            <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar</button>
-            <button class="btn-reset" onclick="resetData()">Limpiar</button>
+            <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar Backup</button>
+            <button class="btn-reset" onclick="resetData()">Limpiar Vista Actual</button>
         </div>
     </div>
 
@@ -455,8 +482,10 @@
         const summarySavExtContainer = document.getElementById('summary-sav-ext');
         const summaryDesfaseContainer = document.getElementById('summary-desfase');
         
-        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+        const monthNames = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+        
         const fmtInput = (n) => new Intl.NumberFormat('es-CO').format(n);
+        const fmt = (n) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
         function cleanNum(str) {
             if (typeof str === 'number') return str;
@@ -470,38 +499,218 @@
             return { inc: isQ1 ? 3000000 : 0, sav: isQ1 ? 500 : 0, sav_ext: 0, exp_tc: 0, exp_free: 0, pay: 0, spend: 0, billGenerated: 0 };
         });
 
+        // Estructura Maestra Multiversión
+        let masterStore = {
+            years: {},
+            activeYear: new Date().getFullYear().toString(),
+            activeVersion: "Principal"
+        };
+        
+        // Apuntador directo a los datos activos
         let dataStore = [];
 
+        // --- SISTEMA DE FORMATEO EN TIEMPO REAL ---
+        function formatMoneyRealTime(e) {
+            let input = e.target;
+            let originalLen = input.value.length;
+            let cursorPosition = input.selectionStart;
+            
+            // Extraer solo los números
+            let rawStr = input.value.replace(/[^0-9-]/g, '');
+            let rawNum = 0;
+            
+            // Si el campo queda vacío al borrar, permitirlo para mejor UX
+            if (rawStr === '') {
+                input.value = '';
+            } else {
+                rawNum = parseInt(rawStr, 10);
+                input.value = fmtInput(rawNum);
+            }
+
+            // Ajustar el cursor para que no salte al final
+            let newLen = input.value.length;
+            cursorPosition += (newLen - originalLen);
+            input.setSelectionRange(cursorPosition, cursorPosition);
+            
+            return rawNum;
+        }
+
+        function globalConfigInput(e) {
+            formatMoneyRealTime(e);
+            recalculate();
+        }
+
+        function updateData(e) {
+            let rawNum = formatMoneyRealTime(e);
+            let input = e.target;
+            
+            const idx = parseInt(input.getAttribute('data-i'));
+            if(input.classList.contains('inp-inc')) dataStore[idx].inc = rawNum;
+            if(input.classList.contains('inp-sav')) dataStore[idx].sav = rawNum;
+            if(input.classList.contains('inp-sav-ext')) dataStore[idx].sav_ext = rawNum;
+            if(input.classList.contains('inp-exp-tc')) dataStore[idx].exp_tc = rawNum;
+            if(input.classList.contains('inp-exp-free')) dataStore[idx].exp_free = rawNum;
+            if(input.classList.contains('inp-pay')) dataStore[idx].pay = rawNum;
+            if(input.classList.contains('inp-spend')) dataStore[idx].spend = rawNum;
+            recalculate();
+        }
+        // ------------------------------------------
+
+        function initYearStructure(year) {
+            if (!masterStore.years[year]) masterStore.years[year] = {};
+            if (!masterStore.years[year]["Principal"]) {
+                masterStore.years[year]["Principal"] = {
+                    quota: 5000000,
+                    initialBill: 0,
+                    data: JSON.parse(JSON.stringify(defaultData))
+                };
+            }
+        }
+
         function loadData() {
-            const savedData = localStorage.getItem('finanzas_data_v4');
-            const savedQuota = localStorage.getItem('finanzas_quota_v4');
-            const savedBill = localStorage.getItem('finanzas_bill_v4');
+            const savedMaster = localStorage.getItem('finanzas_master_v5');
+            
+            if (savedMaster) {
+                masterStore = JSON.parse(savedMaster);
+            } else {
+                const currentYear = new Date().getFullYear().toString();
+                initYearStructure(currentYear);
+                masterStore.activeYear = currentYear;
+                
+                const oldData = localStorage.getItem('finanzas_data_v4');
+                const oldQuota = localStorage.getItem('finanzas_quota_v4');
+                const oldBill = localStorage.getItem('finanzas_bill_v4');
+                
+                if (oldData) {
+                    masterStore.years[currentYear]["Principal"].data = JSON.parse(oldData);
+                    if(oldQuota) masterStore.years[currentYear]["Principal"].quota = cleanNum(oldQuota);
+                    if(oldBill) masterStore.years[currentYear]["Principal"].initialBill = cleanNum(oldBill);
+                }
+            }
+
+            if (!masterStore.years[masterStore.activeYear]) {
+                masterStore.activeYear = Object.keys(masterStore.years)[0] || new Date().getFullYear().toString();
+                initYearStructure(masterStore.activeYear);
+            }
+            if (!masterStore.years[masterStore.activeYear][masterStore.activeVersion]) {
+                masterStore.activeVersion = Object.keys(masterStore.years[masterStore.activeYear])[0] || "Principal";
+            }
+
+            dataStore = masterStore.years[masterStore.activeYear][masterStore.activeVersion].data;
+            document.getElementById('globalQuota').value = fmtInput(masterStore.years[masterStore.activeYear][masterStore.activeVersion].quota);
+            document.getElementById('initialBill').value = fmtInput(masterStore.years[masterStore.activeYear][masterStore.activeVersion].initialBill);
+
             const savedGlobalExp = localStorage.getItem('finanzas_global_exp');
             const savedGlobalPer = localStorage.getItem('finanzas_global_per');
             const savedGlobalStart = localStorage.getItem('finanzas_global_start');
-
-            if (savedData) {
-                dataStore = JSON.parse(savedData).map(item => ({...item, exp_tc: item.exp_tc || 0, exp_free: item.exp_free || 0, sav_ext: item.sav_ext || 0}));
-            } else { dataStore = JSON.parse(JSON.stringify(defaultData)); }
-
-            if (savedQuota) document.getElementById('globalQuota').value = fmtInput(savedQuota);
-            if (savedBill) document.getElementById('initialBill').value = fmtInput(savedBill);
             if (savedGlobalExp) document.getElementById('globalExpFree').value = fmtInput(savedGlobalExp);
             if (savedGlobalPer) document.getElementById('globalExpFreePeriod').value = savedGlobalPer;
             if (savedGlobalStart) document.getElementById('globalExpFreeStart').value = savedGlobalStart;
+            
+            updateSelectors();
+        }
+
+        function updateSelectors() {
+            const selectYear = document.getElementById('selectYear');
+            const selectVersion = document.getElementById('selectVersion');
+            
+            selectYear.innerHTML = '';
+            Object.keys(masterStore.years).sort().forEach(year => {
+                const opt = document.createElement('option');
+                opt.value = year; opt.textContent = year;
+                if (year === masterStore.activeYear) opt.selected = true;
+                selectYear.appendChild(opt);
+            });
+
+            selectVersion.innerHTML = '';
+            Object.keys(masterStore.years[masterStore.activeYear]).forEach(version => {
+                const opt = document.createElement('option');
+                opt.value = version; opt.textContent = version;
+                if (version === masterStore.activeVersion) opt.selected = true;
+                selectVersion.appendChild(opt);
+            });
+        }
+
+        function softReload() {
+            dataStore = masterStore.years[masterStore.activeYear][masterStore.activeVersion].data;
+            document.getElementById('globalQuota').value = fmtInput(masterStore.years[masterStore.activeYear][masterStore.activeVersion].quota);
+            document.getElementById('initialBill').value = fmtInput(masterStore.years[masterStore.activeYear][masterStore.activeVersion].initialBill);
+            updateSelectors();
+            init();
+            recalculate();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function switchContext() {
+            saveData(); 
+            const newYear = document.getElementById('selectYear').value;
+            const newVersion = document.getElementById('selectVersion').value;
+            
+            masterStore.activeYear = newYear;
+            
+            if (!masterStore.years[newYear][newVersion]) {
+                masterStore.activeVersion = Object.keys(masterStore.years[newYear])[0];
+            } else {
+                masterStore.activeVersion = newVersion;
+            }
+            
+            localStorage.setItem('finanzas_master_v5', JSON.stringify(masterStore));
+            softReload(); 
+        }
+
+        function addNewYear() {
+            saveData();
+            const yearsArr = Object.keys(masterStore.years).map(Number);
+            const nextYear = (Math.max(...yearsArr) + 1).toString();
+            initYearStructure(nextYear);
+            masterStore.activeYear = nextYear;
+            masterStore.activeVersion = "Principal";
+            localStorage.setItem('finanzas_master_v5', JSON.stringify(masterStore));
+            softReload();
+        }
+
+        function addNewVersion() {
+            saveData();
+            const name = prompt("Escribe el nombre de la nueva versión (Ej: Escenario B, Optimista, etc.):");
+            if (name && name.trim() !== "") {
+                if (masterStore.years[masterStore.activeYear][name]) {
+                    alert("Ya existe una versión con ese nombre en este año.");
+                    return;
+                }
+                const currentData = masterStore.years[masterStore.activeYear][masterStore.activeVersion];
+                masterStore.years[masterStore.activeYear][name] = JSON.parse(JSON.stringify(currentData));
+                masterStore.activeVersion = name;
+                localStorage.setItem('finanzas_master_v5', JSON.stringify(masterStore));
+                softReload();
+            }
         }
 
         function saveData() {
-            localStorage.setItem('finanzas_data_v4', JSON.stringify(dataStore));
-            localStorage.setItem('finanzas_quota_v4', cleanNum(document.getElementById('globalQuota').value));
-            localStorage.setItem('finanzas_bill_v4', cleanNum(document.getElementById('initialBill').value));
+            masterStore.years[masterStore.activeYear][masterStore.activeVersion].quota = cleanNum(document.getElementById('globalQuota').value);
+            masterStore.years[masterStore.activeYear][masterStore.activeVersion].initialBill = cleanNum(document.getElementById('initialBill').value);
+            masterStore.years[masterStore.activeYear][masterStore.activeVersion].data = dataStore;
+
+            localStorage.setItem('finanzas_master_v5', JSON.stringify(masterStore));
+            
             localStorage.setItem('finanzas_global_exp', cleanNum(document.getElementById('globalExpFree').value));
             localStorage.setItem('finanzas_global_per', document.getElementById('globalExpFreePeriod').value);
             localStorage.setItem('finanzas_global_start', document.getElementById('globalExpFreeStart').value);
         }
 
         function resetData() {
-            if (confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); }
+            if (confirm(`¿Estás seguro de borrar toda la información de la versión [${masterStore.activeVersion}] del año [${masterStore.activeYear}]?`)) {
+                
+                dataStore = JSON.parse(JSON.stringify(defaultData));
+                masterStore.years[masterStore.activeYear][masterStore.activeVersion].data = dataStore;
+                masterStore.years[masterStore.activeYear][masterStore.activeVersion].quota = 5000000;
+                masterStore.years[masterStore.activeYear][masterStore.activeVersion].initialBill = 0;
+                
+                document.getElementById('globalQuota').value = fmtInput(5000000);
+                document.getElementById('initialBill').value = "0";
+
+                saveData();
+                softReload();
+            }
         }
 
         function applyGlobalExpFree() {
@@ -510,30 +719,51 @@
             const startMonth = parseInt(document.getElementById('globalExpFreeStart').value); 
             for (let i = 0; i < dataStore.length; i++) {
                 dataStore[i].exp_free = 0;
-                if (i % 2 === 0) {
-                    const mNum = Math.floor(i / 2) + 1;
-                    if (mNum >= startMonth && (mNum - startMonth) % period === 0) dataStore[i].exp_free = val;
+                const inputEl = document.querySelector(`.inp-exp-free[data-i="${i}"]`);
+                if(inputEl) inputEl.value = fmtInput(0);
+            }
+            for (let i = 0; i < dataStore.length; i++) {
+                const isQ1 = (i % 2 === 0);
+                if (isQ1) {
+                    const monthNum = Math.floor(i / 2) + 1; 
+                    let shouldApply = false;
+                    if (monthNum >= startMonth) {
+                        if ((monthNum - startMonth) % period === 0) {
+                            shouldApply = true;
+                        }
+                    }
+                    if (shouldApply) {
+                        dataStore[i].exp_free = val;
+                        const inputEl = document.querySelector(`.inp-exp-free[data-i="${i}"]`);
+                        if(inputEl) inputEl.value = fmtInput(val);
+                    }
                 }
             }
-            init(); recalculate();
+            recalculate();
+            alert("Gastos libres aplicados correctamente en la versión actual.");
         }
 
         function exportData() {
-            const exportObj = { dataStore, quota: cleanNum(document.getElementById('globalQuota').value), initialBill: cleanNum(document.getElementById('initialBill').value), globalExpFree: cleanNum(document.getElementById('globalExpFree').value), globalExpFreeStart: document.getElementById('globalExpFreeStart').value, globalExpFreePeriod: document.getElementById('globalExpFreePeriod').value };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
-            const a = document.createElement('a'); a.href = dataStr; a.download = "finanzas_export.json"; a.click();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(masterStore));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = `finanzas_backup_${masterStore.activeYear}.json`;
+            a.click();
         }
 
         function importData(event) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const imp = JSON.parse(e.target.result);
-                if (imp.dataStore) {
-                    localStorage.setItem('finanzas_data_v4', JSON.stringify(imp.dataStore));
-                    localStorage.setItem('finanzas_quota_v4', imp.quota); localStorage.setItem('finanzas_bill_v4', imp.initialBill);
-                    localStorage.setItem('finanzas_global_exp', imp.globalExpFree); localStorage.setItem('finanzas_global_start', imp.globalExpFreeStart);
-                    localStorage.setItem('finanzas_global_per', imp.globalExpFreePeriod);
-                    location.reload();
+                try {
+                    const imp = JSON.parse(e.target.result);
+                    if (imp.years && imp.activeYear) { 
+                        localStorage.setItem('finanzas_master_v5', JSON.stringify(imp));
+                        location.reload(); 
+                    } else {
+                        alert("El archivo no es compatible con el sistema de multiversión.");
+                    }
+                } catch (err) {
+                    alert("El archivo no es válido o está corrupto.");
                 }
             };
             reader.readAsText(event.target.files[0]);
@@ -546,94 +776,162 @@
                 const mDiv = document.createElement('div');
                 mDiv.className = 'month-container';
                 mDiv.id = `month-section-${m}`;
-                mDiv.innerHTML = `<div class="month-header">MES ${m}</div>`;
+                mDiv.innerHTML = `<div class="month-header">${monthNames[m-1]}</div>`;
                 const grid = document.createElement('div');
                 grid.className = 'quincenas-grid';
 
                 for (let q = 1; q <= qPerMonth; q++) {
                     const isQ1 = (q === 1);
                     const d = dataStore[idx]; 
-                    grid.innerHTML += `
-                        <div class="q-card" id="q-card-${idx}">
-                            <div class="q-title">
-                                <span>Quincena ${q} <span class="date-range">${isQ1 ? '1 - 15' : '16 - 30'}</span></span>
-                                ${isQ1 ? '<span class="badge bg-pay">Pago Día 2</span>' : '<span class="badge">Abono Voluntario</span>'}
+                    
+                    const dateRange = isQ1 ? '1 - 15' : '16 - 30';
+
+                    const cell = document.createElement('div');
+                    cell.className = 'q-card';
+                    cell.id = `q-card-${idx}`; 
+                    
+                    cell.innerHTML = `
+                        <div class="q-title">
+                            <span style="display:flex; align-items:center;">
+                                Quincena ${q} 
+                                <span class="date-range">${dateRange}</span>
+                            </span>
+                            ${isQ1 
+                                ? '<span class="badge bg-pay">Pago Día 2</span>' 
+                                : '<span class="badge">Abono Voluntario</span>'}
+                        </div>
+
+                        <div class="section sec-cash">
+                            <span class="lbl-sec txt-gr">Caja (Efectivo)</span>
+                            <div class="row"><label>Anterior:</label><strong id="cash-prev-${idx}">$0</strong></div>
+                            
+                            ${isQ1 ? `
+                            <div class="row">
+                                <label class="txt-gr">+ Ingresos:</label>
+                                <input type="text" inputmode="numeric" class="val inp-inc" data-i="${idx}" value="${fmtInput(d.inc)}">
                             </div>
-                            <div class="section sec-cash">
-                                <span class="lbl-sec txt-gr">Caja (Efectivo)</span>
-                                <div class="row"><label>Anterior:</label><strong id="cash-prev-${idx}">$0</strong></div>
-                                ${isQ1 ? `
-                                <div class="row"><label class="txt-gr">+ Ingresos:</label><input type="text" class="val inp-inc" data-i="${idx}" value="${fmtInput(d.inc)}"></div>
-                                <div class="row"><label class="txt-gr">+ Ahorros:</label><input type="text" class="val inp-sav" data-i="${idx}" value="${fmtInput(d.sav)}"></div>
-                                <div class="row"><label class="txt-gr">+ Ahorro extra:</label><input type="text" class="val inp-sav-ext" data-i="${idx}" value="${fmtInput(d.sav_ext)}"></div>
-                                ` : ''}
-                                <div class="row" style="border-bottom: 1px solid #a3e4d7; padding-bottom: 8px; margin-top: 6px;"><label class="txt-gr bold">= Total Inicial:</label><span id="cash-subtotal-${idx}" class="txt-gr bold">$0</span></div>
-                                <div class="row"><label class="txt-rd">- Gastos est. TC:</label><input type="text" class="val inp-exp-tc" data-i="${idx}" value="${fmtInput(d.exp_tc)}"></div>
-                                <div class="row"><label class="txt-rd">- Gastos libres:</label><input type="text" class="val inp-exp-free" data-i="${idx}" value="${fmtInput(d.exp_free)}"></div>
-                                <div class="row" style="font-size:0.8rem; color:var(--orange);"><label>- Salida Pago TC:</label><span id="val-pay-note-${idx}">$0</span></div>
-                                <div class="res-row txt-gr"><span>Disponible:</span><span id="cash-final-${idx}">$0</span></div>
+                            <div class="row">
+                                <label class="txt-gr">+ Ahorros:</label>
+                                <input type="text" inputmode="numeric" class="val inp-sav" data-i="${idx}" value="${fmtInput(d.sav)}">
                             </div>
-                            <div class="section sec-card">
-                                <span class="lbl-sec txt-bl">Tarjeta de Crédito</span>
-                                <div class="row"><label>Deuda Ant.:</label><strong id="debt-prev-${idx}">$0</strong></div>
-                                <div class="row"><label class="txt-or bold">${isQ1 ? 'Pago (Día 2):' : 'Abono Q2:'}</label><input type="text" class="val inp-pay" data-i="${idx}" value="${fmtInput(d.pay)}" style="color:var(--orange); font-weight:bold;"></div>
-                                <div class="row"><label class="txt-bl">+ Compras Nuevas:</label><input type="text" class="val inp-spend" data-i="${idx}" value="${fmtInput(d.spend)}"></div>
-                                <div class="res-row txt-bl"><span>Deuda Total:</span><span id="debt-final-${idx}">$0</span></div>
-                                <div class="quota-row"><label>Cupo Disp.:</label><span id="quota-final-${idx}">$0</span></div>
+                            <div class="row">
+                                <label class="txt-gr">+ Ahorro extra:</label>
+                                <input type="text" inputmode="numeric" class="val inp-sav-ext" data-i="${idx}" value="${fmtInput(d.sav_ext)}">
                             </div>
-                            ${isQ1 ? `<div class="section sec-bill"><span class="lbl-sec txt-pr">Factura</span>
-                                <div style="background:#fff; padding:8px; border:1px dashed var(--purple); border-radius:4px;">
-                                    <div class="row"><label>Facturado:</label><span id="bill-original-${idx}">$0</span></div>
-                                    <div class="row" style="color:#666; font-size:0.85rem;"><label>(-) Abonos Q2:</label><span id="bill-deduct-q2-${idx}">$0</span></div>
-                                    <div class="row bold txt-or"><label>Pendiente:</label><span id="bill-pending-${idx}">$0</span></div>
-                                </div>
-                                <div class="row" style="font-size:0.85rem; margin-top:5px;"><label>Estado:</label><span id="bill-status-${idx}">---</span></div>
-                                <div class="row bold txt-pr" style="margin-top:10px;"><label>Nuevo Corte (Día 15):</label><span id="bill-new-${idx}">$0</span></div>
-                            </div>` : ''}
-                        </div>`;
+                            ` : ''}
+                            
+                            <div class="row" style="border-bottom: 1px solid #a3e4d7; padding-bottom: 8px; margin-top: 6px; margin-bottom: 10px;">
+                                <label style="color:var(--green); font-weight:bold; font-size:0.85rem;">= Total Inicial:</label>
+                                <span id="cash-subtotal-${idx}" style="color:var(--green); font-weight:bold;">$0</span>
+                            </div>
+                            
+                            <div class="row"><label class="txt-rd">- Gastos est. TC:</label><input type="text" inputmode="numeric" class="val inp-exp-tc" data-i="${idx}" value="${fmtInput(d.exp_tc)}"></div>
+                            <div class="row"><label class="txt-rd">- Gastos libres:</label><input type="text" inputmode="numeric" class="val inp-exp-free" data-i="${idx}" value="${fmtInput(d.exp_free)}"></div>
+                            
+                            <div class="row" style="font-size:0.8rem; color:var(--orange);">
+                                <label>- Salida Pago TC:</label><span id="val-pay-note-${idx}">$0</span>
+                            </div>
+
+                            <div class="res-row txt-gr">
+                                <span>Disponible:</span><span id="cash-final-${idx}">$0</span>
+                            </div>
+                        </div>
+
+                        <div class="section sec-card">
+                            <span class="lbl-sec txt-bl">Tarjeta de Crédito</span>
+                            <div class="row"><label>Deuda Total Ant.:</label><strong id="debt-prev-${idx}">$0</strong></div>
+                            
+                            <div class="row">
+                                <label class="txt-or bold">${isQ1 ? 'Pago (Día 2):' : 'Abono Q2:'}</label>
+                                <input type="text" inputmode="numeric" class="val inp-pay" data-i="${idx}" value="${fmtInput(d.pay)}" style="color:var(--orange); font-weight:bold; border-color:var(--orange);">
+                            </div>
+
+                            <div class="row"><label class="txt-bl">+ Compras Nuevas:</label><input type="text" inputmode="numeric" class="val inp-spend" data-i="${idx}" value="${fmtInput(d.spend)}"></div>
+
+                            <div class="res-row txt-bl">
+                                <span>Deuda Total:</span><span id="debt-final-${idx}">$0</span>
+                            </div>
+                            
+                            <div class="quota-row">
+                                <label>Cupo Disponible:</label>
+                                <span id="quota-final-${idx}">$0</span>
+                            </div>
+                        </div>
+
+                        ${isQ1 ? `
+                        <div class="section sec-bill">
+                            <span class="lbl-sec txt-pr">Factura (Vence Día 2)</span>
+                            
+                            <div style="background:#fff; padding:8px; border:1px dashed var(--purple); border-radius:4px; margin-bottom:10px;">
+                                <div class="row"><label>Facturado Total:</label><span id="bill-original-${idx}">$0</span></div>
+                                <div class="row" style="color:#666; font-size:0.85rem; border-bottom:1px solid #eee; padding-bottom:5px;"><label>(-) Abonos Q2:</label><span id="bill-deduct-q2-${idx}">$0</span></div>
+                                <div class="row bold txt-or" style="margin-top:5px;"><label>Pendiente Real:</label><span id="bill-pending-${idx}">$0</span></div>
+                            </div>
+
+                            <div class="row" style="font-size:0.85rem; margin-bottom:10px;">
+                                <label>Estado:</label>
+                                <span id="bill-status-${idx}">---</span>
+                            </div>
+
+                            <hr style="border:0; border-top:1px dashed #ccc;">
+
+                            <div class="row bold txt-pr">
+                                <label>Nuevo Corte (Día 15):</label>
+                                <span id="bill-new-${idx}">$0</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                    `;
+                    grid.appendChild(cell);
                     idx++;
                 }
+                
                 mDiv.appendChild(grid);
+                
                 const footer = document.createElement('div');
                 footer.className = 'month-footer';
-                footer.innerHTML = `<label>Total Gastos Mes:</label><span id="month-total-expenses-${m}">$0</span>`;
+                footer.innerHTML = `
+                    <label style="font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; opacity:0.9;">Total Gastos Mes (Efectivo + Tarjeta)</label>
+                    <span id="month-total-expenses-${m}">$0</span>
+                `;
                 mDiv.appendChild(footer);
+
                 container.appendChild(mDiv);
             }
+
+            // Aplicamos los eventos de input en tiempo real a las celdas
             document.querySelectorAll('input.val').forEach(inp => {
                 inp.addEventListener('input', updateData);
-                inp.addEventListener('focus', function() { let n = cleanNum(this.value); this.value = n === 0 ? '' : n; });
-                inp.addEventListener('blur', function() { this.value = fmtInput(cleanNum(this.value)); });
+                inp.addEventListener('focus', function() { this.select(); });
             });
-        }
-
-        function updateData(e) {
-            const el = e.target; const val = cleanNum(el.value); const idx = parseInt(el.getAttribute('data-i'));
-            if (el.classList.contains('inp-inc')) dataStore[idx].inc = val;
-            if (el.classList.contains('inp-sav')) dataStore[idx].sav = val;
-            if (el.classList.contains('inp-sav-ext')) dataStore[idx].sav_ext = val;
-            if (el.classList.contains('inp-exp-tc')) dataStore[idx].exp_tc = val;
-            if (el.classList.contains('inp-exp-free')) dataStore[idx].exp_free = val;
-            if (el.classList.contains('inp-pay')) dataStore[idx].pay = val;
-            if (el.classList.contains('inp-spend')) dataStore[idx].spend = val;
-            recalculate();
         }
 
         function scrollToMonth(mNum) {
             const el = document.getElementById(`month-section-${mNum}`);
-            if(el) el.scrollIntoView({ behavior: 'smooth' });
+            if(el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+                el.style.transition = "box-shadow 0.5s";
+                el.style.boxShadow = "0 0 15px rgba(52, 152, 219, 0.8)";
+                setTimeout(() => el.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)", 1000);
+            }
         }
 
         function recalculate() {
             const globalQuota = cleanNum(document.getElementById('globalQuota').value);
             let initialBill = cleanNum(document.getElementById('initialBill').value);
-            let cash = 0, totalDebt = initialBill, prevQ2Spend = 0, currentMonthExpenses = 0;
+            
+            let cash = 0;
+            let totalDebt = initialBill; 
+            let prevQ2Spend = 0; 
+            let currentMonthExpenses = 0; 
+            
             let expFreeHTML = '', savExtHTML = '', globalExpFreeTotal = 0, globalSavExtTotal = 0;
             let desfaseMonths = new Set();
 
             for (let i = 0; i < dataStore.length; i++) {
                 const d = dataStore[i], isQ1 = (i % 2 === 0), mNum = Math.floor(i / 2) + 1;
                 let hasAlert = false;
+
                 currentMonthExpenses += (d.exp_tc || 0) + (d.exp_free || 0) + (d.spend || 0);
 
                 document.getElementById(`cash-prev-${i}`).innerText = fmt(cash);
@@ -642,55 +940,72 @@
 
                 let subtotalCash = cash + (d.inc || 0) + (d.sav || 0) + (d.sav_ext || 0);
                 document.getElementById(`cash-subtotal-${i}`).innerText = fmt(subtotalCash);
+
                 cash = subtotalCash - (d.exp_tc || 0) - (d.exp_free || 0) - (d.pay || 0);
+                
                 if (cash < 0) hasAlert = true;
+
                 const elCash = document.getElementById(`cash-final-${i}`);
-                elCash.innerText = fmt(cash); elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
+                elCash.innerText = fmt(cash);
+                elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
 
                 totalDebt = totalDebt + (d.spend || 0) - (d.pay || 0);
                 document.getElementById(`debt-final-${i}`).innerText = fmt(totalDebt);
+
                 const quotaLeft = globalQuota - totalDebt;
                 const elQuota = document.getElementById(`quota-final-${i}`);
-                elQuota.innerText = fmt(quotaLeft); elQuota.style.color = quotaLeft < 0 ? "var(--red)" : (quotaLeft < globalQuota * 0.1 ? "var(--orange)" : "var(--green)");
-                if (quotaLeft < 0) hasAlert = true;
+                elQuota.innerText = fmt(quotaLeft);
+                
+                if(quotaLeft < 0) { elQuota.style.color = "var(--red)"; hasAlert = true; }
+                else if (quotaLeft < globalQuota * 0.1) elQuota.style.color = "var(--orange)";
+                else elQuota.style.color = "var(--green)";
 
                 if (isQ1) {
-                    let billOrig = (i === 0) ? initialBill : dataStore[i-1].billGenerated;
-                    let payQ2 = (i > 0) ? dataStore[i-1].pay : 0;
-                    let billPend = Math.max(0, billOrig - payQ2);
-                    document.getElementById(`bill-original-${i}`).innerText = fmt(billOrig);
-                    document.getElementById(`bill-deduct-q2-${i}`).innerText = `-${fmt(payQ2)}`;
-                    document.getElementById(`bill-pending-${i}`).innerText = fmt(billPend);
-                    const rem = billPend - (d.pay || 0);
-                    const st = document.getElementById(`bill-status-${i}`);
-                    if (rem <= 0) { st.innerText = "Cubierto"; st.style.color = "var(--green)"; } 
-                    else { st.innerText = `Falta: ${fmt(rem)}`; st.style.color = "var(--red)"; hasAlert = true; }
-                    d.billGenerated = prevQ2Spend + (d.spend || 0) + rem;
-                    document.getElementById(`bill-new-${i}`).innerText = fmt(d.billGenerated);
-                    prevQ2Spend = 0;
+                    let billOriginal = (i === 0) ? initialBill : (i > 0 ? dataStore[i-1].billGenerated : 0);
+                    let paymentsInQ2 = (i > 0) ? dataStore[i-1].pay : 0;
+                    let billPendingReal = Math.max(0, billOriginal - paymentsInQ2);
+
+                    document.getElementById(`bill-original-${i}`).innerText = fmt(billOriginal);
+                    document.getElementById(`bill-deduct-q2-${i}`).innerText = `-${fmt(paymentsInQ2)}`;
+                    document.getElementById(`bill-pending-${i}`).innerText = fmt(billPendingReal);
+
+                    const statusEl = document.getElementById(`bill-status-${i}`);
+                    const remainingAfterToday = billPendingReal - (d.pay || 0);
+
+                    if (remainingAfterToday <= 0) {
+                        statusEl.innerText = "Cubierto"; statusEl.style.color = "var(--green)";
+                    } else {
+                        statusEl.innerText = `Falta: ${fmt(remainingAfterToday)}`; statusEl.style.color = "var(--red)"; hasAlert = true; 
+                    }
+
+                    let newBill = prevQ2Spend + (d.spend || 0) + remainingAfterToday;
+                    document.getElementById(`bill-new-${i}`).innerText = fmt(newBill);
+                    d.billGenerated = newBill; prevQ2Spend = 0; 
                 } else {
-                    prevQ2Spend = d.spend; d.billGenerated = dataStore[i-1].billGenerated;
+                    prevQ2Spend = (d.spend || 0); d.billGenerated = dataStore[i-1].billGenerated; 
                     
                     let mTotalFree = (dataStore[i-1].exp_free || 0) + (d.exp_free || 0);
                     if (mTotalFree > 0) { 
-                        expFreeHTML += `<li class="summary-item clickable" onclick="scrollToMonth(${mNum})">Mes ${mNum} <span><span class="val">${fmt(mTotalFree)}</span></span></li>`; 
+                        expFreeHTML += `<li class="summary-item clickable" onclick="scrollToMonth(${mNum})">${monthNames[mNum-1]} <span><span class="val">${fmt(mTotalFree)}</span></span></li>`; 
                         globalExpFreeTotal += mTotalFree; 
                     }
                     
                     let mTotalSavExt = (dataStore[i-1].sav_ext || 0) + (d.sav_ext || 0);
                     if (mTotalSavExt > 0) { 
-                        savExtHTML += `<li class="summary-item clickable green-hover" onclick="scrollToMonth(${mNum})">Mes ${mNum} <span class="val-green">${fmt(mTotalSavExt)}</span></li>`; 
+                        savExtHTML += `<li class="summary-item clickable green-hover" onclick="scrollToMonth(${mNum})">${monthNames[mNum-1]} <span class="val-green">${fmt(mTotalSavExt)}</span></li>`; 
                         globalSavExtTotal += mTotalSavExt; 
                     }
 
-                    document.getElementById(`month-total-expenses-${mNum}`).innerText = fmt(currentMonthExpenses); currentMonthExpenses = 0;
+                    document.getElementById(`month-total-expenses-${mNum}`).innerText = fmt(currentMonthExpenses); currentMonthExpenses = 0; 
                 }
 
                 if (hasAlert) desfaseMonths.add(mNum);
-                document.getElementById(`q-card-${i}`).className = `q-card ${hasAlert ? 'q-card-alert' : ''}`;
+                const cardEl = document.getElementById(`q-card-${i}`);
+                if (hasAlert) cardEl.classList.add('q-card-alert');
+                else cardEl.classList.remove('q-card-alert');
             }
 
-            // Renderizado Paneles (Siempre visibles ahora)
+            // Renderizado Paneles
             if (globalExpFreeTotal > 0) {
                 summaryExpContainer.innerHTML = `<div class="summary-title">Gastos Libres</div><ul class="summary-list">${expFreeHTML}</ul><div class="summary-total" style="margin-top:auto">Total Anual: <span class="val">${fmt(globalExpFreeTotal)}</span></div>`;
             } else {
@@ -706,7 +1021,7 @@
             if (desfaseMonths.size > 0) {
                 let listHTML = '';
                 Array.from(desfaseMonths).sort((a,b)=>a-b).forEach(m => {
-                    listHTML += `<li class="summary-item clickable alert-hover" onclick="scrollToMonth(${m})">Mes ${m} <span class="alert-tag">Revisar ↓</span></li>`;
+                    listHTML += `<li class="summary-item clickable alert-hover" onclick="scrollToMonth(${m})">${monthNames[m-1]} <span class="alert-tag">Revisar ↓</span></li>`;
                 });
                 summaryDesfaseContainer.innerHTML = `<div class="summary-title">Meses con Desfase</div><ul class="summary-list">${listHTML}</ul>`;
             } else {
@@ -716,7 +1031,19 @@
             saveData();
         }
 
-        loadData(); init(); recalculate();
+        // --- ARRANQUE ---
+        loadData(); 
+        init(); 
+        recalculate();
+
+        // El auto-scroll solo se ejecuta la primera vez que se carga el script
+        setTimeout(() => {
+            const now = new Date();
+            if (masterStore.activeYear === now.getFullYear().toString()) {
+                scrollToMonth(now.getMonth() + 1);
+            }
+        }, 500);
+
     </script>
 </body>
 </html>
