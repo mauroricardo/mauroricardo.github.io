@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Planificador Financiero Pro</title>
     <style>
         :root {
@@ -21,7 +21,7 @@
             font-family: 'Segoe UI', system-ui, sans-serif;
             background-color: var(--bg);
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             color: var(--text);
             max-width: 1150px;
             margin-left: auto;
@@ -161,12 +161,6 @@
             grid-template-columns: 1fr 1fr;
         }
 
-        @media (max-width: 950px) {
-            .quincenas-grid { grid-template-columns: 1fr; }
-            .quincenas-grid > div:first-child { border-bottom: 1px dashed #ccc; }
-            .panel-divider { display: none; }
-        }
-
         .q-card {
             padding: 15px 20px;
             border-right: 1px dashed #bdc3c7;
@@ -208,8 +202,7 @@
         .sec-card { background-color: #ebf5fb; border-left: 4px solid var(--blue); }
         .sec-bill { background-color: #f4ecf7; border-left: 4px solid var(--purple); margin-top: 15px; border: 1px solid #e8daef; }
 
-        .q-card-alert .sec-cash { background-color: rgba(255,255,255,0.5); }
-        .q-card-alert .sec-card { background-color: rgba(255,255,255,0.5); }
+        .q-card-alert .sec-cash, .q-card-alert .sec-card { background-color: rgba(255,255,255,0.5); }
 
         .lbl-sec {
             font-size: 0.75rem;
@@ -227,21 +220,48 @@
             font-size: 0.95rem;
         }
 
-        input.val {
-            width: 100px;
-            padding: 5px 6px;
+        /* Envoltorio para input + botón replicar */
+        .input-wrap {
+            display: flex;
+            align-items: stretch;
+            height: 32px;
+            background: #fff;
             border: 1px solid #bdc3c7;
             border-radius: 4px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .input-wrap:focus-within {
+            border-color: var(--blue);
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        input.val {
+            width: 80px;
+            padding: 5px 6px;
+            border: none;
             text-align: right;
             font-family: monospace;
             font-size: 0.95rem;
-            transition: all 0.2s;
-        }
-        input.val:focus {
             outline: none;
-            border-color: var(--blue);
-            background-color: #fdfefe;
-            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-repl {
+            background: #ecf0f1;
+            border: none;
+            border-left: 1px solid #bdc3c7;
+            width: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: var(--gray);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .btn-repl:hover {
+            background: var(--blue);
+            color: white;
         }
 
         .txt-gr { color: var(--green); }
@@ -355,15 +375,8 @@
             text-align: center;
             gap: 5px;
         }
-        .summary-item.clickable {
-            cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
-        }
-        .summary-item.clickable:hover {
-            transform: translateY(-2px);
-            background: #f4f7f6;
-            border-color: #bdc3c7;
-        }
+        .summary-item.clickable { cursor: pointer; transition: transform 0.2s, background 0.2s; }
+        .summary-item.clickable:hover { transform: translateY(-2px); background: #f4f7f6; border-color: #bdc3c7; }
         .summary-item.alert-hover:hover { border-color: var(--red); }
         .summary-item.green-hover:hover { border-color: var(--green); }
         
@@ -381,27 +394,38 @@
             font-size: 1.1rem;
             font-weight: 900;
         }
-        .summary-total span.val {
-            color: var(--red);
-            background: #fdedec;
-            padding: 2px 10px;
-            border-radius: 4px;
-        }
-        .summary-total span.val-green {
-            color: var(--green);
-            background: #eafaf1;
-            padding: 2px 10px;
-            border-radius: 4px;
-        }
+        .summary-total span.val { color: var(--red); background: #fdedec; padding: 2px 10px; border-radius: 4px; }
+        .summary-total span.val-green { color: var(--green); background: #eafaf1; padding: 2px 10px; border-radius: 4px; }
         
-        .empty-state {
-            color: var(--gray);
-            font-weight: bold;
-            font-size: 0.95rem;
-            padding: 10px 0;
-        }
+        .empty-state { color: var(--gray); font-weight: bold; font-size: 0.95rem; padding: 10px 0; }
         .empty-state.success { color: var(--green); }
 
+        /* ================= MOBILE OPTIMIZATION ================= */
+        @media (max-width: 850px) {
+            body { padding: 10px; }
+            .config-panel {
+                position: relative; /* Quita el sticky en móvil para no tapar pantalla */
+                flex-direction: column;
+                align-items: stretch;
+                padding: 15px;
+                gap: 15px;
+            }
+            .config-inputs { flex-direction: column; align-items: stretch; gap: 10px; }
+            .config-item { width: 100%; margin-bottom: 5px; }
+            .config-item input, .config-item select { width: 100% !important; }
+            .flex-row-gap { display: flex; width: 100%; }
+            .flex-row-gap > * { flex: 1; }
+            .panel-divider { display: none; }
+            .btn-wrap { justify-content: space-between; width: 100%; gap: 5px; }
+            .btn-wrap button { flex: 1; padding: 10px 5px; height: auto; font-size: 0.8rem; }
+            
+            .quincenas-grid { grid-template-columns: 1fr; }
+            .q-card { border-right: none; border-bottom: 2px dashed #bdc3c7; }
+            .q-card:last-child { border-bottom: none; }
+            
+            .input-wrap { width: 130px; }
+            input.val { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -416,17 +440,18 @@
                 </div>
             </div>
             <div class="config-item">
-                <label>Versión</label>
+                <label>Versión Activa</label>
                 <div class="flex-row-gap">
                     <select id="selectVersion" class="config-select" style="width: 120px;" onchange="switchContext()"></select>
                     <button class="btn-action" style="padding: 0 10px;" onclick="addNewVersion()">+ Versión</button>
+                    <button class="btn-action" style="padding: 0 10px; background-color: var(--purple);" onclick="copyFromVersion()" title="Reemplazar esta versión con datos de otra">Copiar de...</button>
                 </div>
             </div>
             
             <div class="panel-divider"></div>
 
             <div class="config-item">
-                <label>Cupo Tarjeta</label>
+                <label>Cupo Tarjeta Global</label>
                 <input type="text" inputmode="numeric" id="globalQuota" value="5.000.000" oninput="globalConfigInput(event)" onfocus="this.select()">
             </div>
             <div class="config-item">
@@ -437,11 +462,11 @@
             <div class="panel-divider"></div>
 
             <div class="config-item">
-                <label>Gasto Libre</label>
+                <label>Gasto Libre Recurrente</label>
                 <input type="text" inputmode="numeric" id="globalExpFree" value="0" oninput="formatMoneyRealTime(event)" onfocus="this.select()">
             </div>
             <div class="config-item">
-                <label>Mes Inicio</label>
+                <label>Mes de Inicio</label>
                 <select id="globalExpFreeStart" class="config-select">
                     <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option><option value="4">Abril</option>
                     <option value="5">Mayo</option><option value="6">Junio</option><option value="7">Julio</option><option value="8">Agosto</option>
@@ -459,10 +484,10 @@
         </div>
 
         <div class="btn-wrap">
-            <button class="btn-action" onclick="exportData()">Exportar Backup</button>
+            <button class="btn-action" onclick="exportData()">Exportar</button>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-            <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar Backup</button>
-            <button class="btn-reset" onclick="resetData()">Limpiar Vista Actual</button>
+            <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar</button>
+            <button class="btn-reset" onclick="resetData()">Limpiar Vista</button>
         </div>
     </div>
 
@@ -499,27 +524,24 @@
             return { inc: isQ1 ? 3000000 : 0, sav: isQ1 ? 500 : 0, sav_ext: 0, exp_tc: 0, exp_free: 0, pay: 0, spend: 0, billGenerated: 0 };
         });
 
-        // Estructura Maestra Multiversión
+        // Estructura Maestra
         let masterStore = {
             years: {},
             activeYear: new Date().getFullYear().toString(),
             activeVersion: "Principal"
         };
         
-        // Apuntador directo a los datos activos
         let dataStore = [];
 
-        // --- SISTEMA DE FORMATEO EN TIEMPO REAL ---
+        // --- MÁSCARA DE DINERO EN TIEMPO REAL ---
         function formatMoneyRealTime(e) {
             let input = e.target;
             let originalLen = input.value.length;
             let cursorPosition = input.selectionStart;
             
-            // Extraer solo los números
             let rawStr = input.value.replace(/[^0-9-]/g, '');
             let rawNum = 0;
             
-            // Si el campo queda vacío al borrar, permitirlo para mejor UX
             if (rawStr === '') {
                 input.value = '';
             } else {
@@ -527,7 +549,6 @@
                 input.value = fmtInput(rawNum);
             }
 
-            // Ajustar el cursor para que no salte al final
             let newLen = input.value.length;
             cursorPosition += (newLen - originalLen);
             input.setSelectionRange(cursorPosition, cursorPosition);
@@ -554,7 +575,23 @@
             if(input.classList.contains('inp-spend')) dataStore[idx].spend = rawNum;
             recalculate();
         }
-        // ------------------------------------------
+
+        // --- NUEVA FUNCIÓN: REPLICAR HACIA ADELANTE ---
+        function replicate(sourceIdx, inputClass, dataKey) {
+            const val = dataStore[sourceIdx][dataKey];
+            const isQ1 = (sourceIdx % 2 === 0);
+            const qStr = isQ1 ? "Quincena 1" : "Quincena 2";
+            
+            if(!confirm(`¿Replicar el valor de ${fmt(val)} en la ${qStr} de todos los meses siguientes del año?`)) return;
+
+            // Recorre saltando de a 2 para afectar solo a la misma quincena
+            for (let i = sourceIdx + 2; i < dataStore.length; i += 2) {
+                dataStore[i][dataKey] = val;
+                const el = document.querySelector(`.${inputClass}[data-i="${i}"]`);
+                if (el) el.value = fmtInput(val);
+            }
+            recalculate();
+        }
 
         function initYearStructure(year) {
             if (!masterStore.years[year]) masterStore.years[year] = {};
@@ -685,6 +722,28 @@
             }
         }
 
+        // --- NUEVO: FUNCIÓN PARA COPIAR DESDE OTRA VERSIÓN ---
+        function copyFromVersion() {
+            const versions = Object.keys(masterStore.years[masterStore.activeYear]).filter(v => v !== masterStore.activeVersion);
+            if (versions.length === 0) {
+                alert("No hay otras versiones en este año de las cuales copiar.");
+                return;
+            }
+            const name = prompt("VERSIONS DISPONIBLES:\n- " + versions.join('\n- ') + "\n\nEscribe el nombre de la versión que quieres copiar para REEMPLAZAR la actual:");
+            
+            if (name && masterStore.years[masterStore.activeYear][name]) {
+                if (confirm(`⚠️ CUIDADO: Vas a sobrescribir la versión actual ("${masterStore.activeVersion}") con todos los datos de "${name}".\n\n¿Estás completamente seguro?`)) {
+                    const sourceData = masterStore.years[masterStore.activeYear][name];
+                    masterStore.years[masterStore.activeYear][masterStore.activeVersion] = JSON.parse(JSON.stringify(sourceData));
+                    saveData();
+                    softReload();
+                    alert("¡Versión copiada exitosamente!");
+                }
+            } else if (name) {
+                alert("No se encontró ninguna versión con ese nombre exacto.");
+            }
+        }
+
         function saveData() {
             masterStore.years[masterStore.activeYear][masterStore.activeVersion].quota = cleanNum(document.getElementById('globalQuota').value);
             masterStore.years[masterStore.activeYear][masterStore.activeVersion].initialBill = cleanNum(document.getElementById('initialBill').value);
@@ -699,7 +758,6 @@
 
         function resetData() {
             if (confirm(`¿Estás seguro de borrar toda la información de la versión [${masterStore.activeVersion}] del año [${masterStore.activeYear}]?`)) {
-                
                 dataStore = JSON.parse(JSON.stringify(defaultData));
                 masterStore.years[masterStore.activeYear][masterStore.activeVersion].data = dataStore;
                 masterStore.years[masterStore.activeYear][masterStore.activeVersion].quota = 5000000;
@@ -808,15 +866,24 @@
                             ${isQ1 ? `
                             <div class="row">
                                 <label class="txt-gr">+ Ingresos:</label>
-                                <input type="text" inputmode="numeric" class="val inp-inc" data-i="${idx}" value="${fmtInput(d.inc)}">
+                                <div class="input-wrap">
+                                    <input type="text" inputmode="numeric" class="val inp-inc" data-i="${idx}" value="${fmtInput(d.inc)}">
+                                    <button class="btn-repl" onclick="replicate(${idx}, 'inp-inc', 'inc')" title="Replicar hacia adelante">↓</button>
+                                </div>
                             </div>
                             <div class="row">
                                 <label class="txt-gr">+ Ahorros:</label>
-                                <input type="text" inputmode="numeric" class="val inp-sav" data-i="${idx}" value="${fmtInput(d.sav)}">
+                                <div class="input-wrap">
+                                    <input type="text" inputmode="numeric" class="val inp-sav" data-i="${idx}" value="${fmtInput(d.sav)}">
+                                    <button class="btn-repl" onclick="replicate(${idx}, 'inp-sav', 'sav')" title="Replicar hacia adelante">↓</button>
+                                </div>
                             </div>
                             <div class="row">
                                 <label class="txt-gr">+ Ahorro extra:</label>
-                                <input type="text" inputmode="numeric" class="val inp-sav-ext" data-i="${idx}" value="${fmtInput(d.sav_ext)}">
+                                <div class="input-wrap">
+                                    <input type="text" inputmode="numeric" class="val inp-sav-ext" data-i="${idx}" value="${fmtInput(d.sav_ext)}">
+                                    <button class="btn-repl" onclick="replicate(${idx}, 'inp-sav-ext', 'sav_ext')" title="Replicar hacia adelante">↓</button>
+                                </div>
                             </div>
                             ` : ''}
                             
@@ -825,8 +892,20 @@
                                 <span id="cash-subtotal-${idx}" style="color:var(--green); font-weight:bold;">$0</span>
                             </div>
                             
-                            <div class="row"><label class="txt-rd">- Gastos est. TC:</label><input type="text" inputmode="numeric" class="val inp-exp-tc" data-i="${idx}" value="${fmtInput(d.exp_tc)}"></div>
-                            <div class="row"><label class="txt-rd">- Gastos libres:</label><input type="text" inputmode="numeric" class="val inp-exp-free" data-i="${idx}" value="${fmtInput(d.exp_free)}"></div>
+                            <div class="row">
+                                <label class="txt-rd">- Gastos est. TC:</label>
+                                <div class="input-wrap">
+                                    <input type="text" inputmode="numeric" class="val inp-exp-tc" data-i="${idx}" value="${fmtInput(d.exp_tc)}">
+                                    <button class="btn-repl" onclick="replicate(${idx}, 'inp-exp-tc', 'exp_tc')" title="Replicar hacia adelante">↓</button>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <label class="txt-rd">- Gastos libres:</label>
+                                <div class="input-wrap">
+                                    <input type="text" inputmode="numeric" class="val inp-exp-free" data-i="${idx}" value="${fmtInput(d.exp_free)}">
+                                    <button class="btn-repl" onclick="replicate(${idx}, 'inp-exp-free', 'exp_free')" title="Replicar hacia adelante">↓</button>
+                                </div>
+                            </div>
                             
                             <div class="row" style="font-size:0.8rem; color:var(--orange);">
                                 <label>- Salida Pago TC:</label><span id="val-pay-note-${idx}">$0</span>
@@ -843,10 +922,19 @@
                             
                             <div class="row">
                                 <label class="txt-or bold">${isQ1 ? 'Pago (Día 2):' : 'Abono Q2:'}</label>
-                                <input type="text" inputmode="numeric" class="val inp-pay" data-i="${idx}" value="${fmtInput(d.pay)}" style="color:var(--orange); font-weight:bold; border-color:var(--orange);">
+                                <div class="input-wrap" style="border-color: var(--orange);">
+                                    <input type="text" inputmode="numeric" class="val inp-pay" data-i="${idx}" value="${fmtInput(d.pay)}" style="color:var(--orange); font-weight:bold;">
+                                    <button class="btn-repl" onclick="replicate(${idx}, 'inp-pay', 'pay')" title="Replicar hacia adelante">↓</button>
+                                </div>
                             </div>
 
-                            <div class="row"><label class="txt-bl">+ Compras Nuevas:</label><input type="text" inputmode="numeric" class="val inp-spend" data-i="${idx}" value="${fmtInput(d.spend)}"></div>
+                            <div class="row">
+                                <label class="txt-bl">+ Compras Nuevas:</label>
+                                <div class="input-wrap">
+                                    <input type="text" inputmode="numeric" class="val inp-spend" data-i="${idx}" value="${fmtInput(d.spend)}">
+                                    <button class="btn-repl" onclick="replicate(${idx}, 'inp-spend', 'spend')" title="Replicar hacia adelante">↓</button>
+                                </div>
+                            </div>
 
                             <div class="res-row txt-bl">
                                 <span>Deuda Total:</span><span id="debt-final-${idx}">$0</span>
@@ -899,7 +987,6 @@
                 container.appendChild(mDiv);
             }
 
-            // Aplicamos los eventos de input en tiempo real a las celdas
             document.querySelectorAll('input.val').forEach(inp => {
                 inp.addEventListener('input', updateData);
                 inp.addEventListener('focus', function() { this.select(); });
@@ -1005,7 +1092,6 @@
                 else cardEl.classList.remove('q-card-alert');
             }
 
-            // Renderizado Paneles
             if (globalExpFreeTotal > 0) {
                 summaryExpContainer.innerHTML = `<div class="summary-title">Gastos Libres</div><ul class="summary-list">${expFreeHTML}</ul><div class="summary-total" style="margin-top:auto">Total Anual: <span class="val">${fmt(globalExpFreeTotal)}</span></div>`;
             } else {
@@ -1031,12 +1117,10 @@
             saveData();
         }
 
-        // --- ARRANQUE ---
         loadData(); 
         init(); 
         recalculate();
 
-        // El auto-scroll solo se ejecuta la primera vez que se carga el script
         setTimeout(() => {
             const now = new Date();
             if (masterStore.activeYear === now.getFullYear().toString()) {
