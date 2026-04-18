@@ -484,10 +484,10 @@
         </div>
 
         <div class="btn-wrap">
-            <button class="btn-action" onclick="exportData()">Exportar</button>
+            <button class="btn-action" onclick="exportData()">Exportar Backup</button>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-            <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar</button>
-            <button class="btn-reset" onclick="resetData()">Limpiar Vista</button>
+            <button class="btn-action" onclick="document.getElementById('importFile').click()">Importar Backup</button>
+            <button class="btn-reset" onclick="resetData()">Limpiar Vista Actual</button>
         </div>
     </div>
 
@@ -576,7 +576,6 @@
             recalculate();
         }
 
-        // --- NUEVA FUNCIÓN: REPLICAR HACIA ADELANTE ---
         function replicate(sourceIdx, inputClass, dataKey) {
             const val = dataStore[sourceIdx][dataKey];
             const isQ1 = (sourceIdx % 2 === 0);
@@ -584,7 +583,6 @@
             
             if(!confirm(`¿Replicar el valor de ${fmt(val)} en la ${qStr} de todos los meses siguientes del año?`)) return;
 
-            // Recorre saltando de a 2 para afectar solo a la misma quincena
             for (let i = sourceIdx + 2; i < dataStore.length; i += 2) {
                 dataStore[i][dataKey] = val;
                 const el = document.querySelector(`.${inputClass}[data-i="${i}"]`);
@@ -722,25 +720,40 @@
             }
         }
 
-        // --- NUEVO: FUNCIÓN PARA COPIAR DESDE OTRA VERSIÓN ---
+        // --- FUNCIÓN MEJORADA: COPIAR DESDE CUALQUIER AÑO/VERSIÓN ---
         function copyFromVersion() {
-            const versions = Object.keys(masterStore.years[masterStore.activeYear]).filter(v => v !== masterStore.activeVersion);
-            if (versions.length === 0) {
-                alert("No hay otras versiones en este año de las cuales copiar.");
+            // 1. Preguntar el Año
+            const availableYears = Object.keys(masterStore.years).sort();
+            const yearStr = prompt(`Paso 1/2: ¿De qué AÑO quieres copiar los datos?\n\nAños disponibles:\n- ${availableYears.join('\n- ')}\n\nEscribe el año:`);
+            
+            if (!yearStr) return; 
+            if (!masterStore.years[yearStr]) {
+                alert(`El año "${yearStr}" no existe.`);
                 return;
             }
-            const name = prompt("VERSIONS DISPONIBLES:\n- " + versions.join('\n- ') + "\n\nEscribe el nombre de la versión que quieres copiar para REEMPLAZAR la actual:");
+
+            // 2. Preguntar la Versión dentro de ese Año
+            const availableVersions = Object.keys(masterStore.years[yearStr]);
+            const versionStr = prompt(`Paso 2/2: ¿Qué VERSIÓN del año ${yearStr} quieres copiar?\n\nVersiones en ${yearStr}:\n- ${availableVersions.join('\n- ')}\n\nEscribe el nombre de la versión:`);
             
-            if (name && masterStore.years[masterStore.activeYear][name]) {
-                if (confirm(`⚠️ CUIDADO: Vas a sobrescribir la versión actual ("${masterStore.activeVersion}") con todos los datos de "${name}".\n\n¿Estás completamente seguro?`)) {
-                    const sourceData = masterStore.years[masterStore.activeYear][name];
-                    masterStore.years[masterStore.activeYear][masterStore.activeVersion] = JSON.parse(JSON.stringify(sourceData));
-                    saveData();
-                    softReload();
-                    alert("¡Versión copiada exitosamente!");
-                }
-            } else if (name) {
-                alert("No se encontró ninguna versión con ese nombre exacto.");
+            if (!versionStr) return; 
+            if (!masterStore.years[yearStr][versionStr]) {
+                alert(`La versión "${versionStr}" no existe en el año ${yearStr}.`);
+                return;
+            }
+
+            if (yearStr === masterStore.activeYear && versionStr === masterStore.activeVersion) {
+                alert("No puedes copiar una versión sobre sí misma.");
+                return;
+            }
+
+            // 3. Confirmación de reemplazo
+            if (confirm(`⚠️ CUIDADO: Vas a REEMPLAZAR tu vista actual (${masterStore.activeYear} - ${masterStore.activeVersion}) con los datos de: \n\n-> Año Origen: ${yearStr}\n-> Versión Origen: ${versionStr}\n\n¿Estás completamente seguro?`)) {
+                const sourceData = masterStore.years[yearStr][versionStr];
+                masterStore.years[masterStore.activeYear][masterStore.activeVersion] = JSON.parse(JSON.stringify(sourceData));
+                saveData();
+                softReload();
+                alert("¡Datos copiados y aplicados exitosamente!");
             }
         }
 
