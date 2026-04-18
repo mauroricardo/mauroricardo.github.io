@@ -1113,7 +1113,17 @@
                 elCash.className = cash < 0 ? 'res-row txt-rd' : 'res-row txt-gr';
 
                 totalDebt = totalDebt + (d.spend || 0) - (d.pay || 0);
-                document.getElementById(`debt-final-${i}`).innerText = fmt(totalDebt);
+                
+                const elDebt = document.getElementById(`debt-final-${i}`);
+                elDebt.innerText = fmt(totalDebt);
+                
+                // NUEVO: Validación de Deuda Negativa (Pago de más)
+                if (totalDebt < 0) {
+                    elDebt.style.color = "var(--red)";
+                    hasAlert = true;
+                } else {
+                    elDebt.style.color = ""; // Vuelve a su color por defecto
+                }
 
                 const quotaLeft = globalQuota - totalDebt;
                 const elQuota = document.getElementById(`quota-final-${i}`);
