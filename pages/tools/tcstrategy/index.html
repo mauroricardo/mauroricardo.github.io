@@ -400,11 +400,28 @@
         .empty-state { color: var(--gray); font-weight: bold; font-size: 0.95rem; padding: 10px 0; }
         .empty-state.success { color: var(--green); }
 
+        /* MODAL DE COPIA */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white; padding: 25px; border-radius: 12px;
+            width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            color: var(--text);
+        }
+        .modal-content h3 { margin-top: 0; color: var(--blue-dark); border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+        .modal-content label { display: block; font-weight: bold; font-size: 0.85rem; margin-bottom: 5px; color: var(--gray); text-transform: uppercase; }
+        .modal-content select { width: 100%; padding: 10px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #bdc3c7; font-size: 1rem; font-weight: bold; color: var(--text); }
+        .modal-btn-wrap { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
+        .modal-btn-wrap button { flex: 1; padding: 10px; font-size: 1rem; height: auto; }
+
         /* ================= MOBILE OPTIMIZATION ================= */
         @media (max-width: 850px) {
             body { padding: 10px; }
             .config-panel {
-                position: relative; /* Quita el sticky en móvil para no tapar pantalla */
+                position: relative; 
                 flex-direction: column;
                 align-items: stretch;
                 padding: 15px;
@@ -430,6 +447,24 @@
 </head>
 <body>
 
+    <div id="copyModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <h3>Copiar Datos de...</h3>
+            <p style="font-size: 0.9rem; margin-bottom: 20px;">Selecciona el año y la versión de origen. <strong>⚠️ Esto reemplazará tu vista actual.</strong></p>
+            
+            <label>1. Año de origen:</label>
+            <select id="modalYearSelect" onchange="updateModalVersionSelect()"></select>
+            
+            <label>2. Versión de origen:</label>
+            <select id="modalVersionSelect"></select>
+            
+            <div class="modal-btn-wrap">
+                <button class="btn-reset" onclick="closeCopyModal()" style="background:#95a5a6;">Cancelar</button>
+                <button class="btn-action" onclick="confirmCopy()" style="background:var(--purple);">Copiar y Reemplazar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="config-panel">
         <div class="config-inputs">
             <div class="config-item">
@@ -444,7 +479,7 @@
                 <div class="flex-row-gap">
                     <select id="selectVersion" class="config-select" style="width: 120px;" onchange="switchContext()"></select>
                     <button class="btn-action" style="padding: 0 10px;" onclick="addNewVersion()">+ Versión</button>
-                    <button class="btn-action" style="padding: 0 10px; background-color: var(--purple);" onclick="copyFromVersion()" title="Reemplazar esta versión con datos de otra">Copiar de...</button>
+                    <button class="btn-action" style="padding: 0 10px; background-color: var(--purple);" onclick="openCopyModal()" title="Reemplazar esta versión con datos de otra">Copiar de...</button>
                 </div>
             </div>
             
@@ -532,6 +567,65 @@
         };
         
         let dataStore = [];
+
+        // --- LÓGICA DEL MODAL DE COPIA ---
+        function openCopyModal() {
+            const modal = document.getElementById('copyModal');
+            const yearSelect = document.getElementById('modalYearSelect');
+            
+            // Llenar combo de años
+            yearSelect.innerHTML = '';
+            Object.keys(masterStore.years).sort().forEach(year => {
+                const opt = document.createElement('option');
+                opt.value = year; 
+                opt.textContent = year;
+                if(year === masterStore.activeYear) opt.selected = true;
+                yearSelect.appendChild(opt);
+            });
+            
+            updateModalVersionSelect();
+            modal.style.display = 'flex';
+        }
+
+        function updateModalVersionSelect() {
+            const yearStr = document.getElementById('modalYearSelect').value;
+            const versionSelect = document.getElementById('modalVersionSelect');
+            
+            versionSelect.innerHTML = '';
+            if (masterStore.years[yearStr]) {
+                Object.keys(masterStore.years[yearStr]).forEach(version => {
+                    const opt = document.createElement('option');
+                    opt.value = version; 
+                    opt.textContent = version;
+                    versionSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function closeCopyModal() {
+            document.getElementById('copyModal').style.display = 'none';
+        }
+
+        function confirmCopy() {
+            const yearStr = document.getElementById('modalYearSelect').value;
+            const versionStr = document.getElementById('modalVersionSelect').value;
+
+            if (yearStr === masterStore.activeYear && versionStr === masterStore.activeVersion) {
+                alert("No puedes copiar la versión sobre sí misma. Selecciona un origen diferente.");
+                return;
+            }
+
+            if (confirm(`⚠️ CONFIRMACIÓN FINAL:\n\nVas a REEMPLAZAR todo en (${masterStore.activeYear} - ${masterStore.activeVersion})\ncon los datos de (${yearStr} - ${versionStr}).\n\n¿Deseas continuar?`)) {
+                const sourceData = masterStore.years[yearStr][versionStr];
+                // Clonación profunda
+                masterStore.years[masterStore.activeYear][masterStore.activeVersion] = JSON.parse(JSON.stringify(sourceData));
+                saveData();
+                softReload();
+                closeCopyModal();
+                alert("¡Datos copiados y aplicados exitosamente!");
+            }
+        }
+        // ----------------------------------
 
         // --- MÁSCARA DE DINERO EN TIEMPO REAL ---
         function formatMoneyRealTime(e) {
@@ -717,43 +811,6 @@
                 masterStore.activeVersion = name;
                 localStorage.setItem('finanzas_master_v5', JSON.stringify(masterStore));
                 softReload();
-            }
-        }
-
-        // --- FUNCIÓN MEJORADA: COPIAR DESDE CUALQUIER AÑO/VERSIÓN ---
-        function copyFromVersion() {
-            // 1. Preguntar el Año
-            const availableYears = Object.keys(masterStore.years).sort();
-            const yearStr = prompt(`Paso 1/2: ¿De qué AÑO quieres copiar los datos?\n\nAños disponibles:\n- ${availableYears.join('\n- ')}\n\nEscribe el año:`);
-            
-            if (!yearStr) return; 
-            if (!masterStore.years[yearStr]) {
-                alert(`El año "${yearStr}" no existe.`);
-                return;
-            }
-
-            // 2. Preguntar la Versión dentro de ese Año
-            const availableVersions = Object.keys(masterStore.years[yearStr]);
-            const versionStr = prompt(`Paso 2/2: ¿Qué VERSIÓN del año ${yearStr} quieres copiar?\n\nVersiones en ${yearStr}:\n- ${availableVersions.join('\n- ')}\n\nEscribe el nombre de la versión:`);
-            
-            if (!versionStr) return; 
-            if (!masterStore.years[yearStr][versionStr]) {
-                alert(`La versión "${versionStr}" no existe en el año ${yearStr}.`);
-                return;
-            }
-
-            if (yearStr === masterStore.activeYear && versionStr === masterStore.activeVersion) {
-                alert("No puedes copiar una versión sobre sí misma.");
-                return;
-            }
-
-            // 3. Confirmación de reemplazo
-            if (confirm(`⚠️ CUIDADO: Vas a REEMPLAZAR tu vista actual (${masterStore.activeYear} - ${masterStore.activeVersion}) con los datos de: \n\n-> Año Origen: ${yearStr}\n-> Versión Origen: ${versionStr}\n\n¿Estás completamente seguro?`)) {
-                const sourceData = masterStore.years[yearStr][versionStr];
-                masterStore.years[masterStore.activeYear][masterStore.activeVersion] = JSON.parse(JSON.stringify(sourceData));
-                saveData();
-                softReload();
-                alert("¡Datos copiados y aplicados exitosamente!");
             }
         }
 
