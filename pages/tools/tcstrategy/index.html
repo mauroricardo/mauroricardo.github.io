@@ -617,10 +617,16 @@
 
             if (confirm(`⚠️ CONFIRMACIÓN FINAL:\n\nVas a REEMPLAZAR todo en (${masterStore.activeYear} - ${masterStore.activeVersion})\ncon los datos de (${yearStr} - ${versionStr}).\n\n¿Deseas continuar?`)) {
                 const sourceData = masterStore.years[yearStr][versionStr];
-                // Clonación profunda
+                
+                // Realizamos una clonación profunda de los datos en memoria
                 masterStore.years[masterStore.activeYear][masterStore.activeVersion] = JSON.parse(JSON.stringify(sourceData));
-                saveData();
+                
+                // Guardamos DIRECTAMENTE al localStorage sin usar saveData() para no sobrescribir accidentalmente
+                localStorage.setItem('finanzas_master_v5', JSON.stringify(masterStore));
+                
+                // softReload() se encarga de rellenar dataStore y los inputs desde la nueva memoria guardada
                 softReload();
+                
                 closeCopyModal();
                 alert("¡Datos copiados y aplicados exitosamente!");
             }
