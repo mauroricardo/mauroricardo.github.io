@@ -3,284 +3,428 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Crédito Pro</title>
+    <title>Calculadora de Préstamos</title>
     <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --border: #e2e8f0; --text: #1e293b; }
-        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
-        .container { max-width: 1200px; margin: 0 auto; display: grid; gap: 20px; grid-template-columns: 1fr 3fr; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 0.9em; }
-        input, select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; }
-        .rate-equiv { font-size: 0.85em; color: #64748b; margin-top: 4px; display: block; }
-        button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: 600; }
-        .rules-list { list-style: none; padding: 0; margin-top: 15px; }
-        .rules-list li { background: #f1f5f9; padding: 8px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85em; }
-        .totals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .total-box { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .total-box span { display: block; font-size: 0.75em; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-        .total-box strong { font-size: 1.2em; color: #0f172a; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-        th, td { padding: 12px 8px; border-bottom: 1px solid var(--border); text-align: right; }
-        th { background: #f8fafc; color: #475569; }
-        .input-table { width: 110px; text-align: right; }
-        .btn-del { background: #ef4444; padding: 2px 8px; font-size: 10px; width: auto; }
-        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --card-bg: #ffffff;
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            color: var(--text-main);
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--primary);
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+            align-items: start;
+        }
+
+        @media (max-width: 800px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-card {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .simulations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .simulation-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            border-top: 4px solid var(--primary);
+            position: relative;
+        }
+
+        .sim-title {
+            font-size: 1.25rem;
+            margin: 0 0 15px 0;
+            color: var(--primary);
+            padding-right: 30px;
+            word-break: break-word;
+        }
+
+        .sim-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .sim-data div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sim-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sim-value {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .sim-result {
+            background-color: #f0f9ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .sim-result .sim-label {
+            color: #0284c7;
+        }
+
+        .sim-result .sim-value {
+            font-size: 1.5rem;
+            color: #0369a1;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            color: var(--text-muted);
+            border: none;
+            width: auto;
+            padding: 4px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .delete-btn:hover {
+            color: var(--danger);
+            background: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            grid-column: 1 / -1;
+            padding: 40px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px dashed var(--border);
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="card">
-        <h2>Parámetros</h2>
-        <div class="form-group">
-            <label>Monto</label>
-            <input type="text" id="amount" class="currency-field" data-raw="50000000">
+    <div class="header">
+        <a href="../../../index.html" class="back-link">← Volver al inicio</a>
+        <h1>Simulador de Créditos</h1>
+        <div style="width: 120px;"></div> </div>
+
+    <div class="main-container">
+        
+        <div class="form-card">
+            <form id="loan-form">
+                <div class="form-group">
+                    <label for="name">Nombre de la simulación</label>
+                    <input type="text" id="name" placeholder="Ej: Crédito Vehículo" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="amount">Monto del préstamo</label>
+                    <input type="text" id="amount" placeholder="$ 0" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="rate">Tasa Efectiva Anual (E.A. %)</label>
+                    <input type="number" id="rate" step="0.01" placeholder="Ej: 15.5" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="term">Plazo (Meses)</label>
+                    <input type="number" id="term" placeholder="Ej: 60" required>
+                </div>
+
+                <button type="submit">Agregar Simulación</button>
+            </form>
         </div>
-        <div class="form-group">
-            <label>Meses</label>
-            <input type="number" id="months" value="60">
-        </div>
-        <div class="form-group">
-            <label>Tasa (%)</label>
-            <div style="display: flex; gap: 5px;">
-                <input type="number" id="rateValue" value="1.5" step="0.01" style="flex: 1;">
-                <select id="rateType" style="flex: 1;">
-                    <option value="MV">Mensual (MV)</option>
-                    <option value="EA">Anual (EA)</option>
-                </select>
+
+        <div class="simulations-grid" id="simulations-container">
             </div>
-            <span class="rate-equiv" id="rateEquivText"></span>
-        </div>
 
-        <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
+    </div>
+
+    <script>
+        // Funciones de formato de moneda
+        const formatCurrency = (value) => {
+            if (!value) return '';
+            const num = parseFloat(value.toString().replace(/[^0-9]/g, ''));
+            if (isNaN(num)) return '';
+            return new Intl.NumberFormat('es-CO', { 
+                style: 'currency', 
+                currency: 'COP', 
+                maximumFractionDigits: 0 
+            }).format(num);
+        };
+
+        const unformatCurrency = (value) => {
+            return value.toString().replace(/[^0-9]/g, '');
+        };
+
+        // Lógica del campo de monto (Focus / Blur)
+        const amountInput = document.getElementById('amount');
         
-        <h3>Abonos Extras</h3>
-        <div class="form-group">
-            <select id="extraType">
-                <option value="periodic">Periódico</option>
-                <option value="range">Por Rango</option>
-            </select>
-        </div>
-        <div id="configPeriodic" class="form-group">
-            <select id="extraFreq">
-                <option value="1">Mensual</option>
-                <option value="6" selected>Semestral</option>
-                <option value="12">Anual</option>
-            </select>
-        </div>
-        <div id="configRange" style="display:none; gap:5px; margin-bottom:15px;">
-            <input type="number" id="extraStart" placeholder="Desde" value="1">
-            <input type="number" id="extraEnd" placeholder="Hasta" value="12">
-        </div>
-        <div class="form-group">
-            <input type="text" id="extraAmount" class="currency-field" data-raw="1000000" placeholder="Valor abono">
-        </div>
-        <button id="btnAddRule">Agregar Regla</button>
-        <ul id="rulesList" class="rules-list"></ul>
-    </div>
-
-    <div class="card">
-        <div class="totals-grid" id="totalsGrid"></div>
-        <div style="overflow-x: auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Cuota</th>
-                        <th>Interés</th>
-                        <th>Capital</th>
-                        <th>Extra</th>
-                        <th>Saldo</th>
-                    </tr>
-                </thead>
-                <tbody id="amortizationTable"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<script>
-    const state = {
-        amount: 50000000,
-        months: 60,
-        rateType: 'MV',
-        rateValue: 1.5,
-        rules: [],
-        manualExtras: {}
-    };
-
-    const formatter = new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: 'COP',
-        minimumFractionDigits: 0
-    });
-
-    // --- Lógica de Formateo de Moneda ---
-    function setupCurrencyFields() {
-        document.querySelectorAll('.currency-field').forEach(el => {
-            // Inicializar con el valor raw si existe
-            const raw = el.getAttribute('data-raw');
-            if (raw) el.value = formatter.format(raw);
-
-            el.addEventListener('focus', function() {
-                const rawValue = this.value.replace(/[^\d]/g, '');
-                this.type = 'number';
-                this.value = rawValue;
-            });
-
-            el.addEventListener('blur', function() {
-                const val = parseFloat(this.value) || 0;
-                this.type = 'text';
-                this.value = formatter.format(val);
-                this.setAttribute('data-raw', val);
-                updateFromInputs();
-            });
+        amountInput.addEventListener('focus', function() {
+            this.value = unformatCurrency(this.value);
         });
-    }
 
-    // --- Cálculos ---
-    function getRates() {
-        const val = state.rateValue / 100;
-        const mensual = state.rateType === 'EA' ? Math.pow(1 + val, 1/12) - 1 : val;
-        const ea = state.rateType === 'MV' ? Math.pow(1 + val, 12) - 1 : val;
-        return { mensual, ea };
-    }
-
-    function calculate() {
-        const { mensual, ea } = getRates();
-        document.getElementById('rateEquivText').innerText = state.rateType === 'EA' 
-            ? `Equivale a ${(mensual * 100).toFixed(4)}% MV` 
-            : `Equivale a ${(ea * 100).toFixed(4)}% EA`;
-
-        const cuotaBase = (state.amount * (mensual * Math.pow(1 + mensual, state.months))) / (Math.pow(1 + mensual, state.months) - 1);
-        
-        let balance = state.amount;
-        let table = [];
-        let month = 1;
-        let totalInt = 0;
-        let totalExtra = 0;
-
-        // Escenario Base (Sin abonos) para comparar ahorros
-        const baseIntTotal = (() => {
-            let b = state.amount;
-            let ti = 0;
-            for(let i=0; i<state.months; i++) {
-                let int = b * mensual;
-                ti += int;
-                b -= (cuotaBase - int);
+        amountInput.addEventListener('blur', function() {
+            if(this.value) {
+                this.value = formatCurrency(this.value);
             }
-            return ti;
-        })();
+        });
 
-        while (balance > 1 && month <= 360) {
-            let interest = balance * mensual;
-            let principal = cuotaBase - interest;
+        // Estado y LocalStorage
+        const STORAGE_KEY = 'loan_simulations_data';
+        let simulations = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+        const saveSimulations = () => {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(simulations));
+            renderSimulations();
+        };
+
+        // Cálculos financieros
+        const calculateLoan = (amount, rateEA, months) => {
+            // Convertir EA a Mensual Vencida (MV)
+            const rateMV = Math.pow(1 + (rateEA / 100), 1 / 12) - 1;
             
-            // Lógica de abonos: Manual > Reglas
-            let extra = state.manualExtras[month] !== undefined 
-                ? state.manualExtras[month] 
-                : state.rules.reduce((acc, r) => {
-                    if(r.type === 'periodic' && month % r.freq === 0) return acc + r.amount;
-                    if(r.type === 'range' && month >= r.start && month <= r.end) return acc + r.amount;
-                    return acc;
-                }, 0);
-
-            if (balance < (principal + extra)) {
-                principal = Math.min(balance, principal);
-                extra = balance - principal;
+            // Fórmula de cuota fija: P * (r(1+r)^n) / ((1+r)^n - 1)
+            let cuota = 0;
+            if (rateMV > 0) {
+                cuota = amount * (rateMV * Math.pow(1 + rateMV, months)) / (Math.pow(1 + rateMV, months) - 1);
+            } else {
+                cuota = amount / months;
             }
 
-            balance -= (principal + extra);
-            totalInt += interest;
-            totalExtra += extra;
+            const totalPagado = cuota * months;
+            const totalIntereses = totalPagado - amount;
 
-            table.push({ month, cuota: principal + interest, interest, principal, extra, balance });
-            if (balance <= 0) break;
-            month++;
-        }
+            return {
+                cuotaMensual: cuota,
+                tasaMV: rateMV * 100,
+                totalIntereses: totalIntereses
+            };
+        };
 
-        render(table, { totalInt, totalExtra, baseIntTotal, finalTime: table.length });
-    }
+        // Renderizado
+        const renderSimulations = () => {
+            const container = document.getElementById('simulations-container');
+            container.innerHTML = '';
 
-    function render(table, stats) {
-        const formatTime = (m) => m > 12 ? `${m}m (${Math.floor(m/12)}a ${m%12}m)` : `${m} meses`;
-        
-        document.getElementById('totalsGrid').innerHTML = `
-            <div class="total-box"><span>Intereses Pagados</span><strong>${formatter.format(stats.totalInt)}</strong></div>
-            <div class="total-box"><span>Ahorro Interés</span><strong style="color:#10b981">${formatter.format(stats.baseIntTotal - stats.totalInt)}</strong></div>
-            <div class="total-box"><span>Total Extras</span><strong>${formatter.format(stats.totalExtra)}</strong></div>
-            <div class="total-box"><span>Tiempo Final</span><strong>${formatTime(stats.finalTime)}</strong></div>
-            <div class="total-box"><span>Tiempo Ahorrado</span><strong style="color:#10b981">${formatTime(state.months - stats.finalTime)}</strong></div>
-        `;
+            if (simulations.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">🏦</div>
+                        <p>No tienes simulaciones guardadas.</p>
+                        <p style="font-size: 0.9rem; margin-top: 5px;">Agrega tu primer cálculo usando el formulario.</p>
+                    </div>
+                `;
+                return;
+            }
 
-        document.getElementById('amortizationTable').innerHTML = table.map(r => `
-            <tr>
-                <td>${r.month}</td>
-                <td>${formatter.format(r.cuota)}</td>
-                <td>${formatter.format(r.interest)}</td>
-                <td>${formatter.format(r.principal)}</td>
-                <td><input type="text" class="input-table table-currency" data-month="${r.month}" value="${formatter.format(r.extra)}"></td>
-                <td>${formatter.format(r.balance)}</td>
-            </tr>
-        `).join('');
+            // Ordenar de más reciente a más antiguo
+            const sortedSimulations = [...simulations].reverse();
 
-        // Listeners para la tabla
-        document.querySelectorAll('.table-currency').forEach(el => {
-            el.addEventListener('focus', function() {
-                this.value = this.value.replace(/[^\d]/g, '');
-                this.type = 'number';
+            sortedSimulations.forEach(sim => {
+                const results = calculateLoan(sim.amount, sim.rate, sim.term);
+                
+                const card = document.createElement('div');
+                card.className = 'simulation-card';
+                card.innerHTML = `
+                    <button class="delete-btn" onclick="deleteSimulation(${sim.id})" title="Eliminar">🗑️</button>
+                    <h3 class="sim-title">${sim.name}</h3>
+                    
+                    <div class="sim-data">
+                        <div>
+                            <span class="sim-label">Monto</span>
+                            <span class="sim-value">${formatCurrency(sim.amount)}</span>
+                        </div>
+                        <div>
+                            <span class="sim-label">Plazo</span>
+                            <span class="sim-value">${sim.term} meses</span>
+                        </div>
+                        <div>
+                            <span class="sim-label">Tasa E.A.</span>
+                            <span class="sim-value">${sim.rate}%</span>
+                        </div>
+                        <div>
+                            <span class="sim-label">Tasa M.V.</span>
+                            <span class="sim-value">${results.tasaMV.toFixed(2)}%</span>
+                        </div>
+                    </div>
+
+                    <div class="sim-data" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+                         <div>
+                            <span class="sim-label">Total Intereses</span>
+                            <span class="sim-value">${formatCurrency(results.totalIntereses)}</span>
+                        </div>
+                    </div>
+
+                    <div class="sim-result">
+                        <span class="sim-label">Cuota Mensual Estimada</span>
+                        <div class="sim-value">${formatCurrency(results.cuotaMensual)}</div>
+                    </div>
+                `;
+                container.appendChild(card);
             });
-            el.addEventListener('blur', function() {
-                const m = this.getAttribute('data-month');
-                const val = parseFloat(this.value) || 0;
-                state.manualExtras[m] = val;
-                calculate();
-            });
+        };
+
+        // Eliminar simulación
+        window.deleteSimulation = (id) => {
+            if(confirm('¿Estás seguro de que deseas eliminar esta simulación?')) {
+                simulations = simulations.filter(sim => sim.id !== id);
+                saveSimulations();
+            }
+        };
+
+        // Manejo del formulario
+        document.getElementById('loan-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const amountRaw = document.getElementById('amount').value;
+            const rate = parseFloat(document.getElementById('rate').value);
+            const term = parseInt(document.getElementById('term').value);
+
+            // Extraer solo los números del campo monto
+            const amount = parseFloat(unformatCurrency(amountRaw));
+
+            if (isNaN(amount) || amount <= 0) {
+                alert('Por favor, ingresa un monto válido.');
+                return;
+            }
+
+            const newSimulation = {
+                id: Date.now(),
+                name: name,
+                amount: amount,
+                rate: rate,
+                term: term
+            };
+
+            simulations.push(newSimulation);
+            saveSimulations();
+
+            // Limpiar formulario y reiniciar formateo
+            e.target.reset();
         });
-    }
 
-    function updateFromInputs() {
-        state.amount = parseFloat(document.getElementById('amount').getAttribute('data-raw')) || 0;
-        state.months = parseInt(document.getElementById('months').value) || 1;
-        state.rateValue = parseFloat(document.getElementById('rateValue').value) || 0;
-        state.rateType = document.getElementById('rateType').value;
-        calculate();
-    }
-
-    document.getElementById('btnAddRule').addEventListener('click', () => {
-        const type = document.getElementById('extraType').value;
-        const amount = parseFloat(document.getElementById('extraAmount').getAttribute('data-raw')) || 0;
-        if(type === 'periodic') {
-            state.rules.push({ type, freq: parseInt(document.getElementById('extraFreq').value), amount });
-        } else {
-            state.rules.push({ type, start: parseInt(document.getElementById('extraStart').value), end: parseInt(document.getElementById('extraEnd').value), amount });
-        }
-        updateRulesUI();
-        calculate();
-    });
-
-    function updateRulesUI() {
-        document.getElementById('rulesList').innerHTML = state.rules.map((r, i) => `
-            <li>
-                ${r.type === 'periodic' ? `Cada ${r.freq}m` : `Cuotas ${r.start}-${r.end}`}: ${formatter.format(r.amount)}
-                <button class="btn-del" onclick="state.rules.splice(${i},1);updateRulesUI();calculate();">X</button>
-            </li>
-        `).join('');
-    }
-
-    document.getElementById('extraType').addEventListener('change', (e) => {
-        document.getElementById('configPeriodic').style.display = e.target.value === 'periodic' ? 'block' : 'none';
-        document.getElementById('configRange').style.display = e.target.value === 'range' ? 'flex' : 'none';
-    });
-
-    ['months', 'rateValue', 'rateType'].forEach(id => {
-        document.getElementById(id).addEventListener('input', updateFromInputs);
-    });
-
-    // Iniciar
-    setupCurrencyFields();
-    calculate();
-</script>
+        // Inicializar
+        renderSimulations();
+    </script>
 </body>
 </html>
