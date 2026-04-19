@@ -10,7 +10,6 @@
         .container { max-width: 1200px; margin: 0 auto; display: grid; gap: 20px; grid-template-columns: 1fr 3fr; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        /* Barra de navegación de simulaciones */
         .sim-controls { grid-column: 1 / -1; background: white; padding: 15px 20px; border-radius: 8px; display: flex; gap: 15px; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex-wrap: wrap; }
         .sim-controls select { flex: 1; min-width: 200px; font-weight: 600; font-size: 1.1em; padding: 10px; }
         .sim-controls input[type="text"] { flex: 2; min-width: 200px; font-size: 1.1em; padding: 10px; }
@@ -82,8 +81,10 @@
             <select id="extraType">
                 <option value="periodic">Periódico</option>
                 <option value="range">Por Rango</option>
+                <option value="specific">Cuota Específica</option>
             </select>
         </div>
+        
         <div id="configPeriodic" class="form-group">
             <select id="extraFreq">
                 <option value="1">Mensual</option>
@@ -91,10 +92,17 @@
                 <option value="12">Anual</option>
             </select>
         </div>
+        
         <div id="configRange" style="display:none; gap:5px; margin-bottom:15px;">
             <input type="number" id="extraStart" placeholder="Desde" value="1">
             <input type="number" id="extraEnd" placeholder="Hasta" value="12">
         </div>
+
+        <div id="configSpecific" style="display:none; margin-bottom:15px;">
+            <label>Número de Cuota</label>
+            <input type="number" id="extraSpecificMonth" placeholder="Ej: 14" value="1">
+        </div>
+
         <div class="form-group">
             <input type="text" id="extraAmount" class="currency-field" data-raw="1000000" placeholder="Valor abono">
         </div>
@@ -123,14 +131,12 @@
 </div>
 
 <script>
-    // --- Gestión de Estado y LocalStorage ---
     const STORAGE_KEY = 'util_calculadora_creditos_v1';
     
     const formatter = new Intl.NumberFormat('es-CO', {
         style: 'currency', currency: 'COP', minimumFractionDigits: 0
     });
 
-    // Plantilla base para una nueva simulación
     const createNewSim = (name) => ({
         id: 'sim_' + Date.now(),
         name: name,
@@ -142,10 +148,7 @@
         manualExtras: {}
     });
 
-    let appState = {
-        sims: [],
-        activeId: null
-    };
+    let appState = { sims: [], activeId: null };
 
     function getActiveSim() {
         return appState.sims.find(s => s.id === appState.activeId) || appState.sims[0];
@@ -153,7 +156,7 @@
 
     function saveState() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-        updateSelectorUI(); // Refrescar nombres en el dropdown
+        updateSelectorUI();
     }
 
     function loadState() {
@@ -166,7 +169,6 @@
         }
     }
 
-    // --- Lógica de Interfaz y Cambio de Contexto ---
     function updateSelectorUI() {
         const selector = document.getElementById('simSelector');
         selector.innerHTML = appState.sims.map(sim => 
@@ -176,15 +178,12 @@
 
     function loadSimIntoUI() {
         const sim = getActiveSim();
-        
-        // Cargar Nombre
         document.getElementById('simName').value = sim.name;
         
-        // Cargar Parámetros Básicos
         const amountInput = document.getElementById('amount');
         amountInput.setAttribute('data-raw', sim.amount);
         amountInput.value = formatter.format(sim.amount);
-        amountInput.type = 'text'; // Asegurar estado visual correcto
+        amountInput.type = 'text';
 
         document.getElementById('months').value = sim.months;
         document.getElementById('rateType').value = sim.rateType;
@@ -194,7 +193,6 @@
         calculate();
     }
 
-    // --- Eventos Globales y Navegación ---
     document.getElementById('simSelector').addEventListener('change', (e) => {
         appState.activeId = e.target.value;
         saveState();
@@ -203,7 +201,7 @@
 
     document.getElementById('simName').addEventListener('input', (e) => {
         getActiveSim().name = e.target.value || 'Sin nombre';
-        saveState(); // Guarda y actualiza el dropdown en tiempo real
+        saveState();
     });
 
     document.getElementById('btnNewSim').addEventListener('click', () => {
@@ -215,7 +213,7 @@
     });
 
     document.getElementById('btnDelSim').addEventListener('click', () => {
-        if (appState.sims.length === 1) return alert('No puedes eliminar la única simulación. Crea una nueva primero.');
+        if (appState.sims.length === 1) return alert('No puedes eliminar la única simulación.');
         if (confirm('¿Eliminar esta simulación?')) {
             appState.sims = appState.sims.filter(s => s.id !== appState.activeId);
             appState.activeId = appState.sims[0].id;
@@ -224,7 +222,6 @@
         }
     });
 
-    // --- Lógica de Formateo de Moneda (Mantenida) ---
     function setupCurrencyFields() {
         document.querySelectorAll('.currency-field').forEach(el => {
             el.addEventListener('focus', function() {
@@ -243,7 +240,6 @@
         });
     }
 
-    // --- Sincronización Inputs -> Estado ---
     function syncInputsToState() {
         const sim = getActiveSim();
         sim.amount = parseFloat(document.getElementById('amount').getAttribute('data-raw')) || 0;
@@ -258,7 +254,6 @@
         document.getElementById(id).addEventListener('input', syncInputsToState);
     });
 
-    // --- Lógica Financiera ---
     function getRates(sim) {
         const val = sim.rateValue / 100;
         const mensual = sim.rateType === 'EA' ? Math.pow(1 + val, 1/12) - 1 : val;
@@ -282,7 +277,6 @@
         let totalInt = 0;
         let totalExtra = 0;
 
-        // Base para comparar
         const baseIntTotal = (() => {
             let b = sim.amount; let ti = 0;
             if(mensual === 0) return 0;
@@ -292,15 +286,17 @@
             return ti;
         })();
 
-        while (balance > 0.01 && month <= 720) { // Limite 60 años
+        while (balance > 0.01 && month <= 720) {
             let interest = balance * mensual;
             let principal = cuotaBase - interest;
             
+            // Evaluar reglas incluyendo la nueva "specific"
             let extra = sim.manualExtras[month] !== undefined 
                 ? sim.manualExtras[month] 
                 : sim.rules.reduce((acc, r) => {
                     if(r.type === 'periodic' && month % r.freq === 0) return acc + r.amount;
                     if(r.type === 'range' && month >= r.start && month <= r.end) return acc + r.amount;
+                    if(r.type === 'specific' && month === r.month) return acc + r.amount;
                     return acc;
                 }, 0);
 
@@ -343,7 +339,6 @@
             </tr>
         `).join('');
 
-        // Re-asignar eventos a la tabla dinámica
         document.querySelectorAll('.table-currency').forEach(el => {
             el.addEventListener('focus', function() {
                 this.value = this.value.replace(/[^\d]/g, '');
@@ -352,7 +347,7 @@
             el.addEventListener('blur', function() {
                 const m = this.getAttribute('data-month');
                 const val = parseFloat(this.value) || 0;
-                sim.manualExtras[m] = val; // Escribe directamente en la simulación activa
+                sim.manualExtras[m] = val; 
                 saveState();
                 calculate();
             });
@@ -367,9 +362,12 @@
         
         if(type === 'periodic') {
             sim.rules.push({ type, freq: parseInt(document.getElementById('extraFreq').value), amount });
-        } else {
+        } else if (type === 'range') {
             sim.rules.push({ type, start: parseInt(document.getElementById('extraStart').value), end: parseInt(document.getElementById('extraEnd').value), amount });
+        } else if (type === 'specific') {
+            sim.rules.push({ type, month: parseInt(document.getElementById('extraSpecificMonth').value), amount });
         }
+        
         saveState();
         updateRulesUI();
         calculate();
@@ -384,24 +382,31 @@
 
     function updateRulesUI() {
         const sim = getActiveSim();
-        document.getElementById('rulesList').innerHTML = sim.rules.map((r, i) => `
-            <li>
-                ${r.type === 'periodic' ? `Cada ${r.freq}m` : `Cuotas ${r.start}-${r.end}`}: ${formatter.format(r.amount)}
+        document.getElementById('rulesList').innerHTML = sim.rules.map((r, i) => {
+            let label = '';
+            if (r.type === 'periodic') label = `Cada ${r.freq}m`;
+            else if (r.type === 'range') label = `Cuotas ${r.start}-${r.end}`;
+            else if (r.type === 'specific') label = `Cuota ${r.month}`;
+            
+            return `<li>
+                ${label}: ${formatter.format(r.amount)}
                 <button class="btn-del" onclick="removeRule(${i})">X</button>
-            </li>
-        `).join('');
+            </li>`;
+        }).join('');
     }
 
     document.getElementById('extraType').addEventListener('change', (e) => {
-        document.getElementById('configPeriodic').style.display = e.target.value === 'periodic' ? 'block' : 'none';
-        document.getElementById('configRange').style.display = e.target.value === 'range' ? 'flex' : 'none';
+        const val = e.target.value;
+        document.getElementById('configPeriodic').style.display = val === 'periodic' ? 'block' : 'none';
+        document.getElementById('configRange').style.display = val === 'range' ? 'flex' : 'none';
+        document.getElementById('configSpecific').style.display = val === 'specific' ? 'block' : 'none';
     });
 
     // --- Inicialización ---
     loadState();
     updateSelectorUI();
     setupCurrencyFields();
-    loadSimIntoUI(); // Esto dispara el primer calculate()
+    loadSimIntoUI();
 
 </script>
 </body>
