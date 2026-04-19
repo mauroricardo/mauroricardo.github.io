@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Inversión Virtual</title>
+    <title>Gestor de Inversiones Pro</title>
     <style>
         :root {
             --primary-color: #2b5cff;
@@ -14,347 +14,325 @@
             --text-muted: #666666;
             --border-color: #e1e4e8;
             --success-color: #00a650;
+            --danger-color: #e74c3c;
             --radius: 12px;
             --shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
             padding: 2rem;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
         }
 
-        .calculator-card {
-            background: var(--card-bg);
+        .container {
             width: 100%;
-            max-width: 600px;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 2rem;
+        }
+
+        .calculator-card, .history-card {
+            background: var(--card-bg);
             padding: 2rem;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
         }
 
-        h2 {
-            margin-bottom: 1.5rem;
-            color: var(--primary-color);
-            text-align: center;
-        }
+        h2, h3 { margin-bottom: 1.5rem; color: var(--primary-color); }
 
-        .form-group {
-            margin-bottom: 1rem;
-            display: flex;
-            flex-direction: column;
-        }
+        .form-group { margin-bottom: 1rem; display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 0.5rem; font-weight: 600; font-size: 0.85rem; color: var(--text-muted); }
 
-        .form-group label {
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .form-row .form-group {
-            flex: 1;
-        }
-
-        input[type="number"] {
+        input {
             padding: 0.75rem;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             font-size: 1rem;
             outline: none;
-            transition: border-color 0.3s;
+            transition: all 0.3s;
         }
 
-        input[type="number"]:focus {
-            border-color: var(--primary-color);
-        }
+        input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(43, 92, 255, 0.1); }
 
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin: 1.5rem 0;
-            cursor: pointer;
-            font-weight: 600;
-        }
+        .form-row { display: flex; gap: 1rem; }
+        .form-row .form-group { flex: 1; }
+
+        .checkbox-group { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
 
         .hidden-section {
             display: none;
             background-color: #f9fafc;
-            padding: 1.5rem;
+            padding: 1.2rem;
             border-radius: 8px;
             border: 1px solid var(--border-color);
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
+        .hidden-section.active { display: block; animation: fadeIn 0.3s; }
 
-        .hidden-section.active {
-            display: block;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
-        button {
+        .btn-main {
             width: 100%;
             background-color: var(--primary-color);
             color: white;
             border: none;
             padding: 1rem;
-            font-size: 1rem;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            margin-top: 1rem;
         }
 
-        button:hover {
-            background-color: var(--primary-hover);
+        /* Estilos del Historial */
+        .history-list { list-style: none; }
+        .history-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .history-item:hover { background: #f8faff; }
+        .history-item .info b { display: block; font-size: 0.9rem; }
+        .history-item .info span { font-size: 0.75rem; color: var(--text-muted); }
+        
+        .btn-del {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1.2rem;
         }
 
         .results {
             margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 2px dashed var(--border-color);
             display: none;
-        }
-
-        .period-breakdown {
-            margin-bottom: 1.5rem;
-        }
-
-        .period-item {
-            background: var(--bg-color);
-            padding: 0.75rem;
-            border-radius: 6px;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            display: flex;
-            justify-content: space-between;
+            border-top: 2px dashed var(--border-color);
+            padding-top: 1.5rem;
         }
 
         .summary-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            gap: 10px;
+            margin-top: 1rem;
         }
 
         .summary-box {
             background: #f9fafc;
-            padding: 1rem;
+            padding: 10px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
+            font-size: 0.85rem;
         }
 
-        .summary-box span {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 0.25rem;
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .summary-box strong {
-            font-size: 1.1rem;
-            color: var(--text-main);
+        @media (max-width: 850px) {
+            .container { grid-template-columns: 1fr; }
+            .form-row { flex-direction: column; gap: 0; }
         }
-
-        .summary-box.total strong {
-            color: var(--success-color);
-            font-size: 1.3rem;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @media (max-width: 600px) {
-    .form-row {
-        flex-direction: column;
-        gap: 0; /* El margen inferior de cada form-group ya se encarga del espaciado */
-    }
-    
-    body {
-        padding: 1rem; /* Reduce el espacio exterior para aprovechar mejor la pantalla */
-    }
-    
-    .calculator-card {
-        padding: 1.5rem;
-    }
-}
-
     </style>
 </head>
 <body>
 
-    <div class="calculator-card">
-        <h2>Simulador Inversión</h2>
-        
-        <div class="form-group">
-            <label for="montoInicial">Monto Inicial (COP)</label>
-            <input type="number" id="montoInicial" placeholder="Ej: 1000000" min="500000" step="10000">
-        </div>
-
-        <div class="form-row">
+    <div class="container">
+        <div class="calculator-card">
+            <h2>Nueva Simulación</h2>
+            
             <div class="form-group">
-                <label for="dias">Tiempo (Días)</label>
-                <input type="number" id="dias" placeholder="Ej: 90" min="30">
+                <label>Nombre de la inversión</label>
+                <input type="text" id="nombreInv" placeholder="Ej: Mi CDT Mayo">
             </div>
-            <div class="form-group">
-                <label for="tasaEA">Tasa E.A. (%)</label>
-                <input type="number" id="tasaEA" placeholder="Ej: 10.5" step="0.01">
-            </div>
-        </div>
 
-        <label class="checkbox-group">
-            <input type="checkbox" id="chkReinvertir">
-            Activar reinversión automática
-        </label>
-
-        <div class="hidden-section" id="seccionReinversion">
             <div class="form-row">
                 <div class="form-group">
-                    <label for="numReinversiones">Cantidad de reinversiones</label>
-                    <input type="number" id="numReinversiones" placeholder="Ej: 3" min="1" value="1">
+                    <label>Monto Inicial</label>
+                    <input type="text" id="montoInicial" class="currency-input" data-value="0">
                 </div>
                 <div class="form-group">
-                    <label for="abonoExtra">Abono extra por reinversión</label>
-                    <input type="number" id="abonoExtra" placeholder="Ej: 200000" min="0" value="0">
+                    <label>Tasa E.A. (%)</label>
+                    <input type="number" id="tasaEA" step="0.01" placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tiempo (Días)</label>
+                <input type="number" id="dias" placeholder="Mínimo 30">
+            </div>
+
+            <label class="checkbox-group">
+                <input type="checkbox" id="chkReinvertir"> Activar reinversión automática
+            </label>
+
+            <div class="hidden-section" id="seccionReinversion">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Reinversiones</label>
+                        <input type="number" id="numReinversiones" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Abono extra por vez</label>
+                        <input type="text" id="abonoExtra" class="currency-input" data-value="0">
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-main" onclick="guardarYCalcular()">Calcular y Guardar</button>
+
+            <div class="results" id="resultados">
+                <div id="listaPeriodos"></div>
+                <div class="summary-grid">
+                    <div class="summary-box"><span>Total Ganancias:</span><br><strong id="resGanancias"></strong></div>
+                    <div class="summary-box" style="background: #eef2ff;"><span>Total Final:</span><br><strong id="resTotal"></strong></div>
                 </div>
             </div>
         </div>
 
-        <button onclick="calcularInversion()">Calcular Proyección</button>
-
-        <div class="results" id="resultados">
-            <h3>Desglose por Periodos</h3>
-            <div class="period-breakdown" id="listaPeriodos"></div>
-            
-            <h3>Resumen Final</h3>
-            <div class="summary-grid">
-                <div class="summary-box">
-                    <span>Inversión Inicial</span>
-                    <strong id="resInicial">$0</strong>
-                </div>
-                <div class="summary-box">
-                    <span>Abonos Extras Totales</span>
-                    <strong id="resAbonos">$0</strong>
-                </div>
-                <div class="summary-box">
-                    <span>Ganancias Totales (Neto)*</span>
-                    <strong id="resGanancias">$0</strong>
-                </div>
-                <div class="summary-box total">
-                    <span>Total Acumulado</span>
-                    <strong id="resTotal">$0</strong>
-                </div>
-            </div>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem; text-align: center;">
-                *Las ganancias netas ya tienen descontado el 4% de Retención en la Fuente habitual.
-            </p>
+        <div class="history-card">
+            <h3>Guardadas</h3>
+            <div id="emptyMsg" style="color: var(--text-muted); font-size: 0.8rem;">No hay simulaciones guardadas.</div>
+            <ul class="history-list" id="historyList"></ul>
         </div>
     </div>
 
     <script>
-        // Formateador de moneda COP
-        const formatoCOP = new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            maximumFractionDigits: 0
+        const formatter = new Intl.NumberFormat('es-CO', {
+            style: 'currency', currency: 'COP', maximumFractionDigits: 0
         });
 
-        // Toggle para la sección de reinversión
-        document.getElementById('chkReinvertir').addEventListener('change', function() {
-            const seccion = document.getElementById('seccionReinversion');
-            if (this.checked) {
-                seccion.classList.add('active');
-            } else {
-                seccion.classList.remove('active');
-            }
-        });
+        // --- LÓGICA DE FORMATO MONETARIO (PEDIDO ESPECIAL) ---
+        document.querySelectorAll('.currency-input').forEach(input => {
+            // Al entrar: quitar formato y mostrar valor crudo
+            input.addEventListener('focus', (e) => {
+                const rawValue = e.target.getAttribute('data-value') || "0";
+                e.target.value = rawValue === "0" ? "" : rawValue;
+            });
 
-        function calcularInversion() {
-            // Captura de datos
-            const montoInicial = parseFloat(document.getElementById('montoInicial').value) || 0;
-            const dias = parseInt(document.getElementById('dias').value) || 0;
-            const tasaEA = parseFloat(document.getElementById('tasaEA').value) || 0;
+            // Al salir: formatear y guardar valor crudo
+            input.addEventListener('blur', (e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '');
+                const numVal = parseInt(val) || 0;
+                e.target.setAttribute('data-value', numVal);
+                e.target.value = formatter.format(numVal);
+            });
             
-            const reinvertir = document.getElementById('chkReinvertir').checked;
-            const numReinversiones = reinvertir ? (parseInt(document.getElementById('numReinversiones').value) || 0) : 0;
-            const abonoExtra = reinvertir ? (parseFloat(document.getElementById('abonoExtra').value) || 0) : 0;
+            // Valor inicial por defecto
+            input.value = formatter.format(0);
+        });
 
-            // Validaciones básicas
-            if (montoInicial <= 0 || dias <= 0 || tasaEA <= 0) {
-                alert("Por favor ingresa el monto inicial, los días y la tasa.");
+        // --- MANEJO DE UI ---
+        document.getElementById('chkReinvertir').addEventListener('change', e => {
+            document.getElementById('seccionReinversion').classList.toggle('active', e.target.checked);
+        });
+
+        // --- LÓGICA DE NEGOCIO Y PERSISTENCIA ---
+        let db = JSON.parse(localStorage.getItem('inv_simulations')) || [];
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            const empty = document.getElementById('emptyMsg');
+            list.innerHTML = '';
+            
+            if (db.length === 0) {
+                empty.style.display = 'block';
                 return;
             }
+            empty.style.display = 'none';
 
-            // Cálculo de tasa periódica a partir de la E.A.
-            const tasaDecimal = tasaEA / 100;
-            const tasaPeriodo = Math.pow(1 + tasaDecimal, dias / 365) - 1;
-
-            let capitalActual = montoInicial;
-            let totalGanancias = 0;
-            let totalAbonos = 0;
-            let htmlPeriodos = '';
-
-            const totalPeriodos = 1 + numReinversiones;
-
-            for (let i = 1; i <= totalPeriodos; i++) {
-                let abonoAplicado = 0;
-                
-                // Aplicar abono extra si es una reinversión (periodos > 1)
-                if (i > 1 && reinvertir) {
-                    abonoAplicado = abonoExtra;
-                    capitalActual += abonoAplicado;
-                    totalAbonos += abonoAplicado;
-                }
-
-                // Cálculo de rendimientos
-                let gananciaBruta = capitalActual * tasaPeriodo;
-                let retencion = gananciaBruta * 0.04; // 4% de Retefuente
-                let gananciaNeta = gananciaBruta - retencion;
-
-                totalGanancias += gananciaNeta;
-                
-                htmlPeriodos += `
-                    <div class="period-item">
-                        <div>
-                            <strong>Periodo ${i} ${i > 1 ? '(Reinversión)' : ''}</strong><br>
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">
-                                Base: ${formatoCOP.format(capitalActual)}
-                            </span>
-                        </div>
-                        <div style="text-align: right; color: var(--success-color); font-weight: bold;">
-                            + ${formatoCOP.format(gananciaNeta)}
-                        </div>
+            db.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                li.innerHTML = `
+                    <div class="info" onclick="cargarSimulacion(${index})">
+                        <b>${item.nombre}</b>
+                        <span>${formatter.format(item.totalFinal)} (${item.dias} días)</span>
                     </div>
+                    <button class="btn-del" onclick="eliminarSimulacion(event, ${index})">&times;</button>
                 `;
+                list.appendChild(li);
+            });
+        }
 
-                // Sumar la ganancia al capital para el siguiente periodo (Interés Compuesto)
-                capitalActual += gananciaNeta;
+        function guardarYCalcular() {
+            const nombre = document.getElementById('nombreInv').value || "Simulación " + (db.length + 1);
+            const montoInicial = parseInt(document.getElementById('montoInicial').getAttribute('data-value')) || 0;
+            const tasaEA = parseFloat(document.getElementById('tasaEA').value) || 0;
+            const dias = parseInt(document.getElementById('dias').value) || 0;
+            
+            if (!montoInicial || !tasaEA || !dias) return alert("Completa los datos principales.");
+
+            const reinv = document.getElementById('chkReinvertir').checked;
+            const numR = reinv ? parseInt(document.getElementById('numReinversiones').value) : 0;
+            const extra = reinv ? parseInt(document.getElementById('abonoExtra').getAttribute('data-value')) : 0;
+
+            // Calculo
+            const tasaPeriodo = Math.pow(1 + (tasaEA/100), dias/365) - 1;
+            let capital = montoInicial;
+            let gananciasNetasTotal = 0;
+
+            for(let i=0; i <= numR; i++) {
+                if(i > 0) capital += extra;
+                let gBruta = capital * tasaPeriodo;
+                let neta = gBruta * 0.96; // Menos 4% retefuente
+                gananciasNetasTotal += neta;
+                capital += neta;
             }
 
-            // Renderizar resultados
-            document.getElementById('listaPeriodos').innerHTML = htmlPeriodos;
-            document.getElementById('resInicial').innerText = formatoCOP.format(montoInicial);
-            document.getElementById('resAbonos').innerText = formatoCOP.format(totalAbonos);
-            document.getElementById('resGanancias').innerText = formatoCOP.format(totalGanancias);
-            document.getElementById('resTotal').innerText = formatoCOP.format(capitalActual);
+            const nuevaSim = {
+                nombre, montoInicial, tasaEA, dias, numR, extra, 
+                totalFinal: capital, gananciasNetasTotal, fecha: new Date().toISOString()
+            };
 
+            db.push(nuevaSim);
+            localStorage.setItem('inv_simulations', JSON.stringify(db));
+            
+            mostrarResultadoUI(nuevaSim);
+            renderHistory();
+        }
+
+        function mostrarResultadoUI(sim) {
+            document.getElementById('resGanancias').innerText = formatter.format(sim.gananciasNetasTotal);
+            document.getElementById('resTotal').innerText = formatter.format(sim.totalFinal);
             document.getElementById('resultados').style.display = 'block';
         }
-    </script>
 
+        function cargarSimulacion(index) {
+            const sim = db[index];
+            document.getElementById('nombreInv').value = sim.nombre;
+            document.getElementById('montoInicial').setAttribute('data-value', sim.montoInicial);
+            document.getElementById('montoInicial').value = formatter.format(sim.montoInicial);
+            document.getElementById('tasaEA').value = sim.tasaEA;
+            document.getElementById('dias').value = sim.dias;
+            document.getElementById('chkReinvertir').checked = sim.numR > 0;
+            document.getElementById('seccionReinversion').classList.toggle('active', sim.numR > 0);
+            if(sim.numR > 0) {
+                document.getElementById('numReinversiones').value = sim.numR;
+                document.getElementById('abonoExtra').setAttribute('data-value', sim.extra);
+                document.getElementById('abonoExtra').value = formatter.format(sim.extra);
+            }
+            mostrarResultadoUI(sim);
+        }
+
+        function eliminarSimulacion(e, index) {
+            e.stopPropagation();
+            db.splice(index, 1);
+            localStorage.setItem('inv_simulations', JSON.stringify(db));
+            renderHistory();
+            document.getElementById('resultados').style.display = 'none';
+        }
+
+        // Carga inicial
+        renderHistory();
+    </script>
 </body>
 </html>
