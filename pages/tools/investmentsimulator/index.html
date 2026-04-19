@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Inversiones Pro - V2</title>
+    <title>Gestor de Inversiones Pro - V3</title>
     <style>
         :root {
             --primary-color: #2b5cff;
@@ -69,6 +69,7 @@
         .form-row .form-group { flex: 1; }
 
         .checkbox-group { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+        .checkbox-sub { margin: 0.5rem 0 1rem 0; font-weight: 400; font-size: 0.85rem; color: var(--text-main); }
 
         .hidden-section {
             display: none;
@@ -107,7 +108,6 @@
             display: none;
         }
 
-        /* Estilos del Historial */
         .history-list { list-style: none; }
         .history-item {
             padding: 1rem;
@@ -123,21 +123,9 @@
         .history-item .info b { display: block; font-size: 0.9rem; }
         .history-item .info span { font-size: 0.75rem; color: var(--text-muted); }
         
-        .btn-del {
-            background: none;
-            border: none;
-            color: var(--danger-color);
-            cursor: pointer;
-            padding: 5px;
-            font-size: 1.2rem;
-        }
+        .btn-del { background: none; border: none; color: var(--danger-color); cursor: pointer; padding: 5px; font-size: 1.2rem; }
 
-        .results {
-            margin-top: 2rem;
-            display: none;
-            border-top: 2px dashed var(--border-color);
-            padding-top: 1.5rem;
-        }
+        .results { margin-top: 2rem; display: none; border-top: 2px dashed var(--border-color); padding-top: 1.5rem; }
 
         .period-item {
             background: var(--bg-color);
@@ -203,6 +191,10 @@
                         <input type="text" id="abonoExtra" class="currency-input" data-value="0">
                     </div>
                 </div>
+                <label class="checkbox-group checkbox-sub">
+                    <input type="checkbox" id="chkReinvertirGanancias" checked> 
+                    Incluir ganancias del periodo anterior en la reinversión (Interés compuesto)
+                </label>
             </div>
 
             <div class="button-group">
@@ -230,9 +222,9 @@
     <script>
         const formatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
         let db = JSON.parse(localStorage.getItem('inv_simulations')) || [];
-        let editIndex = null; // Rastrea si estamos editando algo
+        let editIndex = null;
 
-        // Inicialización de inputs de moneda
+        // Formateo de inputs
         document.querySelectorAll('.currency-input').forEach(input => {
             input.addEventListener('focus', (e) => {
                 const rawValue = e.target.getAttribute('data-value') || "0";
@@ -272,24 +264,36 @@
             });
         }
 
-        function calcularDatosRender(montoInicial, tasaEA, dias, numR, extra) {
+        function calcularDatosRender(montoInicial, tasaEA, dias, numR, extra, reinvGanancias) {
             const tasaPeriodo = Math.pow(1 + (tasaEA/100), dias/365) - 1;
-            let capital = montoInicial;
+            let capitalInvertido = montoInicial;
             let gananciasNetasTotal = 0;
             let htmlPeriodos = '';
 
             for(let i = 0; i <= numR; i++) {
-                if(i > 0) capital += extra;
-                let gBruta = capital * tasaPeriodo;
-                let neta = gBruta * 0.96;
+                if(i > 0) capitalInvertido += extra; // Sumar abono extra si aplica
+                
+                let gBruta = capitalInvertido * tasaPeriodo;
+                let neta = gBruta * 0.96; // 4% de retención en la fuente
+                
                 htmlPeriodos += `<div class="period-item">
-                    <div><strong>Periodo ${i + 1}</strong><br><span style="color:var(--text-muted); font-size:0.8rem;">Base: ${formatter.format(capital)}</span></div>
+                    <div><strong>Periodo ${i + 1}</strong><br><span style="color:var(--text-muted); font-size:0.8rem;">Capital Base: ${formatter.format(capitalInvertido)}</span></div>
                     <div style="color:var(--success-color); font-weight:bold;">+ ${formatter.format(neta)}</div>
                 </div>`;
+                
                 gananciasNetasTotal += neta;
-                capital += neta;
+                
+                // Si el usuario decide sumar las ganancias al capital para el siguiente periodo
+                if (reinvGanancias) {
+                    capitalInvertido += neta;
+                }
             }
-            return { totalFinal: capital, gananciasNetasTotal, htmlPeriodos };
+
+            // El total acumulado es igual a todo lo que salió de tu bolsillo + todas las ganancias generadas
+            let totalAportes = montoInicial + (extra * numR);
+            let totalFinal = totalAportes + gananciasNetasTotal;
+
+            return { totalFinal, gananciasNetasTotal, htmlPeriodos };
         }
 
         function procesarSimulacion() {
@@ -303,18 +307,19 @@
             const reinv = document.getElementById('chkReinvertir').checked;
             const numR = reinv ? parseInt(document.getElementById('numReinversiones').value) : 0;
             const extra = reinv ? parseInt(document.getElementById('abonoExtra').getAttribute('data-value')) : 0;
+            const reinvGanancias = document.getElementById('chkReinvertirGanancias').checked;
 
-            const calc = calcularDatosRender(montoInicial, tasaEA, dias, numR, extra);
+            const calc = calcularDatosRender(montoInicial, tasaEA, dias, numR, extra, reinvGanancias);
 
             const dataSim = {
-                nombre, montoInicial, tasaEA, dias, numR, extra, 
+                nombre, montoInicial, tasaEA, dias, numR, extra, reinvGanancias,
                 totalFinal: calc.totalFinal, fecha: new Date().toISOString()
             };
 
             if (editIndex !== null) {
-                db[editIndex] = dataSim; // Actualizar existente
+                db[editIndex] = dataSim;
             } else {
-                db.push(dataSim); // Crear nuevo
+                db.push(dataSim);
             }
 
             localStorage.setItem('inv_simulations', JSON.stringify(db));
@@ -327,14 +332,12 @@
             editIndex = index;
             const sim = db[index];
             
-            // UI de Edición
             document.getElementById('formTitle').innerText = "Editando: " + sim.nombre;
             document.getElementById('formTitle').classList.add('edit-mode-title');
             document.getElementById('btnGuardar').innerText = "Actualizar Inversión";
             document.getElementById('btnGuardar').classList.add('editing');
             document.getElementById('btnCancelar').style.display = 'block';
 
-            // Cargar Valores
             document.getElementById('nombreInv').value = sim.nombre;
             const mInput = document.getElementById('montoInicial');
             mInput.setAttribute('data-value', sim.montoInicial);
@@ -342,9 +345,14 @@
             
             document.getElementById('tasaEA').value = sim.tasaEA;
             document.getElementById('dias').value = sim.dias;
+            
             document.getElementById('chkReinvertir').checked = sim.numR > 0;
             document.getElementById('seccionReinversion').classList.toggle('active', sim.numR > 0);
             
+            // Compatibilidad con registros antiguos (si reinvGanancias no existe, asume true)
+            const aplicaReinvGanancias = sim.reinvGanancias !== false; 
+            document.getElementById('chkReinvertirGanancias').checked = aplicaReinvGanancias;
+
             if(sim.numR > 0) {
                 document.getElementById('numReinversiones').value = sim.numR;
                 const aInput = document.getElementById('abonoExtra');
@@ -352,7 +360,7 @@
                 aInput.value = formatter.format(sim.extra);
             }
 
-            const calc = calcularDatosRender(sim.montoInicial, sim.tasaEA, sim.dias, sim.numR, sim.extra);
+            const calc = calcularDatosRender(sim.montoInicial, sim.tasaEA, sim.dias, sim.numR, sim.extra, aplicaReinvGanancias);
             mostrarResultadoUI(calc);
             renderHistory();
         }
@@ -372,6 +380,7 @@
             document.getElementById('dias').value = '';
             document.getElementById('chkReinvertir').checked = false;
             document.getElementById('seccionReinversion').classList.remove('active');
+            document.getElementById('chkReinvertirGanancias').checked = true;
             renderHistory();
         }
 
