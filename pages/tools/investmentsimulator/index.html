@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor de Inversiones Pro</title>
+    <title>Gestor de Inversiones Pro - V2</title>
     <style>
         :root {
             --primary-color: #2b5cff;
@@ -15,6 +15,7 @@
             --border-color: #e1e4e8;
             --success-color: #00a650;
             --danger-color: #e74c3c;
+            --edit-color: #f39c12;
             --radius: 12px;
             --shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
@@ -44,9 +45,11 @@
             padding: 2rem;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
+            height: fit-content;
         }
 
         h2, h3 { margin-bottom: 1.5rem; color: var(--primary-color); }
+        .edit-mode-title { color: var(--edit-color) !important; }
 
         .form-group { margin-bottom: 1rem; display: flex; flex-direction: column; }
         .form-group label { margin-bottom: 0.5rem; font-weight: 600; font-size: 0.85rem; color: var(--text-muted); }
@@ -77,8 +80,10 @@
         }
         .hidden-section.active { display: block; animation: fadeIn 0.3s; }
 
+        .button-group { display: flex; gap: 10px; margin-top: 1rem; }
+
         .btn-main {
-            width: 100%;
+            flex: 2;
             background-color: var(--primary-color);
             color: white;
             border: none;
@@ -86,7 +91,20 @@
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
-            margin-top: 1rem;
+        }
+
+        .btn-main.editing { background-color: var(--edit-color); }
+
+        .btn-cancel {
+            flex: 1;
+            background-color: #ecf0f1;
+            color: var(--text-main);
+            border: none;
+            padding: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none;
         }
 
         /* Estilos del Historial */
@@ -101,6 +119,7 @@
             transition: background 0.2s;
         }
         .history-item:hover { background: #f8faff; }
+        .history-item.active-edit { border-left: 4px solid var(--edit-color); background: #fffdf9; }
         .history-item .info b { display: block; font-size: 0.9rem; }
         .history-item .info span { font-size: 0.75rem; color: var(--text-muted); }
         
@@ -131,20 +150,8 @@
             align-items: center;
         }
 
-        .summary-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 1.5rem;
-        }
-
-        .summary-box {
-            background: #f9fafc;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            font-size: 0.85rem;
-        }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1.5rem; }
+        .summary-box { background: #f9fafc; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 0.85rem; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -158,7 +165,7 @@
 
     <div class="container">
         <div class="calculator-card">
-            <h2>Nueva Simulación</h2>
+            <h2 id="formTitle">Nueva Simulación</h2>
             
             <div class="form-group">
                 <label>Nombre de la inversión</label>
@@ -198,13 +205,14 @@
                 </div>
             </div>
 
-            <button class="btn-main" onclick="guardarYCalcular()">Calcular y Guardar</button>
+            <div class="button-group">
+                <button class="btn-main" id="btnGuardar" onclick="procesarSimulacion()">Calcular y Guardar</button>
+                <button class="btn-cancel" id="btnCancelar" onclick="resetForm()">Cancelar</button>
+            </div>
 
             <div class="results" id="resultados">
                 <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Desglose por Periodos</h3>
                 <div id="listaPeriodos"></div>
-                
-                <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Resumen Final</h3>
                 <div class="summary-grid">
                     <div class="summary-box"><span>Total Ganancias (Netas):</span><br><strong id="resGanancias"></strong></div>
                     <div class="summary-box" style="background: #eef2ff;"><span>Total Final Acumulado:</span><br><strong id="resTotal"></strong></div>
@@ -220,11 +228,11 @@
     </div>
 
     <script>
-        const formatter = new Intl.NumberFormat('es-CO', {
-            style: 'currency', currency: 'COP', maximumFractionDigits: 0
-        });
+        const formatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+        let db = JSON.parse(localStorage.getItem('inv_simulations')) || [];
+        let editIndex = null; // Rastrea si estamos editando algo
 
-        // Eventos de formato monetario
+        // Inicialización de inputs de moneda
         document.querySelectorAll('.currency-input').forEach(input => {
             input.addEventListener('focus', (e) => {
                 const rawValue = e.target.getAttribute('data-value') || "0";
@@ -243,22 +251,16 @@
             document.getElementById('seccionReinversion').classList.toggle('active', e.target.checked);
         });
 
-        let db = JSON.parse(localStorage.getItem('inv_simulations')) || [];
-
         function renderHistory() {
             const list = document.getElementById('historyList');
             const empty = document.getElementById('emptyMsg');
             list.innerHTML = '';
-            
-            if (db.length === 0) {
-                empty.style.display = 'block';
-                return;
-            }
+            if (db.length === 0) { empty.style.display = 'block'; return; }
             empty.style.display = 'none';
 
             db.forEach((item, index) => {
                 const li = document.createElement('li');
-                li.className = 'history-item';
+                li.className = `history-item ${editIndex === index ? 'active-edit' : ''}`;
                 li.innerHTML = `
                     <div class="info" onclick="cargarSimulacion(${index})" style="flex-grow: 1;">
                         <b>${item.nombre}</b>
@@ -270,7 +272,6 @@
             });
         }
 
-        // Función central para calcular datos y generar el HTML del desglose
         function calcularDatosRender(montoInicial, tasaEA, dias, numR, extra) {
             const tasaPeriodo = Math.pow(1 + (tasaEA/100), dias/365) - 1;
             let capital = montoInicial;
@@ -280,30 +281,18 @@
             for(let i = 0; i <= numR; i++) {
                 if(i > 0) capital += extra;
                 let gBruta = capital * tasaPeriodo;
-                let neta = gBruta * 0.96; // Descuento del 4%
-                
-                htmlPeriodos += `
-                    <div class="period-item">
-                        <div>
-                            <strong>Periodo ${i + 1} ${i > 0 ? '(Reinversión)' : ''}</strong><br>
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">
-                                Base: ${formatter.format(capital)}
-                            </span>
-                        </div>
-                        <div style="text-align: right; color: var(--success-color); font-weight: bold;">
-                            + ${formatter.format(neta)}
-                        </div>
-                    </div>
-                `;
-                
+                let neta = gBruta * 0.96;
+                htmlPeriodos += `<div class="period-item">
+                    <div><strong>Periodo ${i + 1}</strong><br><span style="color:var(--text-muted); font-size:0.8rem;">Base: ${formatter.format(capital)}</span></div>
+                    <div style="color:var(--success-color); font-weight:bold;">+ ${formatter.format(neta)}</div>
+                </div>`;
                 gananciasNetasTotal += neta;
                 capital += neta;
             }
-
             return { totalFinal: capital, gananciasNetasTotal, htmlPeriodos };
         }
 
-        function guardarYCalcular() {
+        function procesarSimulacion() {
             const nombre = document.getElementById('nombreInv').value || "Simulación " + (db.length + 1);
             const montoInicial = parseInt(document.getElementById('montoInicial').getAttribute('data-value')) || 0;
             const tasaEA = parseFloat(document.getElementById('tasaEA').value) || 0;
@@ -317,15 +306,72 @@
 
             const calc = calcularDatosRender(montoInicial, tasaEA, dias, numR, extra);
 
-            const nuevaSim = {
+            const dataSim = {
                 nombre, montoInicial, tasaEA, dias, numR, extra, 
                 totalFinal: calc.totalFinal, fecha: new Date().toISOString()
             };
 
-            db.push(nuevaSim);
+            if (editIndex !== null) {
+                db[editIndex] = dataSim; // Actualizar existente
+            } else {
+                db.push(dataSim); // Crear nuevo
+            }
+
             localStorage.setItem('inv_simulations', JSON.stringify(db));
-            
             mostrarResultadoUI(calc);
+            resetForm();
+            renderHistory();
+        }
+
+        function cargarSimulacion(index) {
+            editIndex = index;
+            const sim = db[index];
+            
+            // UI de Edición
+            document.getElementById('formTitle').innerText = "Editando: " + sim.nombre;
+            document.getElementById('formTitle').classList.add('edit-mode-title');
+            document.getElementById('btnGuardar').innerText = "Actualizar Inversión";
+            document.getElementById('btnGuardar').classList.add('editing');
+            document.getElementById('btnCancelar').style.display = 'block';
+
+            // Cargar Valores
+            document.getElementById('nombreInv').value = sim.nombre;
+            const mInput = document.getElementById('montoInicial');
+            mInput.setAttribute('data-value', sim.montoInicial);
+            mInput.value = formatter.format(sim.montoInicial);
+            
+            document.getElementById('tasaEA').value = sim.tasaEA;
+            document.getElementById('dias').value = sim.dias;
+            document.getElementById('chkReinvertir').checked = sim.numR > 0;
+            document.getElementById('seccionReinversion').classList.toggle('active', sim.numR > 0);
+            
+            if(sim.numR > 0) {
+                document.getElementById('numReinversiones').value = sim.numR;
+                const aInput = document.getElementById('abonoExtra');
+                aInput.setAttribute('data-value', sim.extra);
+                aInput.value = formatter.format(sim.extra);
+            }
+
+            const calc = calcularDatosRender(sim.montoInicial, sim.tasaEA, sim.dias, sim.numR, sim.extra);
+            mostrarResultadoUI(calc);
+            renderHistory();
+        }
+
+        function resetForm() {
+            editIndex = null;
+            document.getElementById('formTitle').innerText = "Nueva Simulación";
+            document.getElementById('formTitle').classList.remove('edit-mode-title');
+            document.getElementById('btnGuardar').innerText = "Calcular y Guardar";
+            document.getElementById('btnGuardar').classList.remove('editing');
+            document.getElementById('btnCancelar').style.display = 'none';
+            
+            document.getElementById('nombreInv').value = '';
+            document.getElementById('montoInicial').setAttribute('data-value', 0);
+            document.getElementById('montoInicial').value = formatter.format(0);
+            document.getElementById('tasaEA').value = '';
+            document.getElementById('dias').value = '';
+            document.getElementById('chkReinvertir').checked = false;
+            document.getElementById('seccionReinversion').classList.remove('active');
             renderHistory();
         }
 
@@ -336,37 +382,16 @@
             document.getElementById('resultados').style.display = 'block';
         }
 
-        function cargarSimulacion(index) {
-            const sim = db[index];
-            document.getElementById('nombreInv').value = sim.nombre;
-            document.getElementById('montoInicial').setAttribute('data-value', sim.montoInicial);
-            document.getElementById('montoInicial').value = formatter.format(sim.montoInicial);
-            document.getElementById('tasaEA').value = sim.tasaEA;
-            document.getElementById('dias').value = sim.dias;
-            
-            document.getElementById('chkReinvertir').checked = sim.numR > 0;
-            document.getElementById('seccionReinversion').classList.toggle('active', sim.numR > 0);
-            
-            if(sim.numR > 0) {
-                document.getElementById('numReinversiones').value = sim.numR;
-                document.getElementById('abonoExtra').setAttribute('data-value', sim.extra);
-                document.getElementById('abonoExtra').value = formatter.format(sim.extra);
-            }
-
-            // Recalcular para obtener el desglose al cargar
-            const calc = calcularDatosRender(sim.montoInicial, sim.tasaEA, sim.dias, sim.numR, sim.extra);
-            mostrarResultadoUI(calc);
-        }
-
         function eliminarSimulacion(e, index) {
             e.stopPropagation();
-            db.splice(index, 1);
-            localStorage.setItem('inv_simulations', JSON.stringify(db));
-            renderHistory();
-            document.getElementById('resultados').style.display = 'none';
+            if(confirm("¿Eliminar esta simulación?")) {
+                db.splice(index, 1);
+                localStorage.setItem('inv_simulations', JSON.stringify(db));
+                if(editIndex === index) resetForm();
+                renderHistory();
+            }
         }
 
-        // Carga inicial
         renderHistory();
     </script>
 </body>
