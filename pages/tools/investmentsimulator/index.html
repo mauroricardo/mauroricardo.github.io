@@ -120,11 +120,22 @@
             padding-top: 1.5rem;
         }
 
+        .period-item {
+            background: var(--bg-color);
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .summary-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
         }
 
         .summary-box {
@@ -190,10 +201,13 @@
             <button class="btn-main" onclick="guardarYCalcular()">Calcular y Guardar</button>
 
             <div class="results" id="resultados">
+                <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Desglose por Periodos</h3>
                 <div id="listaPeriodos"></div>
+                
+                <h3 style="font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">Resumen Final</h3>
                 <div class="summary-grid">
-                    <div class="summary-box"><span>Total Ganancias:</span><br><strong id="resGanancias"></strong></div>
-                    <div class="summary-box" style="background: #eef2ff;"><span>Total Final:</span><br><strong id="resTotal"></strong></div>
+                    <div class="summary-box"><span>Total Ganancias (Netas):</span><br><strong id="resGanancias"></strong></div>
+                    <div class="summary-box" style="background: #eef2ff;"><span>Total Final Acumulado:</span><br><strong id="resTotal"></strong></div>
                 </div>
             </div>
         </div>
@@ -210,32 +224,25 @@
             style: 'currency', currency: 'COP', maximumFractionDigits: 0
         });
 
-        // --- LÓGICA DE FORMATO MONETARIO (PEDIDO ESPECIAL) ---
+        // Eventos de formato monetario
         document.querySelectorAll('.currency-input').forEach(input => {
-            // Al entrar: quitar formato y mostrar valor crudo
             input.addEventListener('focus', (e) => {
                 const rawValue = e.target.getAttribute('data-value') || "0";
                 e.target.value = rawValue === "0" ? "" : rawValue;
             });
-
-            // Al salir: formatear y guardar valor crudo
             input.addEventListener('blur', (e) => {
                 const val = e.target.value.replace(/[^0-9]/g, '');
                 const numVal = parseInt(val) || 0;
                 e.target.setAttribute('data-value', numVal);
                 e.target.value = formatter.format(numVal);
             });
-            
-            // Valor inicial por defecto
             input.value = formatter.format(0);
         });
 
-        // --- MANEJO DE UI ---
         document.getElementById('chkReinvertir').addEventListener('change', e => {
             document.getElementById('seccionReinversion').classList.toggle('active', e.target.checked);
         });
 
-        // --- LÓGICA DE NEGOCIO Y PERSISTENCIA ---
         let db = JSON.parse(localStorage.getItem('inv_simulations')) || [];
 
         function renderHistory() {
@@ -253,7 +260,7 @@
                 const li = document.createElement('li');
                 li.className = 'history-item';
                 li.innerHTML = `
-                    <div class="info" onclick="cargarSimulacion(${index})">
+                    <div class="info" onclick="cargarSimulacion(${index})" style="flex-grow: 1;">
                         <b>${item.nombre}</b>
                         <span>${formatter.format(item.totalFinal)} (${item.dias} días)</span>
                     </div>
@@ -261,6 +268,39 @@
                 `;
                 list.appendChild(li);
             });
+        }
+
+        // Función central para calcular datos y generar el HTML del desglose
+        function calcularDatosRender(montoInicial, tasaEA, dias, numR, extra) {
+            const tasaPeriodo = Math.pow(1 + (tasaEA/100), dias/365) - 1;
+            let capital = montoInicial;
+            let gananciasNetasTotal = 0;
+            let htmlPeriodos = '';
+
+            for(let i = 0; i <= numR; i++) {
+                if(i > 0) capital += extra;
+                let gBruta = capital * tasaPeriodo;
+                let neta = gBruta * 0.96; // Descuento del 4%
+                
+                htmlPeriodos += `
+                    <div class="period-item">
+                        <div>
+                            <strong>Periodo ${i + 1} ${i > 0 ? '(Reinversión)' : ''}</strong><br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">
+                                Base: ${formatter.format(capital)}
+                            </span>
+                        </div>
+                        <div style="text-align: right; color: var(--success-color); font-weight: bold;">
+                            + ${formatter.format(neta)}
+                        </div>
+                    </div>
+                `;
+                
+                gananciasNetasTotal += neta;
+                capital += neta;
+            }
+
+            return { totalFinal: capital, gananciasNetasTotal, htmlPeriodos };
         }
 
         function guardarYCalcular() {
@@ -275,34 +315,24 @@
             const numR = reinv ? parseInt(document.getElementById('numReinversiones').value) : 0;
             const extra = reinv ? parseInt(document.getElementById('abonoExtra').getAttribute('data-value')) : 0;
 
-            // Calculo
-            const tasaPeriodo = Math.pow(1 + (tasaEA/100), dias/365) - 1;
-            let capital = montoInicial;
-            let gananciasNetasTotal = 0;
-
-            for(let i=0; i <= numR; i++) {
-                if(i > 0) capital += extra;
-                let gBruta = capital * tasaPeriodo;
-                let neta = gBruta * 0.96; // Menos 4% retefuente
-                gananciasNetasTotal += neta;
-                capital += neta;
-            }
+            const calc = calcularDatosRender(montoInicial, tasaEA, dias, numR, extra);
 
             const nuevaSim = {
                 nombre, montoInicial, tasaEA, dias, numR, extra, 
-                totalFinal: capital, gananciasNetasTotal, fecha: new Date().toISOString()
+                totalFinal: calc.totalFinal, fecha: new Date().toISOString()
             };
 
             db.push(nuevaSim);
             localStorage.setItem('inv_simulations', JSON.stringify(db));
             
-            mostrarResultadoUI(nuevaSim);
+            mostrarResultadoUI(calc);
             renderHistory();
         }
 
-        function mostrarResultadoUI(sim) {
-            document.getElementById('resGanancias').innerText = formatter.format(sim.gananciasNetasTotal);
-            document.getElementById('resTotal').innerText = formatter.format(sim.totalFinal);
+        function mostrarResultadoUI(calcData) {
+            document.getElementById('listaPeriodos').innerHTML = calcData.htmlPeriodos;
+            document.getElementById('resGanancias').innerText = formatter.format(calcData.gananciasNetasTotal);
+            document.getElementById('resTotal').innerText = formatter.format(calcData.totalFinal);
             document.getElementById('resultados').style.display = 'block';
         }
 
@@ -313,14 +343,19 @@
             document.getElementById('montoInicial').value = formatter.format(sim.montoInicial);
             document.getElementById('tasaEA').value = sim.tasaEA;
             document.getElementById('dias').value = sim.dias;
+            
             document.getElementById('chkReinvertir').checked = sim.numR > 0;
             document.getElementById('seccionReinversion').classList.toggle('active', sim.numR > 0);
+            
             if(sim.numR > 0) {
                 document.getElementById('numReinversiones').value = sim.numR;
                 document.getElementById('abonoExtra').setAttribute('data-value', sim.extra);
                 document.getElementById('abonoExtra').value = formatter.format(sim.extra);
             }
-            mostrarResultadoUI(sim);
+
+            // Recalcular para obtener el desglose al cargar
+            const calc = calcularDatosRender(sim.montoInicial, sim.tasaEA, sim.dias, sim.numR, sim.extra);
+            mostrarResultadoUI(calc);
         }
 
         function eliminarSimulacion(e, index) {
