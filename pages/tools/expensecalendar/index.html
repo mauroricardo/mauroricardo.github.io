@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Gastos y Menús - V37 Expandida</title>
+    <title>Control de Gastos y Menús - V38 Expandida</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -751,6 +751,40 @@
             display: none !important; 
         }
 
+        /* ESTILOS PARA EL LOADER DE LA API */
+        .api-loader {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            transform: translateY(100px);
+            opacity: 0;
+        }
+
+        .api-loader.visible {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        @keyframes spin { 
+            100% { transform: rotate(360deg); } 
+        }
+        .spinner-icon {
+            display: inline-block;
+            animation: spin 2s linear infinite;
+        }
+
         @media (max-width: 768px) {
             header { 
                 padding: 10px; 
@@ -888,6 +922,14 @@
                 padding-top: 10px; 
                 flex-wrap: wrap;
             }
+            
+            .api-loader {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                justify-content: center;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -970,6 +1012,11 @@
     </div>
     <div id="calendarGrid" class="calendar-grid"></div>
 </main>
+
+<div id="apiLoader" class="api-loader">
+    <span id="apiLoaderIcon" class="spinner-icon">⏳</span>
+    <span id="apiLoaderText">Conectando a la nube (puede tardar 1 min)...</span>
+</div>
 
 <div id="expenseModal" class="modal">
     <div class="modal-content">
@@ -1070,11 +1117,11 @@
     let editingPocketIndex = null;
     let appMode = 'expenses'; 
     
-    // DB V37
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v37')) || {}; 
+    // DB V38
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v38')) || {}; 
 
     if (Object.keys(db).length === 0) {
-        const history = ['v36', 'v35', 'v34', 'v33', 'v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
+        const history = ['v37', 'v36', 'v35', 'v34', 'v33', 'v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) { 
@@ -1157,39 +1204,66 @@
     const API_URL = 'https://mauroricardo-github-io.onrender.com/api/sync';
     
     async function loadFromCloud() {
+        const loader = document.getElementById('apiLoader');
+        const loaderIcon = document.getElementById('apiLoaderIcon');
+        const loaderText = document.getElementById('apiLoaderText');
+        
+        // Mostrar loader
+        loader.classList.add('visible');
+        loader.style.backgroundColor = '#3b82f6';
+        loaderIcon.innerText = '⏳';
+        loaderIcon.classList.add('spinner-icon');
+        loaderText.innerText = 'Conectando a la nube (puede tardar 1 min)...';
+        
         try {
             const response = await fetch(API_URL);
+            
             if (response.ok && response.status !== 204) {
                 const cloudData = await response.json();
                 if (cloudData && Object.keys(cloudData).length > 0) {
                     db = cloudData;
                     Object.keys(db).forEach(k => { 
-                        if (!db[k].menus) {
-                            db[k].menus = {}; 
-                        }
+                        if (!db[k].menus) db[k].menus = {}; 
                         if (db[k].pockets) {
                             db[k].pockets.forEach(p => { 
-                                if(!p.appMode) {
-                                    p.appMode = 'expenses'; 
-                                }
+                                if(!p.appMode) p.appMode = 'expenses'; 
                             });
                         }
                         if (db[k].expenses) {
                             Object.keys(db[k].expenses).forEach(day => {
                                 db[k].expenses[day].forEach(e => {
-                                    if (e.isCompleted === undefined) {
-                                        e.isCompleted = false;
-                                    }
+                                    if (e.isCompleted === undefined) e.isCompleted = false;
                                 });
                             });
                         }
                     });
                     saveDB(); 
                     render();
+                    
+                    loader.style.backgroundColor = '#10b981'; // Éxito (verde)
+                    loaderIcon.innerText = '✅';
+                    loaderIcon.classList.remove('spinner-icon');
+                    loaderText.innerText = 'Datos descargados correctamente';
+                } else {
+                    loader.style.backgroundColor = '#10b981';
+                    loaderIcon.innerText = '✅';
+                    loaderIcon.classList.remove('spinner-icon');
+                    loaderText.innerText = 'La nube está sincronizada';
                 }
+            } else {
+                throw new Error("Respuesta vacía o error del servidor");
             }
         } catch (e) { 
-            console.warn("Iniciando en modo offline."); 
+            console.warn("Iniciando en modo offline.", e); 
+            loader.style.backgroundColor = '#ef4444'; // Error (rojo)
+            loaderIcon.innerText = '❌';
+            loaderIcon.classList.remove('spinner-icon');
+            loaderText.innerText = 'Trabajando en modo offline';
+        } finally {
+            // Ocultar el loader después de 4 segundos
+            setTimeout(() => {
+                loader.classList.remove('visible');
+            }, 4000);
         }
     }
 
@@ -1245,6 +1319,8 @@
         };
         
         changeMonth(); 
+        
+        // Carga asíncrona (el UI ya está visible y usable)
         loadFromCloud();
     }
 
@@ -2025,7 +2101,6 @@
         render(); 
     }
 
-    // NUEVA FUNCION: Mover a otro día
     function changeExpenseDay(idx, newDayStr) {
         const newDay = parseInt(newDayStr);
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
@@ -2307,7 +2382,7 @@
     }
     
     function saveDB() { 
-        localStorage.setItem('expenseAppDB_v37', JSON.stringify(db)); 
+        localStorage.setItem('expenseAppDB_v38', JSON.stringify(db)); 
     }
     
     function exportData() { 
