@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Gastos y Menús - V36 Expandida</title>
+    <title>Control de Gastos y Menús - V37 Expandida</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -1070,11 +1070,11 @@
     let editingPocketIndex = null;
     let appMode = 'expenses'; 
     
-    // DB V36
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v36')) || {}; 
+    // DB V37
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v37')) || {}; 
 
     if (Object.keys(db).length === 0) {
-        const history = ['v35', 'v34', 'v33', 'v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
+        const history = ['v36', 'v35', 'v34', 'v33', 'v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) { 
@@ -1117,7 +1117,6 @@
         return moneyFormatter.format(amount); 
     }
 
-    // NUEVAS FUNCIONES PARA ENMASCARAR INPUTS
     function formatMoneyInput(el) {
         let raw = el.value.replace(/\D/g, '');
         el.value = raw ? formatMoney(parseFloat(raw)) : '';
@@ -1492,7 +1491,6 @@
 
     function generatePocketInput(idx, field, label, val) {
         val = val || 0;
-        // Se quitó el <span> del signo $ para delegarlo al input
         return `
             <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:4px; border-radius:4px; border: 1px solid #e2e8f0;">
                 <span style="font-size:0.7rem; color:#64748b; font-weight:700;">${label}:</span>
@@ -1577,7 +1575,6 @@
             div.style.backgroundColor = baseColor + '33'; 
             div.style.border = `1px solid ${baseColor}66`;
             
-            // Se quitó el <span> del signo $ para delegarlo al input de Disponible Real
             div.innerHTML = `
                 <div class="pocket-header">
                     <span>${p.type === 'credit' ? '💳' : '💵'} ${p.name}</span>
@@ -1975,7 +1972,6 @@
         const pocketSelect = document.getElementById('pocketSelect');
         const recurInput = document.getElementById('recurInput');
         
-        // Se limpia cualquier caracter que no sea número antes de convertir
         const amount = parseFloat(amountInput.value.replace(/\D/g, '')); 
         
         if(!pocketSelect.value || isNaN(amount) || amount <= 0) return;
@@ -2029,6 +2025,35 @@
         render(); 
     }
 
+    // NUEVA FUNCION: Mover a otro día
+    function changeExpenseDay(idx, newDayStr) {
+        const newDay = parseInt(newDayStr);
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+        
+        if (isNaN(newDay) || newDay < 1 || newDay > daysInMonth) {
+            alert("Día inválido para este mes.");
+            renderModalList(); 
+            return;
+        }
+        
+        if (newDay === activeDay) return;
+        
+        const key = getKey(selectedYear, selectedMonth);
+        
+        // Sacar del día actual
+        const exp = db[key].expenses[activeDay].splice(idx, 1)[0];
+        
+        // Meter al nuevo día
+        if (!db[key].expenses[newDay]) {
+            db[key].expenses[newDay] = [];
+        }
+        db[key].expenses[newDay].push(exp);
+        
+        saveDB();
+        renderModalList();
+        render(); 
+    }
+
     function moveExpense(idx, direction) {
         const key = getKey(selectedYear, selectedMonth);
         const exps = db[key].expenses[activeDay];
@@ -2070,7 +2095,7 @@
                 
                 let newExp = JSON.parse(JSON.stringify(originalExpense)); 
                 newExp.linkedMenu = ""; 
-                newExp.isCompleted = false; // Al replicar, nace sin completar
+                newExp.isCompleted = false; 
                 db[key].expenses[d].push(newExp); 
                 count++;
             }
@@ -2101,7 +2126,6 @@
                         amount: currentExpense.amount, 
                         pocketId: currentExpense.pocketId, 
                         isRecurring: currentExpense.isRecurring 
-                        // isCompleted no se actualiza masivamente para no desmarcar pagos ya hechos
                     }); 
                     count++; 
                 }
@@ -2140,6 +2164,7 @@
         const key = getKey(selectedYear, selectedMonth);
         const exps = db[key].expenses[activeDay] || [];
         const pockets = db[key].pockets.filter(p => p.appMode === 'expenses');
+        const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
         
         exps.forEach((exp, i) => {
             const pk = pockets.find(p => p.id === exp.pocketId);
@@ -2160,6 +2185,11 @@
                 </div>
                 
                 <div class="expense-info">
+                    <input type="number" class="editable-input" title="Mover a otro día" 
+                           style="width:45px; text-align:center; font-weight:bold; color:var(--primary); border: 1px dashed var(--border);" 
+                           value="${activeDay}" min="1" max="${daysInMonth}" 
+                           onchange="changeExpenseDay(${i}, this.value)">
+                           
                     <input type="text" class="editable-input" value="${exp.desc}" onchange="updateExpense(${i}, 'desc', this.value)">
                     
                     <select class="pocket-select-badge" style="background:${color}4D; border:1px solid ${color}66" onchange="updateExpense(${i}, 'pocketId', this.value)">
@@ -2277,7 +2307,7 @@
     }
     
     function saveDB() { 
-        localStorage.setItem('expenseAppDB_v36', JSON.stringify(db)); 
+        localStorage.setItem('expenseAppDB_v37', JSON.stringify(db)); 
     }
     
     function exportData() { 
