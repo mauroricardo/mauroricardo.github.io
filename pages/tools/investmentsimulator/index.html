@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Inversión Virtual</title>
+    <style>
+        :root {
+            --primary-color: #2b5cff;
+            --primary-hover: #1e45c7;
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border-color: #e1e4e8;
+            --success-color: #00a650;
+            --radius: 12px;
+            --shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .calculator-card {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 600px;
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        input[type="number"] {
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--primary-color);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .hidden-section {
+            display: none;
+            background-color: #f9fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .hidden-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 1rem;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .results {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px dashed var(--border-color);
+            display: none;
+        }
+
+        .period-breakdown {
+            margin-bottom: 1.5rem;
+        }
+
+        .period-item {
+            background: var(--bg-color);
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .summary-box {
+            background: #f9fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-box span {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-box strong {
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .summary-box.total strong {
+            color: var(--success-color);
+            font-size: 1.3rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0; /* El margen inferior de cada form-group ya se encarga del espaciado */
+    }
+    
+    body {
+        padding: 1rem; /* Reduce el espacio exterior para aprovechar mejor la pantalla */
+    }
+    
+    .calculator-card {
+        padding: 1.5rem;
+    }
+}
+
+    </style>
+</head>
+<body>
+
+    <div class="calculator-card">
+        <h2>Simulador Inversión</h2>
+        
+        <div class="form-group">
+            <label for="montoInicial">Monto Inicial (COP)</label>
+            <input type="number" id="montoInicial" placeholder="Ej: 1000000" min="500000" step="10000">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="dias">Tiempo (Días)</label>
+                <input type="number" id="dias" placeholder="Ej: 90" min="30">
+            </div>
+            <div class="form-group">
+                <label for="tasaEA">Tasa E.A. (%)</label>
+                <input type="number" id="tasaEA" placeholder="Ej: 10.5" step="0.01">
+            </div>
+        </div>
+
+        <label class="checkbox-group">
+            <input type="checkbox" id="chkReinvertir">
+            Activar reinversión automática
+        </label>
+
+        <div class="hidden-section" id="seccionReinversion">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="numReinversiones">Cantidad de reinversiones</label>
+                    <input type="number" id="numReinversiones" placeholder="Ej: 3" min="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label for="abonoExtra">Abono extra por reinversión</label>
+                    <input type="number" id="abonoExtra" placeholder="Ej: 200000" min="0" value="0">
+                </div>
+            </div>
+        </div>
+
+        <button onclick="calcularInversion()">Calcular Proyección</button>
+
+        <div class="results" id="resultados">
+            <h3>Desglose por Periodos</h3>
+            <div class="period-breakdown" id="listaPeriodos"></div>
+            
+            <h3>Resumen Final</h3>
+            <div class="summary-grid">
+                <div class="summary-box">
+                    <span>Inversión Inicial</span>
+                    <strong id="resInicial">$0</strong>
+                </div>
+                <div class="summary-box">
+                    <span>Abonos Extras Totales</span>
+                    <strong id="resAbonos">$0</strong>
+                </div>
+                <div class="summary-box">
+                    <span>Ganancias Totales (Neto)*</span>
+                    <strong id="resGanancias">$0</strong>
+                </div>
+                <div class="summary-box total">
+                    <span>Total Acumulado</span>
+                    <strong id="resTotal">$0</strong>
+                </div>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem; text-align: center;">
+                *Las ganancias netas ya tienen descontado el 4% de Retención en la Fuente habitual.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Formateador de moneda COP
+        const formatoCOP = new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            maximumFractionDigits: 0
+        });
+
+        // Toggle para la sección de reinversión
+        document.getElementById('chkReinvertir').addEventListener('change', function() {
+            const seccion = document.getElementById('seccionReinversion');
+            if (this.checked) {
+                seccion.classList.add('active');
+            } else {
+                seccion.classList.remove('active');
+            }
+        });
+
+        function calcularInversion() {
+            // Captura de datos
+            const montoInicial = parseFloat(document.getElementById('montoInicial').value) || 0;
+            const dias = parseInt(document.getElementById('dias').value) || 0;
+            const tasaEA = parseFloat(document.getElementById('tasaEA').value) || 0;
+            
+            const reinvertir = document.getElementById('chkReinvertir').checked;
+            const numReinversiones = reinvertir ? (parseInt(document.getElementById('numReinversiones').value) || 0) : 0;
+            const abonoExtra = reinvertir ? (parseFloat(document.getElementById('abonoExtra').value) || 0) : 0;
+
+            // Validaciones básicas
+            if (montoInicial <= 0 || dias <= 0 || tasaEA <= 0) {
+                alert("Por favor ingresa el monto inicial, los días y la tasa.");
+                return;
+            }
+
+            // Cálculo de tasa periódica a partir de la E.A.
+            const tasaDecimal = tasaEA / 100;
+            const tasaPeriodo = Math.pow(1 + tasaDecimal, dias / 365) - 1;
+
+            let capitalActual = montoInicial;
+            let totalGanancias = 0;
+            let totalAbonos = 0;
+            let htmlPeriodos = '';
+
+            const totalPeriodos = 1 + numReinversiones;
+
+            for (let i = 1; i <= totalPeriodos; i++) {
+                let abonoAplicado = 0;
+                
+                // Aplicar abono extra si es una reinversión (periodos > 1)
+                if (i > 1 && reinvertir) {
+                    abonoAplicado = abonoExtra;
+                    capitalActual += abonoAplicado;
+                    totalAbonos += abonoAplicado;
+                }
+
+                // Cálculo de rendimientos
+                let gananciaBruta = capitalActual * tasaPeriodo;
+                let retencion = gananciaBruta * 0.04; // 4% de Retefuente
+                let gananciaNeta = gananciaBruta - retencion;
+
+                totalGanancias += gananciaNeta;
+                
+                htmlPeriodos += `
+                    <div class="period-item">
+                        <div>
+                            <strong>Periodo ${i} ${i > 1 ? '(Reinversión)' : ''}</strong><br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">
+                                Base: ${formatoCOP.format(capitalActual)}
+                            </span>
+                        </div>
+                        <div style="text-align: right; color: var(--success-color); font-weight: bold;">
+                            + ${formatoCOP.format(gananciaNeta)}
+                        </div>
+                    </div>
+                `;
+
+                // Sumar la ganancia al capital para el siguiente periodo (Interés Compuesto)
+                capitalActual += gananciaNeta;
+            }
+
+            // Renderizar resultados
+            document.getElementById('listaPeriodos').innerHTML = htmlPeriodos;
+            document.getElementById('resInicial').innerText = formatoCOP.format(montoInicial);
+            document.getElementById('resAbonos').innerText = formatoCOP.format(totalAbonos);
+            document.getElementById('resGanancias').innerText = formatoCOP.format(totalGanancias);
+            document.getElementById('resTotal').innerText = formatoCOP.format(capitalActual);
+
+            document.getElementById('resultados').style.display = 'block';
+        }
+    </script>
+
+</body>
+</html>
