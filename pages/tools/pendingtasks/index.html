@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Pendientes</title>
+    <title>Gestión de Pendientes Pro</title>
     <style>
         :root {
             --bg-color: #f4f4f9;
             --text-color: #333;
             --primary: #4a90e2;
+            --secondary: #6c757d;
+            --success: #28a745;
             --border: #ddd;
             
             /* Gamas de colores para urgencia */
@@ -30,6 +32,18 @@
             max-width: 650px;
             margin: 2rem auto;
             padding: 0 1rem;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
         }
 
         .tabs {
@@ -54,13 +68,8 @@
             margin-bottom: -2px;
         }
 
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
         .form-group {
             display: flex;
@@ -84,21 +93,16 @@
             border: none;
         }
 
-        button:hover { background-color: #357abd; }
+        button:hover { opacity: 0.9; }
         
         .btn-danger { background-color: var(--overdue); }
-        .btn-danger:hover { background-color: #c82333; }
+        .btn-success { background-color: var(--success); }
+        .btn-secondary { background-color: var(--secondary); }
         
         .btn-edit { background-color: #ffc107; color: #333; }
-        .btn-edit:hover { background-color: #e0a800; }
-        
-        .btn-cancel { background-color: #6c757d; display: none; }
-        .btn-cancel:hover { background-color: #5a6268; }
+        .btn-cancel { background-color: var(--secondary); display: none; }
 
-        .task-list {
-            list-style: none;
-            padding: 0;
-        }
+        .task-list { list-style: none; padding: 0; }
 
         .task-item {
             background: white;
@@ -109,14 +113,13 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: background-color 0.3s ease;
         }
 
         .task-content { flex: 1; }
         .task-title { margin: 0 0 0.25rem 0; font-weight: bold; }
         .task-meta { margin: 0; font-size: 0.85rem; color: #666; }
 
-        /* Clases de urgencia inyectadas por JS */
+        /* Estilos de urgencia */
         .u-3d { background-color: var(--urgency-3d); }
         .u-2d { background-color: var(--urgency-2d); }
         .u-1d { background-color: var(--urgency-1d); }
@@ -125,18 +128,24 @@
         .u-2h { background-color: var(--urgency-2h); }
         .u-1h { background-color: var(--urgency-1h); color: white;}
         .u-overdue { background-color: var(--overdue); color: white; }
-        
         .u-1h .task-meta, .u-overdue .task-meta { color: #ffeaea; }
 
+        #import-input { display: none; }
     </style>
 </head>
 <body>
 
+    <div class="header-actions">
+        <button class="btn-success btn-small" onclick="exportTasks()">⬇ Exportar JSON</button>
+        <button class="btn-secondary btn-small" onclick="document.getElementById('import-input').click()">⬆ Importar JSON</button>
+        <input type="file" id="import-input" accept=".json" onchange="importTasks(event)">
+    </div>
+
     <h2>Gestor de Pendientes</h2>
 
     <div class="tabs">
-        <button class="tab active" onclick="switchTab('active')">Pendientes Activos</button>
-        <button class="tab" onclick="switchTab('completed')">Completados</button>
+        <button class="tab active" onclick="switchTab('active')">Activos</button>
+        <button class="tab" onclick="switchTab('completed')">Historial</button>
     </div>
 
     <div id="tab-active" class="tab-content active">
@@ -152,16 +161,15 @@
 
     <div id="tab-completed" class="tab-content">
         <div style="text-align: right; margin-bottom: 1rem;">
-            <button class="btn-danger" onclick="clearHistory()">Limpiar Historial</button>
+            <button class="btn-danger btn-small" onclick="clearHistory()">Limpiar Historial</button>
         </div>
         <ul id="completed-list" class="task-list"></ul>
     </div>
 
     <script>
         const STORAGE_KEY = 'app_pendientes_data';
-
         let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        let editingId = null; // Estado para saber si estamos editando
+        let editingId = null;
 
         const form = document.getElementById('task-form');
         const submitBtn = document.getElementById('submit-btn');
@@ -175,20 +183,54 @@
             setInterval(renderTasks, 60000); 
         }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        // --- IMPORTACIÓN / EXPORTACIÓN ---
+        
+        function exportTasks() {
+            if (tasks.length === 0) return alert("No hay tareas para exportar.");
             
-            event.target.classList.add('active');
-            document.getElementById(`tab-${tabId}`).classList.add('active');
+            const dataStr = JSON.stringify(tasks, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `respaldo_pendientes_${new Date().toISOString().slice(0,10)}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
         }
+
+        function importTasks(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedTasks = JSON.parse(e.target.result);
+                    if (Array.isArray(importedTasks)) {
+                        if (confirm("¿Deseas reemplazar tus tareas actuales con el archivo importado?")) {
+                            tasks = importedTasks;
+                            saveTasks();
+                            alert("Importación exitosa.");
+                        }
+                    } else {
+                        alert("El archivo no tiene el formato correcto.");
+                    }
+                } catch (err) {
+                    alert("Error al leer el archivo JSON.");
+                }
+                event.target.value = ''; // Reset input
+            };
+            reader.readAsText(file);
+        }
+
+        // --- LÓGICA CORE ---
 
         function saveTasks() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
             renderTasks();
         }
 
-        // Maneja tanto creación como actualización
         function handleFormSubmit(e) {
             e.preventDefault();
             const text = document.getElementById('task-text').value;
@@ -196,49 +238,37 @@
             const time = document.getElementById('task-time').value;
 
             if (editingId) {
-                // Actualizar pendiente existente
-                const taskIndex = tasks.findIndex(t => t.id === editingId);
-                if (taskIndex !== -1) {
-                    tasks[taskIndex].text = text;
-                    tasks[taskIndex].date = date || null;
-                    tasks[taskIndex].time = time || null;
+                const idx = tasks.findIndex(t => t.id === editingId);
+                if (idx !== -1) {
+                    tasks[idx].text = text;
+                    tasks[idx].date = date || null;
+                    tasks[idx].time = time || null;
                 }
-                cancelEdit(); // Limpia el estado de edición
+                cancelEdit();
             } else {
-                // Agregar nuevo
-                const newTask = {
+                tasks.push({
                     id: Date.now().toString(),
-                    text,
-                    date: date || null,
-                    time: time || null,
-                    completed: false,
-                    completedAt: null
-                };
-                tasks.push(newTask);
+                    text, date: date || null, time: time || null,
+                    completed: false, completedAt: null
+                });
             }
-
             saveTasks();
-            if(!editingId) form.reset();
+            form.reset();
         }
 
-        // Carga los datos en el formulario para editar
         function editTask(id) {
             const task = tasks.find(t => t.id === id);
             if (task) {
                 document.getElementById('task-text').value = task.text;
                 document.getElementById('task-date').value = task.date || '';
                 document.getElementById('task-time').value = task.time || '';
-                
                 editingId = id;
                 submitBtn.innerText = 'Actualizar';
-                cancelBtn.style.display = 'block'; // Muestra botón de cancelar
-                
-                // Hace scroll hacia arriba para ver el formulario si la lista es larga
+                cancelBtn.style.display = 'block';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
-        // Cancela la edición y devuelve el formulario a su estado original
         function cancelEdit() {
             editingId = null;
             form.reset();
@@ -251,65 +281,40 @@
             if (task) {
                 task.completed = !task.completed;
                 task.completedAt = task.completed ? new Date().toISOString() : null;
-                // Si se completa mientras se edita, cancelamos la edición
                 if (editingId === id) cancelEdit();
                 saveTasks();
             }
         }
 
         function deleteTask(id) {
-            tasks = tasks.filter(t => t.id !== id);
-            if (editingId === id) cancelEdit(); // Reset si se borra el que se está editando
-            saveTasks();
+            if(confirm("¿Borrar este pendiente?")) {
+                tasks = tasks.filter(t => t.id !== id);
+                if (editingId === id) cancelEdit();
+                saveTasks();
+            }
         }
 
         function clearHistory() {
-            if(confirm('¿Seguro que deseas borrar el historial?')) {
+            if(confirm('¿Seguro que deseas borrar TODO el historial?')) {
                 tasks = tasks.filter(t => !t.completed);
                 saveTasks();
             }
         }
 
+        // --- UI & RENDERING ---
+
         function getUrgencyClass(dateStr, timeStr) {
             if (!dateStr) return '';
-
             const now = new Date();
-            const targetDateStr = timeStr ? `${dateStr}T${timeStr}` : `${dateStr}T23:59:59`;
-            const target = new Date(targetDateStr);
-            
+            const target = new Date(timeStr ? `${dateStr}T${timeStr}` : `${dateStr}T23:59:59`);
             const diffMs = target - now;
-            const diffHours = diffMs / (1000 * 60 * 60);
+            const diffHrs = diffMs / 36e5;
 
             if (diffMs < 0) return 'u-overdue';
+            if (timeStr && diffHrs <= 3) return diffHrs <= 1 ? 'u-1h' : (diffHrs <= 2 ? 'u-2h' : 'u-3h');
 
-            if (timeStr && diffHours <= 3) {
-                if (diffHours <= 1) return 'u-1h';
-                if (diffHours <= 2) return 'u-2h';
-                return 'u-3h';
-            }
-
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-            const diffCalendarDays = Math.round((targetDay - today) / (1000 * 60 * 60 * 24));
-
-            if (diffCalendarDays === 0) return 'u-today';
-            if (diffCalendarDays === 1) return 'u-1d';
-            if (diffCalendarDays === 2) return 'u-2d';
-            if (diffCalendarDays === 3) return 'u-3d';
-
-            return '';
-        }
-
-        function formatDateTime(dateStr, timeStr) {
-            if (!dateStr) return 'Sin fecha límite';
-            let str = `Límite: ${dateStr}`;
-            if (timeStr) str += ` a las ${timeStr}`;
-            return str;
-        }
-
-        function formatCompletedAt(isoStr) {
-            const d = new Date(isoStr);
-            return `Completado el: ${d.toLocaleDateString()} a las ${d.toLocaleTimeString()}`;
+            const diffDays = Math.round((new Date(target.toDateString()) - new Date(now.toDateString())) / 864e5);
+            return diffDays <= 3 ? `u-${diffDays === 0 ? 'today' : diffDays + 'd'}` : '';
         }
 
         function renderTasks() {
@@ -319,33 +324,35 @@
             tasks.forEach(task => {
                 const li = document.createElement('li');
                 li.className = 'task-item';
+                const isComp = task.completed;
 
-                if (!task.completed) {
-                    const urgencyClass = getUrgencyClass(task.date, task.time);
-                    if (urgencyClass) li.classList.add(urgencyClass);
-
-                    li.innerHTML = `
-                        <input type="checkbox" onchange="toggleComplete('${task.id}')">
-                        <div class="task-content">
-                            <p class="task-title">${task.text}</p>
-                            <p class="task-meta">${formatDateTime(task.date, task.time)}</p>
-                        </div>
-                        <button class="btn-edit" onclick="editTask('${task.id}')" title="Editar">✎</button>
-                        <button class="btn-danger" onclick="deleteTask('${task.id}')" title="Borrar">X</button>
-                    `;
-                    activeList.appendChild(li);
-                } else {
-                    li.innerHTML = `
-                        <input type="checkbox" checked onchange="toggleComplete('${task.id}')">
-                        <div class="task-content">
-                            <p class="task-title" style="text-decoration: line-through;">${task.text}</p>
-                            <p class="task-meta">${formatCompletedAt(task.completedAt)}</p>
-                        </div>
-                        <button class="btn-danger" onclick="deleteTask('${task.id}')" title="Borrar">X</button>
-                    `;
-                    completedList.appendChild(li);
+                if (!isComp) {
+                    const urgency = getUrgencyClass(task.date, task.time);
+                    if (urgency) li.classList.add(urgency);
                 }
+
+                li.innerHTML = `
+                    <input type="checkbox" ${isComp ? 'checked' : ''} onchange="toggleComplete('${task.id}')">
+                    <div class="task-content">
+                        <p class="task-title" style="${isComp ? 'text-decoration:line-through' : ''}">${task.text}</p>
+                        <p class="task-meta">
+                            ${isComp ? 'Completado: ' + new Date(task.completedAt).toLocaleString() 
+                                     : (task.date ? `Límite: ${task.date} ${task.time || ''}` : 'Sin límite')}
+                        </p>
+                    </div>
+                    ${!isComp ? `<button class="btn-edit" onclick="editTask('${task.id}')">✎</button>` : ''}
+                    <button class="btn-danger" onclick="deleteTask('${task.id}')">X</button>
+                `;
+                
+                (isComp ? completedList : activeList).appendChild(li);
             });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
         }
 
         init();
