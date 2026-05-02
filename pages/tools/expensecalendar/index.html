@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Gastos y Menús - V38 Expandida</title>
+    <title>Control de Gastos y Menús - V39 Expandida</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -751,7 +751,6 @@
             display: none !important; 
         }
 
-        /* ESTILOS PARA EL LOADER DE LA API */
         .api-loader {
             position: fixed;
             bottom: 20px;
@@ -1117,11 +1116,11 @@
     let editingPocketIndex = null;
     let appMode = 'expenses'; 
     
-    // DB V38
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v38')) || {}; 
+    // DB V39
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v39')) || {}; 
 
     if (Object.keys(db).length === 0) {
-        const history = ['v37', 'v36', 'v35', 'v34', 'v33', 'v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
+        const history = ['v38', 'v37', 'v36', 'v35', 'v34', 'v33', 'v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) { 
@@ -1132,22 +1131,16 @@
     }
     
     Object.keys(db).forEach(k => {
-        if (!db[k].menus) {
-            db[k].menus = {}; 
-        }
+        if (!db[k].menus) db[k].menus = {}; 
         if (db[k].pockets) {
             db[k].pockets.forEach(p => { 
-                if(!p.appMode) {
-                    p.appMode = 'expenses'; 
-                }
+                if(!p.appMode) p.appMode = 'expenses'; 
             });
         }
         if (db[k].expenses) {
             Object.keys(db[k].expenses).forEach(day => {
                 db[k].expenses[day].forEach(e => {
-                    if (e.isCompleted === undefined) {
-                        e.isCompleted = false;
-                    }
+                    if (e.isCompleted === undefined) e.isCompleted = false;
                 });
             });
         }
@@ -1208,7 +1201,6 @@
         const loaderIcon = document.getElementById('apiLoaderIcon');
         const loaderText = document.getElementById('apiLoaderText');
         
-        // Mostrar loader
         loader.classList.add('visible');
         loader.style.backgroundColor = '#3b82f6';
         loaderIcon.innerText = '⏳';
@@ -1240,7 +1232,7 @@
                     saveDB(); 
                     render();
                     
-                    loader.style.backgroundColor = '#10b981'; // Éxito (verde)
+                    loader.style.backgroundColor = '#10b981';
                     loaderIcon.innerText = '✅';
                     loaderIcon.classList.remove('spinner-icon');
                     loaderText.innerText = 'Datos descargados correctamente';
@@ -1255,15 +1247,12 @@
             }
         } catch (e) { 
             console.warn("Iniciando en modo offline.", e); 
-            loader.style.backgroundColor = '#ef4444'; // Error (rojo)
+            loader.style.backgroundColor = '#ef4444';
             loaderIcon.innerText = '❌';
             loaderIcon.classList.remove('spinner-icon');
             loaderText.innerText = 'Trabajando en modo offline';
         } finally {
-            // Ocultar el loader después de 4 segundos
-            setTimeout(() => {
-                loader.classList.remove('visible');
-            }, 4000);
+            setTimeout(() => { loader.classList.remove('visible'); }, 4000);
         }
     }
 
@@ -1308,19 +1297,10 @@
             ms.add(new Option(m, i, false, i === selectedMonth));
         });
         
-        ys.onchange = e => { 
-            selectedYear = parseInt(e.target.value); 
-            changeMonth(); 
-        };
-        
-        ms.onchange = e => { 
-            selectedMonth = parseInt(e.target.value); 
-            changeMonth(); 
-        };
+        ys.onchange = e => { selectedYear = parseInt(e.target.value); changeMonth(); };
+        ms.onchange = e => { selectedMonth = parseInt(e.target.value); changeMonth(); };
         
         changeMonth(); 
-        
-        // Carga asíncrona (el UI ya está visible y usable)
         loadFromCloud();
     }
 
@@ -1348,13 +1328,8 @@
             } else { 
                 db[key].menus = {}; 
                 db[key].pockets = db[key].pockets.filter(p => p.appMode === 'expenses');
-                
                 Object.keys(db[key].expenses).forEach(day => { 
-                    db[key].expenses[day].forEach(e => { 
-                        if (e.linkedMenu) {
-                            e.linkedMenu = ""; 
-                        }
-                    }); 
+                    db[key].expenses[day].forEach(e => { if (e.linkedMenu) e.linkedMenu = ""; }); 
                 });
             }
             saveDB(); 
@@ -1371,29 +1346,18 @@
         let prevMonth = selectedMonth - 1;
         let prevYear = selectedYear;
         
-        if(prevMonth < 0) { 
-            prevMonth = 11; 
-            prevYear--; 
-        }
-        
+        if(prevMonth < 0) { prevMonth = 11; prevYear--; }
         const prevKey = getKey(prevYear, prevMonth);
         
         if(db[prevKey]) {
-            if(!db[curKey]) {
-                db[curKey] = { pockets: [], expenses: {}, menus: {} };
-            }
+            if(!db[curKey]) db[curKey] = { pockets: [], expenses: {}, menus: {} };
             
             if (appMode === 'expenses') {
                 const prevExpPockets = db[prevKey].pockets.filter(p => (!p.appMode || p.appMode === 'expenses'));
                 const curMenuPockets = db[curKey].pockets.filter(p => p.appMode === 'menus');
                 
                 db[curKey].pockets = [...curMenuPockets, ...JSON.parse(JSON.stringify(prevExpPockets))];
-                
-                db[curKey].pockets.forEach(p => { 
-                    if(p.appMode === 'expenses') {
-                        p.realAvailable = 0; 
-                    }
-                });
+                db[curKey].pockets.forEach(p => { if(p.appMode === 'expenses') p.realAvailable = 0; });
                 
                 db[curKey].expenses = {};
                 const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
@@ -1408,22 +1372,14 @@
                     if (recExps.length > 0) {
                         let cOcc = 0;
                         let tDay = null;
-                        
                         for (let d = 1; d <= daysInCurrentMonth; d++) {
                             if (new Date(selectedYear, selectedMonth, d).getDay() === dw) { 
                                 cOcc++; 
-                                if (cOcc === occ) { 
-                                    tDay = d; 
-                                    break; 
-                                } 
+                                if (cOcc === occ) { tDay = d; break; } 
                             }
                         }
-                        
                         if (tDay !== null) {
-                            if (!db[curKey].expenses[tDay]) {
-                                db[curKey].expenses[tDay] = [];
-                            }
-                            
+                            if (!db[curKey].expenses[tDay]) db[curKey].expenses[tDay] = [];
                             recExps.forEach(exp => { 
                                 let nExp = JSON.parse(JSON.stringify(exp)); 
                                 nExp.internalId = generateInternalId(); 
@@ -1437,13 +1393,10 @@
             } else {
                 const prevMenuPockets = db[prevKey].pockets.filter(p => p.appMode === 'menus');
                 const curExpPockets = db[curKey].pockets.filter(p => p.appMode === 'expenses');
-                
                 db[curKey].pockets = [...curExpPockets, ...JSON.parse(JSON.stringify(prevMenuPockets))];
                 db[curKey].menus = JSON.parse(JSON.stringify(db[prevKey].menus || {}));
             }
-            saveDB(); 
-            render(); 
-            alert(`${txt} copiados con éxito.`);
+            saveDB(); render(); alert(`${txt} copiados con éxito.`);
         } else {
             alert("No hay información registrada en el mes anterior para copiar.");
         }
@@ -1452,13 +1405,10 @@
     function getLinkedTotalsMap(key) {
         let linkedTotals = {}; 
         const data = db[key];
-        
         if (data && data.expenses) {
             Object.keys(data.expenses).forEach(dayStr => {
                 data.expenses[dayStr].forEach(exp => {
-                    if (exp.linkedMenu) { 
-                        linkedTotals[exp.linkedMenu] = (linkedTotals[exp.linkedMenu] || 0) + exp.amount; 
-                    }
+                    if (exp.linkedMenu) { linkedTotals[exp.linkedMenu] = (linkedTotals[exp.linkedMenu] || 0) + exp.amount; }
                 });
             });
         }
@@ -1482,12 +1432,9 @@
         if (appMode === 'expenses') {
             const expPockets = data.pockets.filter(p => p.appMode === 'expenses');
             const autoIncome = expPockets.reduce((sum, p) => sum + p.limit, 0);
-            
             document.getElementById('incomeDisplay').innerText = formatMoney(autoIncome);
             
-            let totalSpent = 0;
-            let totalCredit = 0;
-            let totalCash = 0;
+            let totalSpent = 0, totalCredit = 0, totalCash = 0;
             let totalRealAv = expPockets.reduce((s, p) => s + (p.realAvailable || 0), 0);
             let pending = 0;
             
@@ -1498,25 +1445,15 @@
                 const dayNum = parseInt(dayStr);
                 data.expenses[dayStr].forEach(exp => {
                     totalSpent += exp.amount;
-                    
                     const p = data.pockets.find(pk => pk.id === exp.pocketId);
+                    if (p && p.type === 'credit') totalCredit += exp.amount; else totalCash += exp.amount; 
                     
-                    if (p && p.type === 'credit') {
-                        totalCredit += exp.amount; 
-                    } else { 
-                        totalCash += exp.amount; 
-                    }
-                    
-                    if(exp.pocketId && pocketSpending[exp.pocketId] !== undefined) {
-                        pocketSpending[exp.pocketId] += exp.amount;
-                    }
+                    if(exp.pocketId && pocketSpending[exp.pocketId] !== undefined) pocketSpending[exp.pocketId] += exp.amount;
                     
                     if (!exp.isCompleted) {
                         if (isFut || (isCur && dayNum >= currentDate.getDate())) {
                             pending += exp.amount;
-                            if(exp.pocketId && pocketPending[exp.pocketId] !== undefined) {
-                                pocketPending[exp.pocketId] += exp.amount;
-                            }
+                            if(exp.pocketId && pocketPending[exp.pocketId] !== undefined) pocketPending[exp.pocketId] += exp.amount;
                         }
                     }
                 });
@@ -1541,9 +1478,7 @@
                 psEl.innerText = formatMoney(pb);
                 psEl.style.color = pb >= 0 ? "#86efac" : "#fca5a5"; 
             } else { 
-                peEl.innerText = "-"; 
-                psEl.innerText = "-"; 
-                psEl.style.color = "white"; 
+                peEl.innerText = "-"; psEl.innerText = "-"; psEl.style.color = "white"; 
             }
         }
         
@@ -1555,14 +1490,9 @@
         const num = parseFloat(val.replace(/\D/g, '')) || 0;
         const key = getKey(selectedYear, selectedMonth);
         const p = db[key].pockets[idx];
-        
-        if (!p.menuExpenses) {
-            p.menuExpenses = {};
-        }
-        
+        if (!p.menuExpenses) p.menuExpenses = {};
         p.menuExpenses[field] = num;
-        saveDB(); 
-        render();
+        saveDB(); render();
     }
 
     function generatePocketInput(idx, field, label, val) {
@@ -1599,18 +1529,14 @@
         
         data.pockets.forEach((p, idx) => {
             const isMenuPocket = p.appMode === 'menus';
-            
             if (appMode === 'expenses' && isMenuPocket) return;
             if (appMode === 'menus' && !isMenuPocket) return;
 
             let spent = 0;
-            
             if (isMenuPocket) {
                 const me = p.menuExpenses || {};
                 spent = (me.q1 || 0) + (me.q2 || 0);
-                for(let i = 1; i <= numWeeks; i++) {
-                    spent += (me[`w${i}`] || 0);
-                }
+                for(let i = 1; i <= numWeeks; i++) spent += (me[`w${i}`] || 0);
             } else {
                 spent = spendingMap[p.id] || 0;
             }
@@ -1626,22 +1552,14 @@
             
             if (isMenuPocket) {
                 const me = p.menuExpenses || {};
-                
-                let qHtml = `
-                    <div style="font-size:0.75rem; color:#475569; font-weight:700; margin-bottom:5px;">Gastos Fijos:</div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                        ${generatePocketInput(idx, 'q1', 'Quincena 1', me.q1)}
-                        ${generatePocketInput(idx, 'q2', 'Quincena 2', me.q2)}
-                    </div>`;
-                             
-                let wHtml = `
-                    <div style="font-size:0.75rem; color:#475569; font-weight:700; margin:10px 0 5px;">Gastos x Semana:</div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
-                             
-                for(let i = 1; i <= numWeeks; i++) { 
-                    wHtml += generatePocketInput(idx, `w${i}`, `Semana ${i}`, me[`w${i}`]); 
-                }
-                
+                let qHtml = `<div style="font-size:0.75rem; color:#475569; font-weight:700; margin-bottom:5px;">Gastos Fijos:</div>
+                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                                ${generatePocketInput(idx, 'q1', 'Quincena 1', me.q1)}
+                                ${generatePocketInput(idx, 'q2', 'Quincena 2', me.q2)}
+                             </div>`;
+                let wHtml = `<div style="font-size:0.75rem; color:#475569; font-weight:700; margin:10px 0 5px;">Gastos x Semana:</div>
+                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
+                for(let i = 1; i <= numWeeks; i++) wHtml += generatePocketInput(idx, `w${i}`, `Semana ${i}`, me[`w${i}`]); 
                 wHtml += `</div>`;
                 extraHTML = `<div style="margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">${qHtml}${wHtml}</div>`;
             }
@@ -1705,74 +1623,29 @@
     function getColombianHolidays(year) {
         const holidays = {}; 
         const dateToStr = (date) => `${date.getMonth()}-${date.getDate()}`;
-        
-        const fixedHolidays = [
-            [0, 1, "Año Nuevo"], 
-            [4, 1, "Día del Trabajo"], 
-            [6, 20, "Independencia"], 
-            [7, 7, "Batalla de Boyacá"], 
-            [11, 8, "Inm. Concepción"], 
-            [11, 25, "Navidad"]
-        ];
-        
+        const fixedHolidays = [[0, 1, "Año Nuevo"], [4, 1, "Día del Trabajo"], [6, 20, "Independencia"], [7, 7, "Batalla de Boyacá"], [11, 8, "Inm. Concepción"], [11, 25, "Navidad"]];
         fixedHolidays.forEach(([m, d, name]) => holidays[`${m}-${d}`] = name);
         
-        const emilianiHolidays = [
-            [0, 6, "Reyes Magos"], 
-            [2, 19, "San José"], 
-            [5, 29, "San Pedro y San Pablo"], 
-            [7, 15, "Asunción"], 
-            [9, 12, "Día de la Raza"], 
-            [10, 1, "Todos los Santos"], 
-            [10, 11, "Indep. Cartagena"]
-        ];
-        
+        const emilianiHolidays = [[0, 6, "Reyes Magos"], [2, 19, "San José"], [5, 29, "San Pedro y San Pablo"], [7, 15, "Asunción"], [9, 12, "Día de la Raza"], [10, 1, "Todos los Santos"], [10, 11, "Indep. Cartagena"]];
         emilianiHolidays.forEach(([m, d, name]) => { 
             let date = new Date(year, m, d); 
-            if (date.getDay() !== 1) { 
-                date.setDate(date.getDate() + (8 - date.getDay()) % 7); 
-            } 
+            if (date.getDay() !== 1) date.setDate(date.getDate() + (8 - date.getDay()) % 7); 
             holidays[dateToStr(date)] = name; 
         });
         
-        const a = year % 19;
-        const b = Math.floor(year / 100);
-        const c = year % 100;
-        const d = Math.floor(b / 4);
-        const e = b % 4;
-        const f = Math.floor((b + 8) / 25);
-        const g = Math.floor((b - f + 1) / 3);
-        const h = (19 * a + b - d - g + 15) % 30;
-        const i = Math.floor(c / 4);
-        const k = c % 4;
-        const l = (32 + 2 * e + 2 * i - h - k) % 7;
-        const m = Math.floor((a + 11 * h + 22 * l) / 451);
-        
-        const monthEaster = Math.floor((h + l - 7 * m + 114) / 31) - 1;
-        const dayEaster = ((h + l - 7 * m + 114) % 31) + 1;
-        
+        const a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const monthEaster = Math.floor((h + l - 7 * m + 114) / 31) - 1, dayEaster = ((h + l - 7 * m + 114) % 31) + 1;
         const easterDate = new Date(year, monthEaster, dayEaster); 
-        const thursday = new Date(easterDate); 
-        thursday.setDate(easterDate.getDate() - 3); 
-        const friday = new Date(easterDate); 
-        friday.setDate(easterDate.getDate() - 2);
-        
-        holidays[dateToStr(thursday)] = "Jueves Santo"; 
-        holidays[dateToStr(friday)] = "Viernes Santo";
+        const thursday = new Date(easterDate); thursday.setDate(easterDate.getDate() - 3); 
+        const friday = new Date(easterDate); friday.setDate(easterDate.getDate() - 2);
+        holidays[dateToStr(thursday)] = "Jueves Santo"; holidays[dateToStr(friday)] = "Viernes Santo";
         
         const addDays = (days) => { 
-            let dateObj = new Date(easterDate); 
-            dateObj.setDate(dateObj.getDate() + days); 
-            if (dateObj.getDay() !== 1) { 
-                dateObj.setDate(dateObj.getDate() + (8 - dateObj.getDay()) % 7); 
-            } 
+            let dateObj = new Date(easterDate); dateObj.setDate(dateObj.getDate() + days); 
+            if (dateObj.getDay() !== 1) dateObj.setDate(dateObj.getDate() + (8 - dateObj.getDay()) % 7); 
             return dateObj; 
         };
-        
-        holidays[dateToStr(addDays(40))] = "Ascensión"; 
-        holidays[dateToStr(addDays(61))] = "Corpus Christi"; 
-        holidays[dateToStr(addDays(68))] = "Sagrado Corazón";
-        
+        holidays[dateToStr(addDays(40))] = "Ascensión"; holidays[dateToStr(addDays(61))] = "Corpus Christi"; holidays[dateToStr(addDays(68))] = "Sagrado Corazón";
         return holidays;
     }
 
@@ -1782,7 +1655,6 @@
         
         const key = getKey(selectedYear, selectedMonth);
         const linkedTotals = getLinkedTotalsMap(key); 
-        
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
         
         let firstDayIndex = new Date(selectedYear, selectedMonth, 1).getDay(); 
@@ -1792,9 +1664,7 @@
         const dayNamesShort = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
         
         for(let i = 0; i < firstDayIndex; i++) { 
-            const emptyCell = document.createElement('div'); 
-            emptyCell.className = 'day-cell empty'; 
-            grid.appendChild(emptyCell); 
+            const emptyCell = document.createElement('div'); emptyCell.className = 'day-cell empty'; grid.appendChild(emptyCell); 
         }
         
         const isCurrentMonth = (selectedYear === currentDate.getFullYear() && selectedMonth === currentDate.getMonth());
@@ -1806,30 +1676,21 @@
             
             const loopDate = new Date(selectedYear, selectedMonth, d);
             const dayNameStr = dayNamesShort[loopDate.getDay()];
-            
             const hName = holidays[`${selectedMonth}-${d}`];
             const hBadge = hName ? `<span class="holiday-badge" title="${hName}">${hName}</span>` : '';
             
-            let contentHTML = '';
-            let bottomHTML = '';
+            let contentHTML = ''; let bottomHTML = '';
 
             if (appMode === 'expenses') {
                 const dayExps = data.expenses[d] || [];
-                let dayTotal = 0;
-                let dayCash = 0;
-                let dayCredit = 0;
+                let dayTotal = 0, dayCash = 0, dayCredit = 0;
                 
                 dayExps.forEach((exp, i) => {
                     dayTotal += exp.amount;
                     const pocket = data.pockets.find(p => p.id === exp.pocketId);
                     const pType = pocket ? pocket.type : 'cash';
                     const isLinked = exp.linkedMenu ? '🍽️ ' : '';
-                    
-                    if (pType === 'credit') { 
-                        dayCredit += exp.amount; 
-                    } else { 
-                        dayCash += exp.amount; 
-                    }
+                    if (pType === 'credit') dayCredit += exp.amount; else dayCash += exp.amount; 
                     
                     if (i < 6) { 
                         const completedClass = exp.isCompleted ? 'expense-completed' : '';
@@ -1841,10 +1702,7 @@
                     }
                 });
                 
-                if (dayExps.length > 6) { 
-                    contentHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExps.length - 6} más</div>`; 
-                }
-                
+                if (dayExps.length > 6) contentHTML += `<div style="font-size:0.7rem; color:#64748b; text-align:center;">+ ${dayExps.length - 6} más</div>`; 
                 if (dayTotal > 0) { 
                     bottomHTML = `
                         <div class="day-totals-container">
@@ -1855,34 +1713,10 @@
                 }
             } else {
                 const menuDay = data.menus[d] || {};
-                const tB = linkedTotals[`${d}-b`];
-                const tL = linkedTotals[`${d}-l`];
-                const tD = linkedTotals[`${d}-d`];
-                
-                if (menuDay.b || tB) { 
-                    contentHTML += `
-                        <div class="meal-preview" title="${menuDay.b || 'Comida vinculada'}">
-                            <span class="meal-icon">🍳</span>
-                            <span class="meal-text">${menuDay.b || '---'}</span>
-                            ${tB ? `<span class="meal-cost-badge">${formatMoney(tB)}</span>` : ''}
-                        </div>`; 
-                }
-                if (menuDay.l || tL) { 
-                    contentHTML += `
-                        <div class="meal-preview" title="${menuDay.l || 'Comida vinculada'}">
-                            <span class="meal-icon">🍲</span>
-                            <span class="meal-text">${menuDay.l || '---'}</span>
-                            ${tL ? `<span class="meal-cost-badge">${formatMoney(tL)}</span>` : ''}
-                        </div>`; 
-                }
-                if (menuDay.d || tD) { 
-                    contentHTML += `
-                        <div class="meal-preview" title="${menuDay.d || 'Comida vinculada'}">
-                            <span class="meal-icon">🥗</span>
-                            <span class="meal-text">${menuDay.d || '---'}</span>
-                            ${tD ? `<span class="meal-cost-badge">${formatMoney(tD)}</span>` : ''}
-                        </div>`; 
-                }
+                const tB = linkedTotals[`${d}-b`], tL = linkedTotals[`${d}-l`], tD = linkedTotals[`${d}-d`];
+                if (menuDay.b || tB) contentHTML += `<div class="meal-preview" title="${menuDay.b || 'Comida vinculada'}"><span class="meal-icon">🍳</span><span class="meal-text">${menuDay.b || '---'}</span>${tB ? `<span class="meal-cost-badge">${formatMoney(tB)}</span>` : ''}</div>`; 
+                if (menuDay.l || tL) contentHTML += `<div class="meal-preview" title="${menuDay.l || 'Comida vinculada'}"><span class="meal-icon">🍲</span><span class="meal-text">${menuDay.l || '---'}</span>${tL ? `<span class="meal-cost-badge">${formatMoney(tL)}</span>` : ''}</div>`; 
+                if (menuDay.d || tD) contentHTML += `<div class="meal-preview" title="${menuDay.d || 'Comida vinculada'}"><span class="meal-icon">🥗</span><span class="meal-text">${menuDay.d || '---'}</span>${tD ? `<span class="meal-cost-badge">${formatMoney(tD)}</span>` : ''}</div>`; 
             }
 
             cell.innerHTML = `
@@ -1896,13 +1730,7 @@
                 <div class="day-previews-container">${contentHTML}</div>
                 ${bottomHTML}
             `;
-            
-            cell.onclick = (e) => { 
-                if (e.target.tagName !== 'INPUT') { 
-                    openDayModal(d); 
-                } 
-            };
-            
+            cell.onclick = (e) => { if (e.target.tagName !== 'INPUT') openDayModal(d); };
             grid.appendChild(cell);
         }
     }
@@ -1917,19 +1745,14 @@
             document.getElementById('modalTitle').innerText = "Gastos: " + titleStr;
             const sel = document.getElementById('pocketSelect'); 
             sel.innerHTML = '';
-            
             const pockets = db[key].pockets.filter(p => p.appMode === 'expenses');
-            
             if (pockets.length === 0) { 
                 sel.add(new Option("¡Crea un bolsillo!", "")); 
                 document.getElementById('amountInput').disabled = true; 
             } else { 
                 document.getElementById('amountInput').disabled = false; 
-                pockets.forEach(p => { 
-                    sel.add(new Option(`${p.type === 'credit' ? '💳' : '💵'} ${p.name}`, p.id)); 
-                }); 
+                pockets.forEach(p => { sel.add(new Option(`${p.type === 'credit' ? '💳' : '💵'} ${p.name}`, p.id)); }); 
             }
-            
             document.getElementById('expenseModal').style.display = 'flex'; 
             renderModalList(); 
             document.getElementById('descInput').focus();
@@ -1942,40 +1765,16 @@
             document.getElementById('menuL').value = menuData.l || ''; 
             document.getElementById('menuD').value = menuData.d || '';
             
-            const lblB = document.getElementById('lblCostB');
-            const lblL = document.getElementById('lblCostL');
-            const lblD = document.getElementById('lblCostD');
+            const lblB = document.getElementById('lblCostB'), lblL = document.getElementById('lblCostL'), lblD = document.getElementById('lblCostD');
+            const tB = linkedTotals[`${day}-b`], tL = linkedTotals[`${day}-l`], tD = linkedTotals[`${day}-d`];
             
-            const tB = linkedTotals[`${day}-b`];
-            const tL = linkedTotals[`${day}-l`];
-            const tD = linkedTotals[`${day}-d`];
-            
-            if (tB) { 
-                lblB.innerText = `($ ${formatMoney(tB)})`; 
-                lblB.classList.remove('hidden'); 
-            } else { 
-                lblB.classList.add('hidden'); 
-            }
-            
-            if (tL) { 
-                lblL.innerText = `($ ${formatMoney(tL)})`; 
-                lblL.classList.remove('hidden'); 
-            } else { 
-                lblL.classList.add('hidden'); 
-            }
-            
-            if (tD) { 
-                lblD.innerText = `($ ${formatMoney(tD)})`; 
-                lblD.classList.remove('hidden'); 
-            } else { 
-                lblD.classList.add('hidden'); 
-            }
-            
+            if (tB) { lblB.innerText = `($ ${formatMoney(tB)})`; lblB.classList.remove('hidden'); } else { lblB.classList.add('hidden'); }
+            if (tL) { lblL.innerText = `($ ${formatMoney(tL)})`; lblL.classList.remove('hidden'); } else { lblL.classList.add('hidden'); }
+            if (tD) { lblD.innerText = `($ ${formatMoney(tD)})`; lblD.classList.remove('hidden'); } else { lblD.classList.add('hidden'); }
             document.getElementById('menuModal').style.display = 'flex';
         }
     }
 
-    // --- LOGICA DE MENUS ---
     function saveMenu() {
         const key = getKey(selectedYear, selectedMonth);
         db[key].menus[activeDay] = { 
@@ -1983,65 +1782,40 @@
             l: document.getElementById('menuL').value.trim(), 
             d: document.getElementById('menuD').value.trim() 
         };
-        
-        saveDB(); 
-        closeModal('menuModal');
+        saveDB(); closeModal('menuModal');
     }
 
     function replicateMenu() {
         if(!confirm("¿Copiar este menú a todos los mismos días de las próximas semanas del mes?")) return;
-        
         const key = getKey(selectedYear, selectedMonth);
         const menuToCopy = db[key].menus[activeDay] || {b:'', l:'', d:''};
         const currentDayOfWeek = new Date(selectedYear, selectedMonth, activeDay).getDay();
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-        
         let count = 0;
-        
         for (let d = activeDay + 1; d <= daysInMonth; d++) { 
             if (new Date(selectedYear, selectedMonth, d).getDay() === currentDayOfWeek) { 
-                db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy)); 
-                count++; 
+                db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy)); count++; 
             } 
         }
-        
-        saveDB(); 
-        render(); 
-        alert(`Menú copiado a ${count} día(s) futuros.`);
+        saveDB(); render(); alert(`Menú copiado a ${count} día(s) futuros.`);
     }
 
     function replicateMenuWeek() {
         if(!confirm("¿Copiar este menú a los días restantes de ESTA semana (hasta el Domingo)?")) return;
-        
         const key = getKey(selectedYear, selectedMonth);
         const menuToCopy = db[key].menus[activeDay] || {b:'', l:'', d:''};
         const date = new Date(selectedYear, selectedMonth, activeDay); 
-        
-        let dayOfWeek = date.getDay(); 
-        let jsDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        let daysLeft = 6 - jsDay;
-        
+        let dayOfWeek = date.getDay(); let jsDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1; let daysLeft = 6 - jsDay;
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
         let count = 0;
-        
         for (let i = 1; i <= daysLeft; i++) { 
             let d = activeDay + i; 
-            if (d <= daysInMonth) { 
-                db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy)); 
-                count++; 
-            } 
+            if (d <= daysInMonth) { db[key].menus[d] = JSON.parse(JSON.stringify(menuToCopy)); count++; } 
         }
-        
-        if(count > 0) { 
-            saveDB(); 
-            render(); 
-            alert(`Menú copiado a ${count} día(s) de ESTA semana.`); 
-        } else { 
-            alert("No hay más días en esta semana para copiar."); 
-        }
+        if(count > 0) { saveDB(); render(); alert(`Menú copiado a ${count} día(s) de ESTA semana.`); } 
+        else { alert("No hay más días en esta semana para copiar."); }
     }
 
-    // --- LOGICA DE GASTOS EXISTENTE ---
     function addExpense() {
         const descInput = document.getElementById('descInput');
         const amountInput = document.getElementById('amountInput');
@@ -2049,14 +1823,10 @@
         const recurInput = document.getElementById('recurInput');
         
         const amount = parseFloat(amountInput.value.replace(/\D/g, '')); 
-        
         if(!pocketSelect.value || isNaN(amount) || amount <= 0) return;
         
         const key = getKey(selectedYear, selectedMonth); 
-        
-        if(!db[key].expenses[activeDay]) { 
-            db[key].expenses[activeDay] = []; 
-        }
+        if(!db[key].expenses[activeDay]) db[key].expenses[activeDay] = []; 
         
         db[key].expenses[activeDay].push({ 
             desc: descInput.value.trim() || 'Varios', 
@@ -2068,32 +1838,63 @@
             isCompleted: false 
         });
         
-        descInput.value = ''; 
-        amountInput.value = ''; 
-        descInput.focus(); 
-        recurInput.checked = false; 
-        
-        saveDB(); 
-        renderModalList();
+        descInput.value = ''; amountInput.value = ''; descInput.focus(); recurInput.checked = false; 
+        saveDB(); renderModalList();
     }
 
     function deleteExpense(idx) { 
-        db[getKey(selectedYear, selectedMonth)].expenses[activeDay].splice(idx, 1); 
+        const key = getKey(selectedYear, selectedMonth);
+        const exp = db[key].expenses[activeDay][idx];
+        
+        // Si borramos un gasto completado, devolvemos el dinero al bolsillo
+        if (exp.isCompleted) {
+            const p = db[key].pockets.find(pk => pk.id === exp.pocketId);
+            if (p) p.realAvailable = (p.realAvailable || 0) + exp.amount;
+        }
+        
+        db[key].expenses[activeDay].splice(idx, 1); 
         saveDB(); 
-        renderModalList(); 
+        renderModalList();
+        render(); 
     }
 
     function updateExpense(idx, field, val) {
         const key = getKey(selectedYear, selectedMonth);
         const exps = db[key].expenses[activeDay];
+        const exp = exps[idx];
         
-        if(field === 'amount') { 
+        // LÓGICA DE ACTUALIZACIÓN INTELIGENTE DEL DISPONIBLE REAL
+        if (field === 'isCompleted') {
+            const p = db[key].pockets.find(pk => pk.id === exp.pocketId);
+            if (p) {
+                if (val === true && !exp.isCompleted) {
+                    p.realAvailable = Math.max(0, (p.realAvailable || 0) - exp.amount);
+                } else if (val === false && exp.isCompleted) {
+                    p.realAvailable = (p.realAvailable || 0) + exp.amount;
+                }
+            }
+            exp.isCompleted = val;
+        } else if(field === 'amount') { 
             const n = parseFloat(val.toString().replace(/\D/g, '')); 
             if(!isNaN(n) && n > 0) { 
-                exps[idx].amount = n; 
+                if (exp.isCompleted) {
+                    const p = db[key].pockets.find(pk => pk.id === exp.pocketId);
+                    if (p) {
+                        p.realAvailable = Math.max(0, (p.realAvailable || 0) + exp.amount - n);
+                    }
+                }
+                exp.amount = n; 
             } 
+        } else if (field === 'pocketId') {
+            if (exp.isCompleted) {
+                const pOld = db[key].pockets.find(pk => pk.id === exp.pocketId);
+                const pNew = db[key].pockets.find(pk => pk.id === val);
+                if (pOld) pOld.realAvailable = (pOld.realAvailable || 0) + exp.amount;
+                if (pNew) pNew.realAvailable = Math.max(0, (pNew.realAvailable || 0) - exp.amount);
+            }
+            exp[field] = val; 
         } else { 
-            exps[idx][field] = val; 
+            exp[field] = val; 
         }
         
         saveDB(); 
@@ -2110,18 +1911,11 @@
             renderModalList(); 
             return;
         }
-        
         if (newDay === activeDay) return;
         
         const key = getKey(selectedYear, selectedMonth);
-        
-        // Sacar del día actual
         const exp = db[key].expenses[activeDay].splice(idx, 1)[0];
-        
-        // Meter al nuevo día
-        if (!db[key].expenses[newDay]) {
-            db[key].expenses[newDay] = [];
-        }
+        if (!db[key].expenses[newDay]) db[key].expenses[newDay] = [];
         db[key].expenses[newDay].push(exp);
         
         saveDB();
@@ -2134,29 +1928,18 @@
         const exps = db[key].expenses[activeDay];
         
         if (direction === 'up' && idx > 0) { 
-            const temp = exps[idx]; 
-            exps[idx] = exps[idx - 1]; 
-            exps[idx - 1] = temp; 
+            const temp = exps[idx]; exps[idx] = exps[idx - 1]; exps[idx - 1] = temp; 
         } else if (direction === 'down' && idx < exps.length - 1) { 
-            const temp = exps[idx]; 
-            exps[idx] = exps[idx + 1]; 
-            exps[idx + 1] = temp; 
-        } else { 
-            return; 
-        }
+            const temp = exps[idx]; exps[idx] = exps[idx + 1]; exps[idx + 1] = temp; 
+        } else { return; }
         
-        saveDB(); 
-        renderModalList(); 
-        render(); 
+        saveDB(); renderModalList(); render(); 
     }
 
     function replicateExpense(idx) {
         const key = getKey(selectedYear, selectedMonth);
         const originalExpense = db[key].expenses[activeDay][idx];
-        
-        if (!originalExpense.internalId) { 
-            originalExpense.internalId = generateInternalId(); 
-        }
+        if (!originalExpense.internalId) originalExpense.internalId = generateInternalId(); 
         
         const dayOfWeek = new Date(selectedYear, selectedMonth, activeDay).getDay();
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
@@ -2164,38 +1947,34 @@
         
         for (let d = activeDay + 1; d <= daysInMonth; d++) {
             if (new Date(selectedYear, selectedMonth, d).getDay() === dayOfWeek) {
-                if (!db[key].expenses[d]) { 
-                    db[key].expenses[d] = []; 
-                }
-                
+                if (!db[key].expenses[d]) db[key].expenses[d] = []; 
                 let newExp = JSON.parse(JSON.stringify(originalExpense)); 
-                newExp.linkedMenu = ""; 
-                newExp.isCompleted = false; 
+                newExp.linkedMenu = ""; newExp.isCompleted = false; 
                 db[key].expenses[d].push(newExp); 
                 count++;
             }
         }
-        
-        if (count > 0) { 
-            saveDB(); 
-            render(); 
-            alert(`Gasto replicado en ${count} día(s).`); 
-        }
+        if (count > 0) { saveDB(); render(); alert(`Gasto replicado en ${count} día(s).`); }
     }
 
     function updateAllMatchingExpenses(idx) {
         const key = getKey(selectedYear, selectedMonth);
         const currentExpense = db[key].expenses[activeDay][idx];
-        
-        if (!currentExpense.internalId) { 
-            return alert("Gasto antiguo sin ID vinculado. No se puede realizar la actualización masiva."); 
-        }
+        if (!currentExpense.internalId) return alert("Gasto antiguo sin ID vinculado. No se puede realizar la actualización masiva."); 
         
         let count = 0;
-        
         Object.keys(db[key].expenses).forEach(dayStr => {
             db[key].expenses[dayStr].forEach(exp => {
                 if (exp.internalId === currentExpense.internalId) { 
+                    
+                    // Si el gasto replicado está completado, ajustamos la caja si cambia monto o bolsillo
+                    if (exp.isCompleted && (exp.amount !== currentExpense.amount || exp.pocketId !== currentExpense.pocketId)) {
+                        const pOld = db[key].pockets.find(pk => pk.id === exp.pocketId);
+                        const pNew = db[key].pockets.find(pk => pk.id === currentExpense.pocketId);
+                        if (pOld) pOld.realAvailable = (pOld.realAvailable || 0) + exp.amount;
+                        if (pNew) pNew.realAvailable = Math.max(0, (pNew.realAvailable || 0) - currentExpense.amount);
+                    }
+
                     Object.assign(exp, { 
                         desc: currentExpense.desc, 
                         amount: currentExpense.amount, 
@@ -2207,27 +1986,18 @@
             });
         });
         
-        saveDB(); 
-        render(); 
-        alert(`Se actualizaron ${count} gastos vinculados en este mes.`);
+        saveDB(); render(); alert(`Se actualizaron ${count} gastos vinculados en este mes.`);
     }
 
     function generateMenuOptionsHTML(currentLinkedValue) {
         const key = getKey(selectedYear, selectedMonth);
         const allMenus = db[key].menus;
         let html = '<option value="">🔗 Asociar a un menú...</option>';
-        
         Object.keys(allMenus).forEach(day => {
             const m = allMenus[day];
-            if (m.b) {
-                html += `<option value="${day}-b" ${currentLinkedValue === `${day}-b` ? 'selected' : ''}>Día ${day} Des.: ${m.b.substring(0,18)}...</option>`;
-            }
-            if (m.l) {
-                html += `<option value="${day}-l" ${currentLinkedValue === `${day}-l` ? 'selected' : ''}>Día ${day} Alm.: ${m.l.substring(0,18)}...</option>`;
-            }
-            if (m.d) {
-                html += `<option value="${day}-d" ${currentLinkedValue === `${day}-d` ? 'selected' : ''}>Día ${day} Cena: ${m.d.substring(0,18)}...</option>`;
-            }
+            if (m.b) html += `<option value="${day}-b" ${currentLinkedValue === `${day}-b` ? 'selected' : ''}>Día ${day} Des.: ${m.b.substring(0,18)}...</option>`;
+            if (m.l) html += `<option value="${day}-l" ${currentLinkedValue === `${day}-l` ? 'selected' : ''}>Día ${day} Alm.: ${m.l.substring(0,18)}...</option>`;
+            if (m.d) html += `<option value="${day}-d" ${currentLinkedValue === `${day}-d` ? 'selected' : ''}>Día ${day} Cena: ${m.d.substring(0,18)}...</option>`;
         });
         return html;
     }
@@ -2244,167 +2014,97 @@
         exps.forEach((exp, i) => {
             const pk = pockets.find(p => p.id === exp.pocketId);
             const color = pk ? pk.color : '#94a3b8';
-            
             let optionsHTML = ''; 
-            pockets.forEach(p => { 
-                optionsHTML += `<option value="${p.id}" ${p.id === exp.pocketId ? 'selected' : ''}>${p.type === 'credit' ? '💳' : '💵'} ${p.name}</option>`; 
-            });
+            pockets.forEach(p => { optionsHTML += `<option value="${p.id}" ${p.id === exp.pocketId ? 'selected' : ''}>${p.type === 'credit' ? '💳' : '💵'} ${p.name}</option>`; });
             
-            const div = document.createElement('div'); 
-            div.className = 'expense-row';
-            
+            const div = document.createElement('div'); div.className = 'expense-row';
             div.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:2px; margin-right:5px;">
                     <button class="action-btn" style="padding:0 4px; font-size:0.75rem;" onclick="moveExpense(${i}, 'up')">▲</button>
                     <button class="action-btn" style="padding:0 4px; font-size:0.75rem;" onclick="moveExpense(${i}, 'down')">▼</button>
                 </div>
-                
                 <div class="expense-info">
                     <input type="number" class="editable-input" title="Mover a otro día" 
                            style="width:45px; text-align:center; font-weight:bold; color:var(--primary); border: 1px dashed var(--border);" 
                            value="${activeDay}" min="1" max="${daysInMonth}" 
                            onchange="changeExpenseDay(${i}, this.value)">
-                           
                     <input type="text" class="editable-input" value="${exp.desc}" onchange="updateExpense(${i}, 'desc', this.value)">
-                    
                     <select class="pocket-select-badge" style="background:${color}4D; border:1px solid ${color}66" onchange="updateExpense(${i}, 'pocketId', this.value)">
                         ${optionsHTML}
                     </select>
-                    
                     <select class="menu-link-select ${exp.linkedMenu ? 'linked' : ''}" onchange="updateExpense(${i}, 'linkedMenu', this.value)">
                         ${generateMenuOptionsHTML(exp.linkedMenu)}
                     </select>
                 </div>
-                
                 <div class="expense-actions">
                     <input type="text" inputmode="numeric" class="editable-input" style="width:105px; text-align:right;" 
-                           value="${formatMoney(exp.amount)}" 
-                           onfocus="unformatMoneyInput(this)" 
-                           onblur="formatMoneyInput(this); updateExpense(${i}, 'amount', this.value)">
-                    
+                           value="${formatMoney(exp.amount)}" onfocus="unformatMoneyInput(this)" onblur="formatMoneyInput(this); updateExpense(${i}, 'amount', this.value)">
                     <label title="Completado" style="cursor:pointer; display:flex; align-items:center; margin-right: 5px;">
                         <input type="checkbox" ${exp.isCompleted ? 'checked' : ''} onchange="updateExpense(${i}, 'isCompleted', this.checked)"> ✅
                     </label>
-                    
                     <label title="Recurrente" style="cursor:pointer; display:flex; align-items:center;">
                         <input type="checkbox" ${exp.isRecurring ? 'checked' : ''} onchange="updateExpense(${i}, 'isRecurring', this.checked)"> 🔄
                     </label>
-                    
                     <button class="bulk-update-btn" onclick="updateAllMatchingExpenses(${i})" title="Aplicar cambios a los demás">🔗</button>
                     <button class="action-btn" onclick="replicateExpense(${i})" title="Copiar en FUTURAS semanas">🔁</button>
                     <button class="delete-btn" onclick="deleteExpense(${i})">✕</button>
                 </div>`;
-                
             list.appendChild(div);
         });
-        
         document.getElementById('modalTotal').innerText = formatMoney(exps.reduce((a, b) => a + b.amount, 0));
     }
 
-    function closeModal(id) { 
-        document.getElementById(id).style.display = 'none'; 
-        render(); 
-    }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; render(); }
     
     function openPocketModal(idx = null) {
         editingPocketIndex = idx;
-        const nameInput = document.getElementById('newPocketName');
-        const limitInput = document.getElementById('newPocketLimit');
-        const typeInput = document.getElementById('newPocketType');
-        
+        const nameInput = document.getElementById('newPocketName'), limitInput = document.getElementById('newPocketLimit'), typeInput = document.getElementById('newPocketType');
         if(idx !== null) { 
             const pocket = db[getKey(selectedYear, selectedMonth)].pockets[idx]; 
-            nameInput.value = pocket.name; 
-            limitInput.value = pocket.limit ? formatMoney(pocket.limit) : ''; 
-            typeInput.value = pocket.type || 'cash'; 
+            nameInput.value = pocket.name; limitInput.value = pocket.limit ? formatMoney(pocket.limit) : ''; typeInput.value = pocket.type || 'cash'; 
             document.getElementById('pocketModalTitle').innerText = "Editar Bolsillo"; 
         } else { 
-            nameInput.value = ''; 
-            limitInput.value = ''; 
-            typeInput.value = 'cash'; 
+            nameInput.value = ''; limitInput.value = ''; typeInput.value = 'cash'; 
             document.getElementById('pocketModalTitle').innerText = "Nuevo Bolsillo"; 
         }
-        
-        document.getElementById('pocketModal').style.display = 'flex'; 
-        nameInput.focus();
+        document.getElementById('pocketModal').style.display = 'flex'; nameInput.focus();
     }
     
-    function editPocket(idx) { 
-        openPocketModal(idx); 
-    }
+    function editPocket(idx) { openPocketModal(idx); }
     
     function savePocket() {
         const nameInput = document.getElementById('newPocketName').value.trim();
         const limitInput = parseFloat(document.getElementById('newPocketLimit').value.replace(/\D/g, ''));
         const typeInput = document.getElementById('newPocketType').value;
-        
         if(!nameInput || isNaN(limitInput) || limitInput < 0) return;
-        
         const key = getKey(selectedYear, selectedMonth);
-        
         if(editingPocketIndex !== null) { 
-            Object.assign(db[key].pockets[editingPocketIndex], { 
-                name: nameInput, 
-                limit: limitInput, 
-                type: typeInput 
-            }); 
+            Object.assign(db[key].pockets[editingPocketIndex], { name: nameInput, limit: limitInput, type: typeInput }); 
         } else { 
-            db[key].pockets.push({ 
-                id: Date.now().toString(), 
-                name: nameInput, 
-                limit: limitInput, 
-                type: typeInput, 
-                realAvailable: 0, 
-                color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length], 
-                appMode: appMode, 
-                menuExpenses: {} 
-            }); 
+            db[key].pockets.push({ id: Date.now().toString(), name: nameInput, limit: limitInput, type: typeInput, realAvailable: 0, color: POCKET_COLORS[db[key].pockets.length % POCKET_COLORS.length], appMode: appMode, menuExpenses: {} }); 
         }
-        
-        saveDB(); 
-        closeModal('pocketModal');
+        saveDB(); closeModal('pocketModal');
     }
     
     function deletePocket(idx) {
         if(!confirm("¿Eliminar bolsillo y todos sus datos asociados?")) return;
-        
         const key = getKey(selectedYear, selectedMonth);
         const pocketId = db[key].pockets[idx].id;
-        
         db[key].pockets.splice(idx, 1); 
-        
-        Object.keys(db[key].expenses).forEach(day => { 
-            db[key].expenses[day] = db[key].expenses[day].filter(e => e.pocketId !== pocketId); 
-        });
-        
-        saveDB(); 
-        render();
+        Object.keys(db[key].expenses).forEach(day => { db[key].expenses[day] = db[key].expenses[day].filter(e => e.pocketId !== pocketId); });
+        saveDB(); render();
     }
     
-    function saveDB() { 
-        localStorage.setItem('expenseAppDB_v38', JSON.stringify(db)); 
-    }
+    function saveDB() { localStorage.setItem('expenseAppDB_v39', JSON.stringify(db)); }
     
     function exportData() { 
-        const a = document.createElement('a'); 
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(db)])); 
-        a.download = `respaldo_gastos_menus_${Date.now()}.json`; 
-        a.click(); 
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)])); a.download = `respaldo_gastos_menus_${Date.now()}.json`; a.click(); 
     }
     
     function importData(input) { 
         const reader = new FileReader(); 
-        reader.onload = e => { 
-            if(confirm("¿Sobrescribir los datos actuales?")) { 
-                db = JSON.parse(e.target.result); 
-                saveDB(); 
-                location.reload(); 
-            } 
-        }; 
-        
-        if(input.files[0]) { 
-            reader.readAsText(input.files[0]); 
-        } 
+        reader.onload = e => { if(confirm("¿Sobrescribir los datos actuales?")) { db = JSON.parse(e.target.result); saveDB(); location.reload(); } }; 
+        if(input.files[0]) reader.readAsText(input.files[0]); 
     }
 
     init();
