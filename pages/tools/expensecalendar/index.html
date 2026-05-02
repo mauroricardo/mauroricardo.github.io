@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Gastos y Menús - V39 Expandida</title>
+    <title>Control de Gastos y Menús - V40 Expandida</title>
     <style>
         :root {
             --bg: #f8fafc;
@@ -1116,11 +1116,11 @@
     let editingPocketIndex = null;
     let appMode = 'expenses'; 
     
-    // DB V39
-    let db = JSON.parse(localStorage.getItem('expenseAppDB_v39')) || {}; 
+    // DB V40
+    let db = JSON.parse(localStorage.getItem('expenseAppDB_v40')) || {}; 
 
     if (Object.keys(db).length === 0) {
-        const history = ['v38', 'v37', 'v36', 'v35', 'v34', 'v33', 'v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
+        const history = ['v39', 'v38', 'v37', 'v36', 'v35', 'v34', 'v33', 'v32', 'v31', 'v30', 'v29', 'v28', 'v27', 'v26', 'v25', 'v24', 'v23', 'v22', 'v21', 'v20'];
         for (let v of history) {
             const old = localStorage.getItem('expenseAppDB_' + v);
             if (old) { 
@@ -1157,13 +1157,26 @@
         return moneyFormatter.format(amount); 
     }
 
+    // NUEVO: Funciones robustas para leer dinero, permitiendo valores negativos si llegas a sobregirar un bolsillo
+    function parseMoneyString(val) {
+        if (val === undefined || val === null || val === '') return 0;
+        let str = val.toString();
+        let isNegative = str.includes('-');
+        let raw = str.replace(/\D/g, ''); // Quitamos todo menos números
+        let num = parseFloat(raw) || 0;
+        return isNegative ? -num : num;
+    }
+
     function formatMoneyInput(el) {
-        let raw = el.value.replace(/\D/g, '');
-        el.value = raw ? formatMoney(parseFloat(raw)) : '';
+        let num = parseMoneyString(el.value);
+        let hasNumber = el.value.replace(/\D/g, '').length > 0;
+        el.value = hasNumber ? formatMoney(num) : '';
     }
 
     function unformatMoneyInput(el) {
-        el.value = el.value.replace(/\D/g, '');
+        let num = parseMoneyString(el.value);
+        let hasNumber = el.value.replace(/\D/g, '').length > 0;
+        el.value = hasNumber ? num.toString() : '';
     }
 
     function generateInternalId() { 
@@ -1174,7 +1187,6 @@
         return `${y}-${m}`; 
     }
 
-    // --- TOGGLE MODO ---
     function setAppMode(mode) {
         appMode = mode;
         const btnExp = document.getElementById('tabExpenses');
@@ -1450,6 +1462,7 @@
                     
                     if(exp.pocketId && pocketSpending[exp.pocketId] !== undefined) pocketSpending[exp.pocketId] += exp.amount;
                     
+                    // Solo suma a pendientes los que NO están completados
                     if (!exp.isCompleted) {
                         if (isFut || (isCur && dayNum >= currentDate.getDate())) {
                             pending += exp.amount;
@@ -1472,14 +1485,11 @@
             const psEl = document.getElementById('projectionStatus');
             const peEl = document.getElementById('pendingExpenses');
             
-            if (totalRealAv > 0) {
-                peEl.innerText = formatMoney(pending);
-                const pb = totalRealAv - pending; 
-                psEl.innerText = formatMoney(pb);
-                psEl.style.color = pb >= 0 ? "#86efac" : "#fca5a5"; 
-            } else { 
-                peEl.innerText = "-"; psEl.innerText = "-"; psEl.style.color = "white"; 
-            }
+            // Si el Real es > 0 o el pending es > 0, calculamos (ahora permite calcular saldos negativos si es necesario)
+            peEl.innerText = formatMoney(pending);
+            const pb = totalRealAv - pending; 
+            psEl.innerText = formatMoney(pb);
+            psEl.style.color = pb >= 0 ? "#86efac" : "#fca5a5"; 
         }
         
         renderPockets(data, pocketSpending, pocketPending); 
@@ -1487,7 +1497,7 @@
     }
 
     function updateMenuPocketExpense(idx, field, val) {
-        const num = parseFloat(val.replace(/\D/g, '')) || 0;
+        const num = parseMoneyString(val);
         const key = getKey(selectedYear, selectedMonth);
         const p = db[key].pockets[idx];
         if (!p.menuExpenses) p.menuExpenses = {};
@@ -1546,6 +1556,7 @@
             const progressColor = spent > p.limit ? '#ef4444' : '#10b981';
             
             const pending = pendingMap ? (pendingMap[p.id] || 0) : 0;
+            // Cálculo derivado puro: Saldo Real es lo que hay FÍSICAMENTE en el bolsillo menos lo que está PENDIENTE
             const saldoReal = (p.realAvailable || 0) - pending;
             
             let extraHTML = '';
@@ -1615,7 +1626,7 @@
     }
 
     function updateRealAv(idx, val) { 
-        db[getKey(selectedYear, selectedMonth)].pockets[idx].realAvailable = parseFloat(val.replace(/\D/g, '')) || 0; 
+        db[getKey(selectedYear, selectedMonth)].pockets[idx].realAvailable = parseMoneyString(val); 
         saveDB(); 
         render(); 
     }
@@ -1822,7 +1833,7 @@
         const pocketSelect = document.getElementById('pocketSelect');
         const recurInput = document.getElementById('recurInput');
         
-        const amount = parseFloat(amountInput.value.replace(/\D/g, '')); 
+        const amount = parseMoneyString(amountInput.value); 
         if(!pocketSelect.value || isNaN(amount) || amount <= 0) return;
         
         const key = getKey(selectedYear, selectedMonth); 
@@ -1846,7 +1857,7 @@
         const key = getKey(selectedYear, selectedMonth);
         const exp = db[key].expenses[activeDay][idx];
         
-        // Si borramos un gasto completado, devolvemos el dinero al bolsillo
+        // Si borramos un gasto que YA estaba pagado, debemos devolver el dinero a la bolsa
         if (exp.isCompleted) {
             const p = db[key].pockets.find(pk => pk.id === exp.pocketId);
             if (p) p.realAvailable = (p.realAvailable || 0) + exp.amount;
@@ -1858,39 +1869,45 @@
         render(); 
     }
 
+    // --- EL CORAZÓN DE LA V40: LÓGICA EXCLUSIVA HACIA EL DISPONIBLE REAL ---
     function updateExpense(idx, field, val) {
         const key = getKey(selectedYear, selectedMonth);
         const exps = db[key].expenses[activeDay];
         const exp = exps[idx];
         
-        // LÓGICA DE ACTUALIZACIÓN INTELIGENTE DEL DISPONIBLE REAL
         if (field === 'isCompleted') {
             const p = db[key].pockets.find(pk => pk.id === exp.pocketId);
             if (p) {
+                // Si lo marco pagado, lo descuento del Disponible Real
                 if (val === true && !exp.isCompleted) {
-                    p.realAvailable = Math.max(0, (p.realAvailable || 0) - exp.amount);
-                } else if (val === false && exp.isCompleted) {
+                    p.realAvailable = (p.realAvailable || 0) - exp.amount;
+                } 
+                // Si le quito el check, el dinero regresa al Disponible Real
+                else if (val === false && exp.isCompleted) {
                     p.realAvailable = (p.realAvailable || 0) + exp.amount;
                 }
             }
             exp.isCompleted = val;
+            
         } else if(field === 'amount') { 
-            const n = parseFloat(val.toString().replace(/\D/g, '')); 
+            const n = parseMoneyString(val); 
             if(!isNaN(n) && n > 0) { 
-                if (exp.isCompleted) {
+                // Si modifico el monto de algo que ya pagué, ajusto la diferencia en el Disponible
+                if (exp.isCompleted && exp.amount !== n) {
                     const p = db[key].pockets.find(pk => pk.id === exp.pocketId);
                     if (p) {
-                        p.realAvailable = Math.max(0, (p.realAvailable || 0) + exp.amount - n);
+                        p.realAvailable = (p.realAvailable || 0) + exp.amount - n;
                     }
                 }
                 exp.amount = n; 
             } 
         } else if (field === 'pocketId') {
-            if (exp.isCompleted) {
+            // Si cambio de bolsillo un gasto que ya pagué
+            if (exp.isCompleted && exp.pocketId !== val) {
                 const pOld = db[key].pockets.find(pk => pk.id === exp.pocketId);
                 const pNew = db[key].pockets.find(pk => pk.id === val);
-                if (pOld) pOld.realAvailable = (pOld.realAvailable || 0) + exp.amount;
-                if (pNew) pNew.realAvailable = Math.max(0, (pNew.realAvailable || 0) - exp.amount);
+                if (pOld) pOld.realAvailable = (pOld.realAvailable || 0) + exp.amount; // Devuelve al viejo
+                if (pNew) pNew.realAvailable = (pNew.realAvailable || 0) - exp.amount; // Cobra al nuevo
             }
             exp[field] = val; 
         } else { 
@@ -1949,7 +1966,8 @@
             if (new Date(selectedYear, selectedMonth, d).getDay() === dayOfWeek) {
                 if (!db[key].expenses[d]) db[key].expenses[d] = []; 
                 let newExp = JSON.parse(JSON.stringify(originalExpense)); 
-                newExp.linkedMenu = ""; newExp.isCompleted = false; 
+                newExp.linkedMenu = ""; 
+                newExp.isCompleted = false; // Al replicar, nace sin completar
                 db[key].expenses[d].push(newExp); 
                 count++;
             }
@@ -1967,12 +1985,12 @@
             db[key].expenses[dayStr].forEach(exp => {
                 if (exp.internalId === currentExpense.internalId) { 
                     
-                    // Si el gasto replicado está completado, ajustamos la caja si cambia monto o bolsillo
+                    // Si el gasto replicado en otro día YA estaba pagado, y le estamos inyectando un nuevo monto o bolsillo, ajustamos su Disponible Real.
                     if (exp.isCompleted && (exp.amount !== currentExpense.amount || exp.pocketId !== currentExpense.pocketId)) {
                         const pOld = db[key].pockets.find(pk => pk.id === exp.pocketId);
                         const pNew = db[key].pockets.find(pk => pk.id === currentExpense.pocketId);
                         if (pOld) pOld.realAvailable = (pOld.realAvailable || 0) + exp.amount;
-                        if (pNew) pNew.realAvailable = Math.max(0, (pNew.realAvailable || 0) - currentExpense.amount);
+                        if (pNew) pNew.realAvailable = (pNew.realAvailable || 0) - currentExpense.amount;
                     }
 
                     Object.assign(exp, { 
@@ -2074,7 +2092,7 @@
     
     function savePocket() {
         const nameInput = document.getElementById('newPocketName').value.trim();
-        const limitInput = parseFloat(document.getElementById('newPocketLimit').value.replace(/\D/g, ''));
+        const limitInput = parseMoneyString(document.getElementById('newPocketLimit').value);
         const typeInput = document.getElementById('newPocketType').value;
         if(!nameInput || isNaN(limitInput) || limitInput < 0) return;
         const key = getKey(selectedYear, selectedMonth);
@@ -2095,7 +2113,7 @@
         saveDB(); render();
     }
     
-    function saveDB() { localStorage.setItem('expenseAppDB_v39', JSON.stringify(db)); }
+    function saveDB() { localStorage.setItem('expenseAppDB_v40', JSON.stringify(db)); }
     
     function exportData() { 
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(db)])); a.download = `respaldo_gastos_menus_${Date.now()}.json`; a.click(); 
